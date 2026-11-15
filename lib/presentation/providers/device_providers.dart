@@ -2,18 +2,30 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/device.dart';
 import '../../domain/models/product.dart';
+import '../../domain/models/workspace.dart';
+import 'auth_providers.dart';
 
-/// Provides the currently active local device.
-/// Defaults to the seeded local ADMIN device until Phase 4 implements QR pairing & PIN auth.
+/// Provides the currently active local device from [authControllerProvider].
 final currentDeviceProvider = Provider<Device>((ref) {
+  final device = ref.watch(authControllerProvider.select((s) => s.device));
+  if (device != null) return device;
+
   final now = DateTime.now();
   return Device(
-    id: 'device_seed_001',
-    displayName: 'System Administrator',
-    role: DeviceRole.admin,
+    id: 'unpaired_device',
+    displayName: 'Unpaired Device',
+    role: DeviceRole.production,
     pairedAt: now,
     lastSeenAt: now,
   );
+});
+
+final allDevicesProvider = StreamProvider<List<Device>>((ref) {
+  return ref.watch(deviceRepositoryProvider).watchAllDevices();
+});
+
+final activeWorkspaceProvider = StreamProvider<Workspace?>((ref) {
+  return ref.watch(deviceRepositoryProvider).watchActiveWorkspace();
 });
 
 bool canDeviceEditProduct(Device device, Product product) {

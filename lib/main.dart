@@ -1,28 +1,118 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/theme/app_theme.dart';
+import 'presentation/providers/auth_providers.dart';
+import 'presentation/screens/auth/pin_lock_screen.dart';
+import 'presentation/screens/onboarding/onboarding_screen.dart';
 import 'presentation/screens/recipe_library/recipe_library_screen.dart';
+import 'presentation/widgets/synprod_ui.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+
   runApp(
-    const ProviderScope(
-      child: SynProdLiteApp(),
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const SynProdLiteApp(),
     ),
   );
 }
 
-class SynProdLiteApp extends StatelessWidget {
+class SynProdLiteApp extends ConsumerWidget {
   const SynProdLiteApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'SynProd Lite',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      home: const RecipeLibraryScreen(),
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) =>
+          ref.read(authControllerProvider.notifier).recordActivity(),
+      child: MaterialApp(
+        title: 'SynProd Lite',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        home: const _AuthGate(),
+      ),
     );
+  }
+}
+
+class _AuthGate extends ConsumerStatefulWidget {
+  const _AuthGate();
+
+  @override
+  ConsumerState<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends ConsumerState<_AuthGate> {
+  bool _warningDialogOpen = false;
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen<AuthState>(authControllerProvider, (previous, next) {
+      if (next.status == AuthStatus.unlocked &&
+          next.sessionExpiringSoon &&
+          !(previous?.sessionExpiringSoon ?? false) &&
+          !_warningDialogOpen) {
+        _showSessionWarningDialog(next.remainingBeforeLock);
+      }
+    });
+
+    final authState = ref.watch(authControllerProvider);
+
+    switch (authState.status) {
+      case AuthStatus.loading:
+        return const Scaffold(
+          body: SynProdCanvas(
+            child: Center(child: CircularProgressIndicator()),
+          ),
+        );
+      case AuthStatus.needsOnboarding:
+        return const OnboardingScreen();
+      case AuthStatus.locked:
+      case AuthStatus.revoked:
+        return const PinLockScreen();
+      case AuthStatus.unlocked:
+        return const RecipeLibraryScreen();
+    }
+  }
+
+  Future<void> _showSessionWarningDialog(Duration? remaining) async {
+    _warningDialogOpen = true;
+    final mins = remaining?.inMinutes ?? 15;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Session Expiring Soon'),
+        content: Text(
+          'Your session will auto-lock in $mins minute${mins == 1 ? '' : 's'} due to inactivity.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref.read(authControllerProvider.notifier).lockNow();
+            },
+            child: const Text('Lock Now'),
+          ),
+          SynProdGradientButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              ref.read(authControllerProvider.notifier).extendSession();
+            },
+            child: const Text('Stay Unlocked'),
+          ),
+        ],
+      ),
+    );
+
+    _warningDialogOpen = false;
   }
 }

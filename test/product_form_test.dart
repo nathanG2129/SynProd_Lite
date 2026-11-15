@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:synprod_lite/domain/models/composition.dart';
 import 'package:synprod_lite/domain/models/device.dart';
@@ -10,6 +11,7 @@ import 'package:synprod_lite/domain/models/product.dart';
 import 'package:synprod_lite/domain/models/product_type.dart';
 import 'package:synprod_lite/domain/repositories/product_repository.dart';
 import 'package:synprod_lite/main.dart';
+import 'package:synprod_lite/presentation/providers/auth_providers.dart';
 import 'package:synprod_lite/presentation/providers/device_providers.dart';
 import 'package:synprod_lite/presentation/providers/product_providers.dart';
 import 'package:synprod_lite/presentation/screens/product_form/product_form_screen.dart';
@@ -134,11 +136,23 @@ void main() {
 
   testWidgets('Create product with Fill to 100% and save to repository',
       (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     final repo = _InMemoryProductRepository();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authControllerProvider.overrideWith(
+            (ref) => AuthController(
+              ref,
+              initialState: AuthState(
+                status: AuthStatus.unlocked,
+                device: makeDevice(DeviceRole.admin),
+              ),
+            ),
+          ),
           productRepositoryProvider.overrideWithValue(repo),
         ],
         child: const MaterialApp(home: ProductFormScreen()),
@@ -193,12 +207,24 @@ void main() {
 
   testWidgets('Rejects duplicate product name and invalid composition sum',
       (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     final repo = _InMemoryProductRepository();
     await repo.seedInitialDataIfEmpty();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authControllerProvider.overrideWith(
+            (ref) => AuthController(
+              ref,
+              initialState: AuthState(
+                status: AuthStatus.unlocked,
+                device: makeDevice(DeviceRole.admin),
+              ),
+            ),
+          ),
           productRepositoryProvider.overrideWithValue(repo),
         ],
         child: const SynProdLiteApp(),
@@ -256,12 +282,24 @@ void main() {
 
   testWidgets('Admin can soft-delete product with confirmation',
       (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     final repo = _InMemoryProductRepository();
     await repo.seedInitialDataIfEmpty();
 
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authControllerProvider.overrideWith(
+            (ref) => AuthController(
+              ref,
+              initialState: AuthState(
+                status: AuthStatus.unlocked,
+                device: makeDevice(DeviceRole.admin),
+              ),
+            ),
+          ),
           productRepositoryProvider.overrideWithValue(repo),
         ],
         child: const SynProdLiteApp(),
@@ -311,9 +349,21 @@ void main() {
     );
 
     // 1. PRODUCTION role on Library
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          authControllerProvider.overrideWith(
+            (ref) => AuthController(
+              ref,
+              initialState: AuthState(
+                status: AuthStatus.unlocked,
+                device: makeDevice(DeviceRole.production),
+              ),
+            ),
+          ),
           productRepositoryProvider.overrideWithValue(repo),
           currentDeviceProvider
               .overrideWithValue(makeDevice(DeviceRole.production)),
@@ -329,6 +379,7 @@ void main() {
     // 2. MANAGER role on another device's product detail
     await tester.pumpWidget(
       ProviderScope(
+        key: UniqueKey(),
         overrides: [
           productRepositoryProvider.overrideWithValue(repo),
           currentDeviceProvider

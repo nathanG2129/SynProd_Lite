@@ -49,6 +49,18 @@ dependencies:
   # Date & Number Formatting
   intl: ^0.20.1
 
+  # Security, Auth & Local Storage (Phase 4)
+  crypto: ^3.0.6
+  encrypt: ^5.0.3
+  local_auth: ^2.3.0
+  shared_preferences: ^2.3.5
+
+  # QR Pairing & Backup Sharing (Phase 4)
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^6.0.2
+  file_picker: ^8.1.7
+  share_plus: ^10.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

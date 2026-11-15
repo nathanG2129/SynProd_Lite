@@ -1,0 +1,601 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+
+import '../../../core/services/pin_auth_service.dart';
+import '../../../core/services/qr_pairing_service.dart';
+import '../../../core/services/workspace_backup_service.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../providers/auth_providers.dart';
+import '../../widgets/synprod_ui.dart';
+
+enum _OnboardingMode { choose, createAdmin, joinQr, restoreBackup }
+
+class OnboardingScreen extends ConsumerStatefulWidget {
+  const OnboardingScreen({super.key});
+
+  @override
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
+}
+
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
+  _OnboardingMode _mode = _OnboardingMode.choose;
+  bool _isBusy = false;
+  String? _error;
+
+  // Create Admin controllers
+  final _workspaceNameCtrl = TextEditingController();
+  final _deviceNameCtrl = TextEditingController();
+
+  // PIN controllers (shared across flows)
+  final _pinCtrl = TextEditingController();
+  final _confirmPinCtrl = TextEditingController();
+
+  // QR Join state
+  final _qrRawCtrl = TextEditingController();
+  QrPairingPayload? _validatedQr;
+
+  // Restore Backup state
+  String? _backupFileContent;
+  String? _backupFileName;
+  final _backupPasswordCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _workspaceNameCtrl.dispose();
+    _deviceNameCtrl.dispose();
+    _pinCtrl.dispose();
+    _confirmPinCtrl.dispose();
+    _qrRawCtrl.dispose();
+    _backupPasswordCtrl.dispose();
+    super.dispose();
+  }
+
+  void _switchMode(_OnboardingMode mode) {
+    setState(() {
+      _mode = mode;
+      _error = null;
+      _pinCtrl.clear();
+      _confirmPinCtrl.clear();
+    });
+  }
+
+  String? _validatePinFields() {
+    final pin = _pinCtrl.text.trim();
+    final confirm = _confirmPinCtrl.text.trim();
+    if (!PinAuthService.isValidPinFormat(pin)) {
+      return 'PIN must be 4 to 6 digits.';
+    }
+    if (pin != confirm) {
+      return 'PINs do not match.';
+    }
+    return null;
+  }
+
+  Future<void> _submitCreateAdmin() async {
+    final workspaceName = _workspaceNameCtrl.text.trim();
+    final deviceName = _deviceNameCtrl.text.trim();
+    if (workspaceName.isEmpty) {
+      setState(() => _error = 'Workspace name is required.');
+      return;
+    }
+    if (deviceName.isEmpty) {
+      setState(() => _error = 'Device display name is required.');
+      return;
+    }
+    final pinErr = _validatePinFields();
+    if (pinErr != null) {
+      setState(() => _error = pinErr);
+      return;
+    }
+
+    setState(() {
+      _isBusy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authControllerProvider.notifier).createWorkspaceAndAdmin(
+            workspaceName: workspaceName,
+            displayName: deviceName,
+            pin: _pinCtrl.text.trim(),
+          );
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
+  void _validateQrString(String raw) {
+    final result = ref.read(qrPairingServiceProvider).validateRawPayload(raw);
+    if (!result.isValid) {
+      setState(() {
+        _validatedQr = null;
+        _error = result.errorMessage;
+      });
+      return;
+    }
+    setState(() {
+      _validatedQr = result.payload;
+      _error = null;
+    });
+  }
+
+  Future<void> _openQrScanner() async {
+    final scanned = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.black,
+      builder: (ctx) => SizedBox(
+        height: MediaQuery.of(ctx).size.height * 0.7,
+        child: Column(
+          children: [
+            AppBar(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              title: const Text('Scan Pairing QR Code'),
+              leading: IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
+            ),
+            Expanded(
+              child: MobileScanner(
+                onDetect: (capture) {
+                  for (final barcode in capture.barcodes) {
+                    final raw = barcode.rawValue;
+                    if (raw != null && raw.isNotEmpty) {
+                      Navigator.of(ctx).pop(raw);
+                      break;
+                    }
+                  }
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (scanned != null && mounted) {
+      _qrRawCtrl.text = scanned;
+      _validateQrString(scanned);
+    }
+  }
+
+  Future<void> _submitJoinQr() async {
+    final payload = _validatedQr;
+    if (payload == null) {
+      setState(() => _error = 'Please scan or paste a valid QR pairing code.');
+      return;
+    }
+    final pinErr = _validatePinFields();
+    if (pinErr != null) {
+      setState(() => _error = pinErr);
+      return;
+    }
+
+    setState(() {
+      _isBusy = true;
+      _error = null;
+    });
+    try {
+      await ref.read(authControllerProvider.notifier).completeQrPairing(
+            payload: payload,
+            pin: _pinCtrl.text.trim(),
+          );
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
+  Future<void> _pickBackupFile() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+      );
+      if (result == null || result.files.isEmpty) return;
+      final file = result.files.first;
+      String? content;
+      if (file.bytes != null) {
+        content = String.fromCharCodes(file.bytes!);
+      } else if (file.path != null) {
+        content = await File(file.path!).readAsString();
+      }
+      if (content != null && mounted) {
+        setState(() {
+          _backupFileContent = content;
+          _backupFileName = file.name;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Could not read backup file: $e');
+    }
+  }
+
+  Future<void> _submitRestoreBackup() async {
+    final raw = _backupFileContent;
+    if (raw == null || raw.isEmpty) {
+      setState(() => _error = 'Please select a .synprod backup file.');
+      return;
+    }
+    final password = _backupPasswordCtrl.text;
+    if (password.isEmpty) {
+      setState(() => _error = 'Backup password is required.');
+      return;
+    }
+    final pinErr = _validatePinFields();
+    if (pinErr != null) {
+      setState(() => _error = pinErr);
+      return;
+    }
+
+    setState(() {
+      _isBusy = true;
+      _error = null;
+    });
+    try {
+      final bundle = ref.read(workspaceBackupServiceProvider).decryptBundle(
+            rawContent: raw,
+            password: password,
+          );
+      await ref.read(authControllerProvider.notifier).restoreAdminBackup(
+            bundle: bundle,
+            pin: _pinCtrl.text.trim(),
+          );
+    } on WorkspaceBackupException catch (e) {
+      if (mounted) setState(() => _error = e.message);
+    } catch (e) {
+      if (mounted) setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SynProdCanvas(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 460),
+                child: SynProdCard(
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          if (_mode != _OnboardingMode.choose)
+                            IconButton(
+                              onPressed: _isBusy
+                                  ? null
+                                  : () => _switchMode(_OnboardingMode.choose),
+                              icon: const Icon(Icons.arrow_back),
+                              color: AppTheme.forestGreen,
+                            ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SynProdGradientText(
+                                  'SynProd Lite',
+                                  style: TextStyle(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  _subtitleForMode(),
+                                  style: const TextStyle(
+                                    color: AppTheme.oliveMuted,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      if (_error != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppTheme.errorBg,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.inputErrorBorder),
+                          ),
+                          child: Text(
+                            _error!,
+                            style: const TextStyle(
+                              color: AppTheme.errorText,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      if (_mode == _OnboardingMode.choose) _buildChooseMode(),
+                      if (_mode == _OnboardingMode.createAdmin)
+                        _buildCreateAdminForm(),
+                      if (_mode == _OnboardingMode.joinQr) _buildJoinQrForm(),
+                      if (_mode == _OnboardingMode.restoreBackup)
+                        _buildRestoreBackupForm(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _subtitleForMode() {
+    switch (_mode) {
+      case _OnboardingMode.choose:
+        return 'Offline Device Setup';
+      case _OnboardingMode.createAdmin:
+        return 'Create Workspace (Admin Device)';
+      case _OnboardingMode.joinQr:
+        return 'Join Workspace via QR Pairing';
+      case _OnboardingMode.restoreBackup:
+        return 'Restore Encrypted Admin Backup';
+    }
+  }
+
+  Widget _buildChooseMode() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Set up this device to start managing synbiotic recipes offline.',
+          style: TextStyle(color: AppTheme.slate500, fontSize: 14),
+        ),
+        const SizedBox(height: 20),
+        SynProdGradientButton(
+          onPressed: () => _switchMode(_OnboardingMode.createAdmin),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.admin_panel_settings_outlined, size: 18),
+              SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'Create New Workspace (Admin)',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        SynProdSecondaryButton(
+          onPressed: () => _switchMode(_OnboardingMode.joinQr),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.qr_code_scanner, size: 18),
+              SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  'Join Existing Workspace (Scan QR)',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextButton.icon(
+          onPressed: () => _switchMode(_OnboardingMode.restoreBackup),
+          icon: const Icon(Icons.restore_outlined, size: 18),
+          label: const Text('Restore Admin Workspace from Backup'),
+          style: TextButton.styleFrom(foregroundColor: AppTheme.forestGreen),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCreateAdminForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextField(
+          controller: _workspaceNameCtrl,
+          decoration: const InputDecoration(
+            labelText: 'Workspace Name *',
+            hintText: 'e.g. Main Production Facility',
+          ),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _deviceNameCtrl,
+          decoration: const InputDecoration(
+            labelText: 'This Device Name *',
+            hintText: 'e.g. Admin Tablet',
+          ),
+        ),
+        const SizedBox(height: 14),
+        _buildPinInputs(),
+        const SizedBox(height: 20),
+        SynProdGradientButton(
+          onPressed: _isBusy ? null : _submitCreateAdmin,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle_outline, size: 18),
+              const SizedBox(width: 8),
+              Text(_isBusy ? 'Creating...' : 'Create Workspace'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildJoinQrForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SynProdSecondaryButton(
+          onPressed: _isBusy ? null : _openQrScanner,
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.qr_code_scanner, size: 18),
+              SizedBox(width: 8),
+              Text('Scan QR Code with Camera'),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _qrRawCtrl,
+          maxLines: 2,
+          decoration: const InputDecoration(
+            labelText: 'Or Paste Pairing Payload',
+            hintText: '{"v":1,"wid":...}',
+          ),
+          onChanged: (val) {
+            if (val.trim().startsWith('{')) {
+              _validateQrString(val);
+            }
+          },
+        ),
+        if (_validatedQr != null) ...[
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.successBg,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppTheme.primaryOlive),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Workspace: ${_validatedQr!.workspaceName}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.forestGreen,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Device: ${_validatedQr!.displayName} • Role: ${_validatedQr!.role.displayName}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.forestGreen,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          _buildPinInputs(),
+          const SizedBox(height: 20),
+          SynProdGradientButton(
+            onPressed: _isBusy ? null : _submitJoinQr,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.link, size: 18),
+                const SizedBox(width: 8),
+                Text(_isBusy ? 'Pairing...' : 'Complete Pairing'),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildRestoreBackupForm() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SynProdSecondaryButton(
+          onPressed: _isBusy ? null : _pickBackupFile,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.upload_file, size: 18),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  _backupFileName ?? 'Select Encrypted Backup (.synprod)',
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        TextField(
+          controller: _backupPasswordCtrl,
+          obscureText: true,
+          decoration: const InputDecoration(
+            labelText: 'Backup Password *',
+          ),
+        ),
+        const SizedBox(height: 14),
+        _buildPinInputs(pinLabel: 'New Device PIN (4–6 digits) *'),
+        const SizedBox(height: 20),
+        SynProdGradientButton(
+          onPressed: _isBusy ? null : _submitRestoreBackup,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.restore, size: 18),
+              const SizedBox(width: 8),
+              Text(_isBusy ? 'Restoring...' : 'Restore Workspace'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPinInputs({String pinLabel = 'Device PIN (4–6 digits) *'}) {
+    return Column(
+      children: [
+        TextField(
+          controller: _pinCtrl,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          decoration: InputDecoration(
+            labelText: pinLabel,
+            counterText: '',
+          ),
+        ),
+        const SizedBox(height: 12),
+        TextField(
+          controller: _confirmPinCtrl,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          decoration: const InputDecoration(
+            labelText: 'Confirm PIN *',
+            counterText: '',
+          ),
+        ),
+      ],
+    );
+  }
+}

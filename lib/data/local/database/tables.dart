@@ -82,3 +82,20 @@ class WorkspacesTable extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+@DataClassName('PairingTokenEntry')
+class PairingTokensTable extends Table {
+  @override
+  String get tableName => 'pairing_tokens';
+
+  TextColumn get id => text()();
+  TextColumn get deviceId => text()();
+  TextColumn get displayName => text()();
+  TextColumn get roleCode => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get expiresAt => dateTime()();
+  BoolColumn get isUsed => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

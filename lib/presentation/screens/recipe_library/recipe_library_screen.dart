@@ -7,7 +7,9 @@ import '../../../domain/models/product_type.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
 import '../../widgets/synprod_ui.dart';
+import '../device_management/device_management_screen.dart';
 import '../product_form/product_form_screen.dart';
+import '../profile/device_profile_screen.dart';
 import '../recipe_detail/recipe_detail_screen.dart';
 
 class RecipeLibraryScreen extends ConsumerStatefulWidget {
@@ -78,37 +80,61 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
       appBar: SynProdAppBar(
         title: const SynProdGradientText('SynProd Lite'),
         actions: [
+          if (currentDevice.role.canManageDevices)
+            IconButton(
+              tooltip: 'Device Management',
+              icon: const Icon(Icons.devices_outlined, color: AppTheme.forestGreen),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DeviceManagementScreen(),
+                  ),
+                );
+              },
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 16),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SynProdAvatar(displayName: currentDevice.displayName),
-                const SizedBox(width: 8),
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      currentDevice.displayName,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.slate800,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(20),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const DeviceProfileScreen(),
+                  ),
+                );
+              },
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SynProdAvatar(displayName: currentDevice.displayName),
+                  const SizedBox(width: 8),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        currentDevice.displayName,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.slate800,
+                        ),
                       ),
-                    ),
-                    Text(
-                      currentDevice.role.displayName.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.oliveMuted,
-                        letterSpacing: 0.4,
+                      Text(
+                        currentDevice.role.displayName.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.oliveMuted,
+                          letterSpacing: 0.4,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ],

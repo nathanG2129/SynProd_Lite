@@ -11,16 +11,25 @@ part 'app_database.g.dart';
   AdditionalIngredientsTable,
   DevicesTable,
   WorkspacesTable,
+  PairingTokensTable,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'synprod_lite'));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (Migrator m) async {
+          await m.createAll();
+        },
+        onUpgrade: (Migrator m, int from, int to) async {
+          if (from < 2) {
+            await m.createTable(pairingTokensTable);
+          }
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },

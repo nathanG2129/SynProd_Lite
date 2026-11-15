@@ -2262,6 +2262,475 @@ class WorkspacesTableCompanion extends UpdateCompanion<WorkspaceEntry> {
   }
 }
 
+class $PairingTokensTableTable extends PairingTokensTable
+    with TableInfo<$PairingTokensTableTable, PairingTokenEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PairingTokensTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deviceIdMeta = const VerificationMeta(
+    'deviceId',
+  );
+  @override
+  late final GeneratedColumn<String> deviceId = GeneratedColumn<String>(
+    'device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _roleCodeMeta = const VerificationMeta(
+    'roleCode',
+  );
+  @override
+  late final GeneratedColumn<String> roleCode = GeneratedColumn<String>(
+    'role_code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _expiresAtMeta = const VerificationMeta(
+    'expiresAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> expiresAt = GeneratedColumn<DateTime>(
+    'expires_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isUsedMeta = const VerificationMeta('isUsed');
+  @override
+  late final GeneratedColumn<bool> isUsed = GeneratedColumn<bool>(
+    'is_used',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_used" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    deviceId,
+    displayName,
+    roleCode,
+    createdAt,
+    expiresAt,
+    isUsed,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'pairing_tokens';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<PairingTokenEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('device_id')) {
+      context.handle(
+        _deviceIdMeta,
+        deviceId.isAcceptableOrUnknown(data['device_id']!, _deviceIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deviceIdMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('role_code')) {
+      context.handle(
+        _roleCodeMeta,
+        roleCode.isAcceptableOrUnknown(data['role_code']!, _roleCodeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_roleCodeMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('expires_at')) {
+      context.handle(
+        _expiresAtMeta,
+        expiresAt.isAcceptableOrUnknown(data['expires_at']!, _expiresAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_expiresAtMeta);
+    }
+    if (data.containsKey('is_used')) {
+      context.handle(
+        _isUsedMeta,
+        isUsed.isAcceptableOrUnknown(data['is_used']!, _isUsedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  PairingTokenEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return PairingTokenEntry(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      deviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device_id'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      roleCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}role_code'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      expiresAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}expires_at'],
+      )!,
+      isUsed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_used'],
+      )!,
+    );
+  }
+
+  @override
+  $PairingTokensTableTable createAlias(String alias) {
+    return $PairingTokensTableTable(attachedDatabase, alias);
+  }
+}
+
+class PairingTokenEntry extends DataClass
+    implements Insertable<PairingTokenEntry> {
+  final String id;
+  final String deviceId;
+  final String displayName;
+  final String roleCode;
+  final DateTime createdAt;
+  final DateTime expiresAt;
+  final bool isUsed;
+  const PairingTokenEntry({
+    required this.id,
+    required this.deviceId,
+    required this.displayName,
+    required this.roleCode,
+    required this.createdAt,
+    required this.expiresAt,
+    required this.isUsed,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['device_id'] = Variable<String>(deviceId);
+    map['display_name'] = Variable<String>(displayName);
+    map['role_code'] = Variable<String>(roleCode);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['expires_at'] = Variable<DateTime>(expiresAt);
+    map['is_used'] = Variable<bool>(isUsed);
+    return map;
+  }
+
+  PairingTokensTableCompanion toCompanion(bool nullToAbsent) {
+    return PairingTokensTableCompanion(
+      id: Value(id),
+      deviceId: Value(deviceId),
+      displayName: Value(displayName),
+      roleCode: Value(roleCode),
+      createdAt: Value(createdAt),
+      expiresAt: Value(expiresAt),
+      isUsed: Value(isUsed),
+    );
+  }
+
+  factory PairingTokenEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return PairingTokenEntry(
+      id: serializer.fromJson<String>(json['id']),
+      deviceId: serializer.fromJson<String>(json['deviceId']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      roleCode: serializer.fromJson<String>(json['roleCode']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      expiresAt: serializer.fromJson<DateTime>(json['expiresAt']),
+      isUsed: serializer.fromJson<bool>(json['isUsed']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'deviceId': serializer.toJson<String>(deviceId),
+      'displayName': serializer.toJson<String>(displayName),
+      'roleCode': serializer.toJson<String>(roleCode),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'expiresAt': serializer.toJson<DateTime>(expiresAt),
+      'isUsed': serializer.toJson<bool>(isUsed),
+    };
+  }
+
+  PairingTokenEntry copyWith({
+    String? id,
+    String? deviceId,
+    String? displayName,
+    String? roleCode,
+    DateTime? createdAt,
+    DateTime? expiresAt,
+    bool? isUsed,
+  }) => PairingTokenEntry(
+    id: id ?? this.id,
+    deviceId: deviceId ?? this.deviceId,
+    displayName: displayName ?? this.displayName,
+    roleCode: roleCode ?? this.roleCode,
+    createdAt: createdAt ?? this.createdAt,
+    expiresAt: expiresAt ?? this.expiresAt,
+    isUsed: isUsed ?? this.isUsed,
+  );
+  PairingTokenEntry copyWithCompanion(PairingTokensTableCompanion data) {
+    return PairingTokenEntry(
+      id: data.id.present ? data.id.value : this.id,
+      deviceId: data.deviceId.present ? data.deviceId.value : this.deviceId,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      roleCode: data.roleCode.present ? data.roleCode.value : this.roleCode,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      expiresAt: data.expiresAt.present ? data.expiresAt.value : this.expiresAt,
+      isUsed: data.isUsed.present ? data.isUsed.value : this.isUsed,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PairingTokenEntry(')
+          ..write('id: $id, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('displayName: $displayName, ')
+          ..write('roleCode: $roleCode, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('isUsed: $isUsed')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    deviceId,
+    displayName,
+    roleCode,
+    createdAt,
+    expiresAt,
+    isUsed,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is PairingTokenEntry &&
+          other.id == this.id &&
+          other.deviceId == this.deviceId &&
+          other.displayName == this.displayName &&
+          other.roleCode == this.roleCode &&
+          other.createdAt == this.createdAt &&
+          other.expiresAt == this.expiresAt &&
+          other.isUsed == this.isUsed);
+}
+
+class PairingTokensTableCompanion extends UpdateCompanion<PairingTokenEntry> {
+  final Value<String> id;
+  final Value<String> deviceId;
+  final Value<String> displayName;
+  final Value<String> roleCode;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> expiresAt;
+  final Value<bool> isUsed;
+  final Value<int> rowid;
+  const PairingTokensTableCompanion({
+    this.id = const Value.absent(),
+    this.deviceId = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.roleCode = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.expiresAt = const Value.absent(),
+    this.isUsed = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PairingTokensTableCompanion.insert({
+    required String id,
+    required String deviceId,
+    required String displayName,
+    required String roleCode,
+    required DateTime createdAt,
+    required DateTime expiresAt,
+    this.isUsed = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       deviceId = Value(deviceId),
+       displayName = Value(displayName),
+       roleCode = Value(roleCode),
+       createdAt = Value(createdAt),
+       expiresAt = Value(expiresAt);
+  static Insertable<PairingTokenEntry> custom({
+    Expression<String>? id,
+    Expression<String>? deviceId,
+    Expression<String>? displayName,
+    Expression<String>? roleCode,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? expiresAt,
+    Expression<bool>? isUsed,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (deviceId != null) 'device_id': deviceId,
+      if (displayName != null) 'display_name': displayName,
+      if (roleCode != null) 'role_code': roleCode,
+      if (createdAt != null) 'created_at': createdAt,
+      if (expiresAt != null) 'expires_at': expiresAt,
+      if (isUsed != null) 'is_used': isUsed,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PairingTokensTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? deviceId,
+    Value<String>? displayName,
+    Value<String>? roleCode,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? expiresAt,
+    Value<bool>? isUsed,
+    Value<int>? rowid,
+  }) {
+    return PairingTokensTableCompanion(
+      id: id ?? this.id,
+      deviceId: deviceId ?? this.deviceId,
+      displayName: displayName ?? this.displayName,
+      roleCode: roleCode ?? this.roleCode,
+      createdAt: createdAt ?? this.createdAt,
+      expiresAt: expiresAt ?? this.expiresAt,
+      isUsed: isUsed ?? this.isUsed,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (deviceId.present) {
+      map['device_id'] = Variable<String>(deviceId.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (roleCode.present) {
+      map['role_code'] = Variable<String>(roleCode.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (expiresAt.present) {
+      map['expires_at'] = Variable<DateTime>(expiresAt.value);
+    }
+    if (isUsed.present) {
+      map['is_used'] = Variable<bool>(isUsed.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PairingTokensTableCompanion(')
+          ..write('id: $id, ')
+          ..write('deviceId: $deviceId, ')
+          ..write('displayName: $displayName, ')
+          ..write('roleCode: $roleCode, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('expiresAt: $expiresAt, ')
+          ..write('isUsed: $isUsed, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2274,6 +2743,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $WorkspacesTableTable workspacesTable = $WorkspacesTableTable(
     this,
   );
+  late final $PairingTokensTableTable pairingTokensTable =
+      $PairingTokensTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2284,6 +2755,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     additionalIngredientsTable,
     devicesTable,
     workspacesTable,
+    pairingTokensTable,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -4000,6 +4472,259 @@ typedef $$WorkspacesTableTableProcessedTableManager =
       WorkspaceEntry,
       PrefetchHooks Function()
     >;
+typedef $$PairingTokensTableTableCreateCompanionBuilder =
+    PairingTokensTableCompanion Function({
+      required String id,
+      required String deviceId,
+      required String displayName,
+      required String roleCode,
+      required DateTime createdAt,
+      required DateTime expiresAt,
+      Value<bool> isUsed,
+      Value<int> rowid,
+    });
+typedef $$PairingTokensTableTableUpdateCompanionBuilder =
+    PairingTokensTableCompanion Function({
+      Value<String> id,
+      Value<String> deviceId,
+      Value<String> displayName,
+      Value<String> roleCode,
+      Value<DateTime> createdAt,
+      Value<DateTime> expiresAt,
+      Value<bool> isUsed,
+      Value<int> rowid,
+    });
+
+class $$PairingTokensTableTableFilterComposer
+    extends Composer<_$AppDatabase, $PairingTokensTableTable> {
+  $$PairingTokensTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get roleCode => $composableBuilder(
+    column: $table.roleCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isUsed => $composableBuilder(
+    column: $table.isUsed,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$PairingTokensTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $PairingTokensTableTable> {
+  $$PairingTokensTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get deviceId => $composableBuilder(
+    column: $table.deviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get roleCode => $composableBuilder(
+    column: $table.roleCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get expiresAt => $composableBuilder(
+    column: $table.expiresAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isUsed => $composableBuilder(
+    column: $table.isUsed,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$PairingTokensTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $PairingTokensTableTable> {
+  $$PairingTokensTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get deviceId =>
+      $composableBuilder(column: $table.deviceId, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get roleCode =>
+      $composableBuilder(column: $table.roleCode, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get expiresAt =>
+      $composableBuilder(column: $table.expiresAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isUsed =>
+      $composableBuilder(column: $table.isUsed, builder: (column) => column);
+}
+
+class $$PairingTokensTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $PairingTokensTableTable,
+          PairingTokenEntry,
+          $$PairingTokensTableTableFilterComposer,
+          $$PairingTokensTableTableOrderingComposer,
+          $$PairingTokensTableTableAnnotationComposer,
+          $$PairingTokensTableTableCreateCompanionBuilder,
+          $$PairingTokensTableTableUpdateCompanionBuilder,
+          (
+            PairingTokenEntry,
+            BaseReferences<
+              _$AppDatabase,
+              $PairingTokensTableTable,
+              PairingTokenEntry
+            >,
+          ),
+          PairingTokenEntry,
+          PrefetchHooks Function()
+        > {
+  $$PairingTokensTableTableTableManager(
+    _$AppDatabase db,
+    $PairingTokensTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PairingTokensTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PairingTokensTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PairingTokensTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> deviceId = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String> roleCode = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> expiresAt = const Value.absent(),
+                Value<bool> isUsed = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PairingTokensTableCompanion(
+                id: id,
+                deviceId: deviceId,
+                displayName: displayName,
+                roleCode: roleCode,
+                createdAt: createdAt,
+                expiresAt: expiresAt,
+                isUsed: isUsed,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String deviceId,
+                required String displayName,
+                required String roleCode,
+                required DateTime createdAt,
+                required DateTime expiresAt,
+                Value<bool> isUsed = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PairingTokensTableCompanion.insert(
+                id: id,
+                deviceId: deviceId,
+                displayName: displayName,
+                roleCode: roleCode,
+                createdAt: createdAt,
+                expiresAt: expiresAt,
+                isUsed: isUsed,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$PairingTokensTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $PairingTokensTableTable,
+      PairingTokenEntry,
+      $$PairingTokensTableTableFilterComposer,
+      $$PairingTokensTableTableOrderingComposer,
+      $$PairingTokensTableTableAnnotationComposer,
+      $$PairingTokensTableTableCreateCompanionBuilder,
+      $$PairingTokensTableTableUpdateCompanionBuilder,
+      (
+        PairingTokenEntry,
+        BaseReferences<
+          _$AppDatabase,
+          $PairingTokensTableTable,
+          PairingTokenEntry
+        >,
+      ),
+      PairingTokenEntry,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4018,4 +4743,6 @@ class $AppDatabaseManager {
       $$DevicesTableTableTableManager(_db, _db.devicesTable);
   $$WorkspacesTableTableTableManager get workspacesTable =>
       $$WorkspacesTableTableTableManager(_db, _db.workspacesTable);
+  $$PairingTokensTableTableTableManager get pairingTokensTable =>
+      $$PairingTokensTableTableTableManager(_db, _db.pairingTokensTable);
 }
