@@ -11,6 +11,8 @@ class Product {
   final List<AdditionalIngredient> additionalIngredients;
   final String createdByDeviceId;
   final String createdByDisplayName;
+  final String? updatedByDeviceId;
+  final String? updatedByDisplayName;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -25,11 +27,17 @@ class Product {
     this.additionalIngredients = const [],
     required this.createdByDeviceId,
     required this.createdByDisplayName,
+    this.updatedByDeviceId,
+    this.updatedByDisplayName,
     required this.createdAt,
     required this.updatedAt,
     this.isDeleted = false,
     this.version = 1,
   });
+
+  String get effectiveUpdatedByDeviceId => updatedByDeviceId ?? createdByDeviceId;
+  String get effectiveUpdatedByDisplayName =>
+      updatedByDisplayName ?? createdByDisplayName;
 
   Product copyWith({
     String? id,
@@ -40,6 +48,8 @@ class Product {
     List<AdditionalIngredient>? additionalIngredients,
     String? createdByDeviceId,
     String? createdByDisplayName,
+    String? updatedByDeviceId,
+    String? updatedByDisplayName,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -55,6 +65,8 @@ class Product {
           additionalIngredients ?? this.additionalIngredients,
       createdByDeviceId: createdByDeviceId ?? this.createdByDeviceId,
       createdByDisplayName: createdByDisplayName ?? this.createdByDisplayName,
+      updatedByDeviceId: updatedByDeviceId ?? this.updatedByDeviceId,
+      updatedByDisplayName: updatedByDisplayName ?? this.updatedByDisplayName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -73,6 +85,8 @@ class Product {
           additionalIngredients.map((i) => i.toMap()).toList(),
       'createdByDeviceId': createdByDeviceId,
       'createdByDisplayName': createdByDisplayName,
+      'updatedByDeviceId': effectiveUpdatedByDeviceId,
+      'updatedByDisplayName': effectiveUpdatedByDisplayName,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'isDeleted': isDeleted ? 1 : 0,
@@ -81,6 +95,8 @@ class Product {
   }
 
   factory Product.fromMap(Map<String, dynamic> map) {
+    final createdByDeviceId = map['createdByDeviceId'] as String;
+    final createdByDisplayName = map['createdByDisplayName'] as String;
     return Product(
       id: map['id'] as String,
       name: map['name'] as String,
@@ -95,8 +111,11 @@ class Product {
                   AdditionalIngredient.fromMap(item as Map<String, dynamic>))
               .toList() ??
           const [],
-      createdByDeviceId: map['createdByDeviceId'] as String,
-      createdByDisplayName: map['createdByDisplayName'] as String,
+      createdByDeviceId: createdByDeviceId,
+      createdByDisplayName: createdByDisplayName,
+      updatedByDeviceId: map['updatedByDeviceId'] as String? ?? createdByDeviceId,
+      updatedByDisplayName:
+          map['updatedByDisplayName'] as String? ?? createdByDisplayName,
       createdAt: DateTime.parse(map['createdAt'] as String),
       updatedAt: DateTime.parse(map['updatedAt'] as String),
       isDeleted: (map['isDeleted'] as num?) == 1,

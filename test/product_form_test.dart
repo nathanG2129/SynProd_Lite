@@ -9,6 +9,7 @@ import 'package:synprod_lite/domain/models/composition.dart';
 import 'package:synprod_lite/domain/models/device.dart';
 import 'package:synprod_lite/domain/models/product.dart';
 import 'package:synprod_lite/domain/models/product_type.dart';
+import 'package:synprod_lite/domain/models/sync_models.dart';
 import 'package:synprod_lite/domain/repositories/product_repository.dart';
 import 'package:synprod_lite/main.dart';
 import 'package:synprod_lite/presentation/providers/auth_providers.dart';
@@ -41,6 +42,10 @@ class _InMemoryProductRepository implements ProductRepository {
   Future<List<Product>> getActiveProducts() async => _activeList();
 
   @override
+  Future<List<Product>> getAllProductsIncludingDeleted() async =>
+      _store.values.toList();
+
+  @override
   Future<Product?> getProductById(String id) async {
     final p = _store[id];
     if (p == null || p.isDeleted) return null;
@@ -54,16 +59,39 @@ class _InMemoryProductRepository implements ProductRepository {
   }
 
   @override
-  Future<void> softDeleteProduct(String id) async {
+  Future<void> applySyncedProductsAtomically(List<Product> products) async {
+    for (final p in products) {
+      _store[p.id] = p;
+    }
+    _emit();
+  }
+
+  @override
+  Future<void> softDeleteProduct(
+    String id, {
+    String? deletedByDeviceId,
+    String? deletedByDisplayName,
+  }) async {
     final existing = _store[id];
     if (existing != null) {
       _store[id] = existing.copyWith(
         isDeleted: true,
         updatedAt: DateTime.now(),
+        version: existing.version + 1,
       );
       _emit();
     }
   }
+
+  @override
+  Stream<List<SyncConflictRecord>> watchConflictHistory() =>
+      Stream.value(const []);
+  @override
+  Future<List<SyncConflictRecord>> getConflictHistory() async => const [];
+  @override
+  Future<void> saveConflictRecords(List<SyncConflictRecord> records) async {}
+  @override
+  Future<void> markConflictResolved(String conflictId) async {}
 
   @override
   Future<List<String>> getDistinctComponents() async {

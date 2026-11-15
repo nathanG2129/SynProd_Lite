@@ -11,6 +11,8 @@ class ProductsTable extends Table {
   TextColumn get productTypeCode => text()();
   TextColumn get createdByDeviceId => text()();
   TextColumn get createdByDisplayName => text()();
+  TextColumn get updatedByDeviceId => text().nullable()();
+  TextColumn get updatedByDisplayName => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
@@ -95,6 +97,28 @@ class PairingTokensTable extends Table {
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get expiresAt => dateTime()();
   BoolColumn get isUsed => boolean().withDefault(const Constant(false))();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
+@DataClassName('SyncConflictEntry')
+class SyncConflictsTable extends Table {
+  @override
+  String get tableName => 'sync_conflicts';
+
+  TextColumn get id => text()();
+  TextColumn get productId => text()();
+  TextColumn get productName => text()();
+  TextColumn get conflictType => text()();
+  TextColumn get winningDeviceId => text()();
+  TextColumn get winningDeviceName => text()();
+  TextColumn get losingDeviceId => text()();
+  TextColumn get losingDeviceName => text()();
+  TextColumn get losingProductJson => text()();
+  TextColumn get reason => text()();
+  DateTimeColumn get occurredAt => dateTime()();
+  BoolColumn get isResolved => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};

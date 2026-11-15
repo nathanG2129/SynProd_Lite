@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:synprod_lite/domain/models/device.dart';
 import 'package:synprod_lite/domain/models/product.dart';
+import 'package:synprod_lite/domain/models/sync_models.dart';
 import 'package:synprod_lite/domain/models/workspace.dart';
 import 'package:synprod_lite/domain/repositories/device_repository.dart';
 import 'package:synprod_lite/domain/repositories/product_repository.dart';
@@ -66,17 +67,34 @@ class _SmokeProductRepository implements ProductRepository {
   @override
   Future<List<Product>> getActiveProducts() async => const [];
   @override
+  Future<List<Product>> getAllProductsIncludingDeleted() async => const [];
+  @override
   Future<Product?> getProductById(String id) async => null;
   @override
   Future<void> saveProduct(Product product) async {}
   @override
-  Future<void> softDeleteProduct(String id) async {}
+  Future<void> applySyncedProductsAtomically(List<Product> products) async {}
+  @override
+  Future<void> softDeleteProduct(
+    String id, {
+    String? deletedByDeviceId,
+    String? deletedByDisplayName,
+  }) async {}
   @override
   Future<List<String>> getDistinctComponents() async => const [];
   @override
   Future<List<String>> getDistinctIngredients() async => const [];
   @override
   Future<void> seedInitialDataIfEmpty() async {}
+  @override
+  Stream<List<SyncConflictRecord>> watchConflictHistory() =>
+      Stream.value(const []);
+  @override
+  Future<List<SyncConflictRecord>> getConflictHistory() async => const [];
+  @override
+  Future<void> saveConflictRecords(List<SyncConflictRecord> records) async {}
+  @override
+  Future<void> markConflictResolved(String conflictId) async {}
 }
 
 void main() {

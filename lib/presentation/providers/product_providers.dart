@@ -157,6 +157,8 @@ class ProductMutationService {
       description: product.description?.trim().isEmpty == true
           ? null
           : product.description?.trim(),
+      updatedByDeviceId: _currentDevice.id,
+      updatedByDisplayName: _currentDevice.displayName,
       updatedAt: DateTime.now(),
       version: isEditing ? product.version + 1 : product.version,
     );
@@ -170,7 +172,11 @@ class ProductMutationService {
         'Only administrators can delete products.',
       );
     }
-    await _repository.softDeleteProduct(product.id);
+    await _repository.softDeleteProduct(
+      product.id,
+      deletedByDeviceId: _currentDevice.id,
+      deletedByDisplayName: _currentDevice.displayName,
+    );
   }
 }
 

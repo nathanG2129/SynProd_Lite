@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   local_auth_windows
+  nsd_windows
   printing
   share_plus
   sqlite3_flutter_libs

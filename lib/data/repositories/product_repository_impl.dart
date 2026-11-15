@@ -5,6 +5,7 @@ import '../../domain/models/composition.dart';
 import '../../domain/models/ingredient.dart';
 import '../../domain/models/product.dart';
 import '../../domain/models/product_type.dart';
+import '../../domain/models/sync_models.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../local/database/app_database.dart';
 
@@ -40,10 +41,21 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<List<Product>> getActiveProducts() async {
-    final rows = await (db.select(db.productsTable)
-          ..where((tbl) => tbl.isDeleted.equals(false))
-          ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]))
-        .get();
+    return _fetchProducts(includeDeleted: false);
+  }
+
+  @override
+  Future<List<Product>> getAllProductsIncludingDeleted() async {
+    return _fetchProducts(includeDeleted: true);
+  }
+
+  Future<List<Product>> _fetchProducts({required bool includeDeleted}) async {
+    final query = db.select(db.productsTable)
+      ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]);
+    if (!includeDeleted) {
+      query.where((tbl) => tbl.isDeleted.equals(false));
+    }
+    final rows = await query.get();
 
     final products = <Product>[];
     for (final row in rows) {
@@ -85,67 +97,97 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<void> saveProduct(Product product) {
+    return db.transaction(() => _upsertProductInTransaction(product));
+  }
+
+  @override
+  Future<void> applySyncedProductsAtomically(List<Product> products) {
+    if (products.isEmpty) return Future.value();
     return db.transaction(() async {
-      await db.into(db.productsTable).insertOnConflictUpdate(
-            ProductsTableCompanion.insert(
-              id: product.id,
-              name: product.name,
-              description: Value(product.description),
-              productTypeCode: product.productType.code,
-              createdByDeviceId: product.createdByDeviceId,
-              createdByDisplayName: product.createdByDisplayName,
-              createdAt: product.createdAt,
-              updatedAt: product.updatedAt,
-              isDeleted: Value(product.isDeleted),
-              version: Value(product.version),
-            ),
-          );
-
-      await (db.delete(db.compositionsTable)
-            ..where((tbl) => tbl.productId.equals(product.id)))
-          .go();
-
-      for (int i = 0; i < product.compositions.length; i++) {
-        final c = product.compositions[i];
-        await db.into(db.compositionsTable).insert(
-              CompositionsTableCompanion.insert(
-                id: '${product.id}_comp_$i',
-                productId: product.id,
-                componentName: c.componentName,
-                percentage: c.percentage,
-                notes: Value(c.notes),
-                sortOrder: Value(c.sortOrder),
-              ),
-            );
-      }
-
-      await (db.delete(db.additionalIngredientsTable)
-            ..where((tbl) => tbl.productId.equals(product.id)))
-          .go();
-
-      for (int i = 0; i < product.additionalIngredients.length; i++) {
-        final ing = product.additionalIngredients[i];
-        await db.into(db.additionalIngredientsTable).insert(
-              AdditionalIngredientsTableCompanion.insert(
-                id: '${product.id}_ing_$i',
-                productId: product.id,
-                ingredientName: ing.ingredientName,
-                quantity: ing.quantity,
-                unit: ing.unit,
-                notes: Value(ing.notes),
-                sortOrder: Value(ing.sortOrder),
-              ),
-            );
+      for (final product in products) {
+        await _upsertProductInTransaction(product);
       }
     });
   }
 
+  Future<void> _upsertProductInTransaction(Product product) async {
+    await db.into(db.productsTable).insertOnConflictUpdate(
+          ProductsTableCompanion.insert(
+            id: product.id,
+            name: product.name,
+            description: Value(product.description),
+            productTypeCode: product.productType.code,
+            createdByDeviceId: product.createdByDeviceId,
+            createdByDisplayName: product.createdByDisplayName,
+            updatedByDeviceId: Value(product.effectiveUpdatedByDeviceId),
+            updatedByDisplayName: Value(product.effectiveUpdatedByDisplayName),
+            createdAt: product.createdAt,
+            updatedAt: product.updatedAt,
+            isDeleted: Value(product.isDeleted),
+            version: Value(product.version),
+          ),
+        );
+
+    await (db.delete(db.compositionsTable)
+          ..where((tbl) => tbl.productId.equals(product.id)))
+        .go();
+
+    for (int i = 0; i < product.compositions.length; i++) {
+      final c = product.compositions[i];
+      await db.into(db.compositionsTable).insert(
+            CompositionsTableCompanion.insert(
+              id: '${product.id}_comp_$i',
+              productId: product.id,
+              componentName: c.componentName,
+              percentage: c.percentage,
+              notes: Value(c.notes),
+              sortOrder: Value(c.sortOrder),
+            ),
+          );
+    }
+
+    await (db.delete(db.additionalIngredientsTable)
+          ..where((tbl) => tbl.productId.equals(product.id)))
+        .go();
+
+    for (int i = 0; i < product.additionalIngredients.length; i++) {
+      final ing = product.additionalIngredients[i];
+      await db.into(db.additionalIngredientsTable).insert(
+            AdditionalIngredientsTableCompanion.insert(
+              id: '${product.id}_ing_$i',
+              productId: product.id,
+              ingredientName: ing.ingredientName,
+              quantity: ing.quantity,
+              unit: ing.unit,
+              notes: Value(ing.notes),
+              sortOrder: Value(ing.sortOrder),
+            ),
+          );
+    }
+  }
+
   @override
-  Future<void> softDeleteProduct(String id) async {
+  Future<void> softDeleteProduct(
+    String id, {
+    String? deletedByDeviceId,
+    String? deletedByDisplayName,
+  }) async {
+    final existing = await (db.select(db.productsTable)
+          ..where((tbl) => tbl.id.equals(id)))
+        .getSingleOrNull();
+    if (existing == null) return;
+
     await (db.update(db.productsTable)..where((tbl) => tbl.id.equals(id))).write(
       ProductsTableCompanion(
         isDeleted: const Value(true),
         updatedAt: Value(DateTime.now()),
+        version: Value(existing.version + 1),
+        updatedByDeviceId: deletedByDeviceId != null
+            ? Value(deletedByDeviceId)
+            : const Value.absent(),
+        updatedByDisplayName: deletedByDisplayName != null
+            ? Value(deletedByDisplayName)
+            : const Value.absent(),
       ),
     );
   }
@@ -246,6 +288,70 @@ class ProductRepositoryImpl implements ProductRepository {
     }
   }
 
+  @override
+  Stream<List<SyncConflictRecord>> watchConflictHistory() {
+    final query = db.select(db.syncConflictsTable)
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.occurredAt)]);
+    return query.watch().map((rows) => rows.map(_mapToConflict).toList());
+  }
+
+  @override
+  Future<List<SyncConflictRecord>> getConflictHistory() async {
+    final query = db.select(db.syncConflictsTable)
+      ..orderBy([(tbl) => OrderingTerm.desc(tbl.occurredAt)]);
+    final rows = await query.get();
+    return rows.map(_mapToConflict).toList();
+  }
+
+  @override
+  Future<void> saveConflictRecords(List<SyncConflictRecord> records) async {
+    if (records.isEmpty) return;
+    await db.transaction(() async {
+      for (final r in records) {
+        await db.into(db.syncConflictsTable).insertOnConflictUpdate(
+              SyncConflictsTableCompanion.insert(
+                id: r.id,
+                productId: r.productId,
+                productName: r.productName,
+                conflictType: r.conflictType.code,
+                winningDeviceId: r.winningDeviceId,
+                winningDeviceName: r.winningDeviceName,
+                losingDeviceId: r.losingDeviceId,
+                losingDeviceName: r.losingDeviceName,
+                losingProductJson: r.losingProductJson,
+                reason: r.reason,
+                occurredAt: r.occurredAt,
+                isResolved: Value(r.isResolved),
+              ),
+            );
+      }
+    });
+  }
+
+  @override
+  Future<void> markConflictResolved(String conflictId) async {
+    await (db.update(db.syncConflictsTable)
+          ..where((tbl) => tbl.id.equals(conflictId)))
+        .write(const SyncConflictsTableCompanion(isResolved: Value(true)));
+  }
+
+  SyncConflictRecord _mapToConflict(SyncConflictEntry row) {
+    return SyncConflictRecord(
+      id: row.id,
+      productId: row.productId,
+      productName: row.productName,
+      conflictType: SyncConflictType.fromCode(row.conflictType),
+      winningDeviceId: row.winningDeviceId,
+      winningDeviceName: row.winningDeviceName,
+      losingDeviceId: row.losingDeviceId,
+      losingDeviceName: row.losingDeviceName,
+      losingProductJson: row.losingProductJson,
+      reason: row.reason,
+      occurredAt: row.occurredAt,
+      isResolved: row.isResolved,
+    );
+  }
+
   Product _mapToProduct(
     ProductEntry row,
     List<CompositionEntry> compRows,
@@ -258,6 +364,8 @@ class ProductRepositoryImpl implements ProductRepository {
       productType: ProductType.fromCode(row.productTypeCode),
       createdByDeviceId: row.createdByDeviceId,
       createdByDisplayName: row.createdByDisplayName,
+      updatedByDeviceId: row.updatedByDeviceId ?? row.createdByDeviceId,
+      updatedByDisplayName: row.updatedByDisplayName ?? row.createdByDisplayName,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
       isDeleted: row.isDeleted,

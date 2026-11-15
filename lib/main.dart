@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/auth_providers.dart';
+import 'presentation/providers/sync_providers.dart';
 import 'presentation/screens/auth/pin_lock_screen.dart';
 import 'presentation/screens/onboarding/onboarding_screen.dart';
 import 'presentation/screens/recipe_library/recipe_library_screen.dart';
@@ -49,8 +50,34 @@ class _AuthGate extends ConsumerStatefulWidget {
   ConsumerState<_AuthGate> createState() => _AuthGateState();
 }
 
-class _AuthGateState extends ConsumerState<_AuthGate> {
+class _AuthGateState extends ConsumerState<_AuthGate>
+    with WidgetsBindingObserver {
   bool _warningDialogOpen = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final authStatus = ref.read(authControllerProvider).status;
+    if (authStatus != AuthStatus.unlocked) return;
+
+    if (state == AppLifecycleState.resumed) {
+      ref.read(syncControllerProvider.notifier).start();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      ref.read(syncControllerProvider.notifier).stop();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -72,6 +72,29 @@ class $ProductsTableTable extends ProductsTable
         type: DriftSqlType.string,
         requiredDuringInsert: true,
       );
+  static const VerificationMeta _updatedByDeviceIdMeta = const VerificationMeta(
+    'updatedByDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> updatedByDeviceId =
+      GeneratedColumn<String>(
+        'updated_by_device_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _updatedByDisplayNameMeta =
+      const VerificationMeta('updatedByDisplayName');
+  @override
+  late final GeneratedColumn<String> updatedByDisplayName =
+      GeneratedColumn<String>(
+        'updated_by_display_name',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -129,6 +152,8 @@ class $ProductsTableTable extends ProductsTable
     productTypeCode,
     createdByDeviceId,
     createdByDisplayName,
+    updatedByDeviceId,
+    updatedByDisplayName,
     createdAt,
     updatedAt,
     isDeleted,
@@ -201,6 +226,24 @@ class $ProductsTableTable extends ProductsTable
     } else if (isInserting) {
       context.missing(_createdByDisplayNameMeta);
     }
+    if (data.containsKey('updated_by_device_id')) {
+      context.handle(
+        _updatedByDeviceIdMeta,
+        updatedByDeviceId.isAcceptableOrUnknown(
+          data['updated_by_device_id']!,
+          _updatedByDeviceIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_by_display_name')) {
+      context.handle(
+        _updatedByDisplayNameMeta,
+        updatedByDisplayName.isAcceptableOrUnknown(
+          data['updated_by_display_name']!,
+          _updatedByDisplayNameMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -262,6 +305,14 @@ class $ProductsTableTable extends ProductsTable
         DriftSqlType.string,
         data['${effectivePrefix}created_by_display_name'],
       )!,
+      updatedByDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_by_device_id'],
+      ),
+      updatedByDisplayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_by_display_name'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -294,6 +345,8 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
   final String productTypeCode;
   final String createdByDeviceId;
   final String createdByDisplayName;
+  final String? updatedByDeviceId;
+  final String? updatedByDisplayName;
   final DateTime createdAt;
   final DateTime updatedAt;
   final bool isDeleted;
@@ -305,6 +358,8 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
     required this.productTypeCode,
     required this.createdByDeviceId,
     required this.createdByDisplayName,
+    this.updatedByDeviceId,
+    this.updatedByDisplayName,
     required this.createdAt,
     required this.updatedAt,
     required this.isDeleted,
@@ -321,6 +376,12 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
     map['product_type_code'] = Variable<String>(productTypeCode);
     map['created_by_device_id'] = Variable<String>(createdByDeviceId);
     map['created_by_display_name'] = Variable<String>(createdByDisplayName);
+    if (!nullToAbsent || updatedByDeviceId != null) {
+      map['updated_by_device_id'] = Variable<String>(updatedByDeviceId);
+    }
+    if (!nullToAbsent || updatedByDisplayName != null) {
+      map['updated_by_display_name'] = Variable<String>(updatedByDisplayName);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
@@ -338,6 +399,12 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
       productTypeCode: Value(productTypeCode),
       createdByDeviceId: Value(createdByDeviceId),
       createdByDisplayName: Value(createdByDisplayName),
+      updatedByDeviceId: updatedByDeviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedByDeviceId),
+      updatedByDisplayName: updatedByDisplayName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedByDisplayName),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
@@ -359,6 +426,12 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
       createdByDisplayName: serializer.fromJson<String>(
         json['createdByDisplayName'],
       ),
+      updatedByDeviceId: serializer.fromJson<String?>(
+        json['updatedByDeviceId'],
+      ),
+      updatedByDisplayName: serializer.fromJson<String?>(
+        json['updatedByDisplayName'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
@@ -375,6 +448,8 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
       'productTypeCode': serializer.toJson<String>(productTypeCode),
       'createdByDeviceId': serializer.toJson<String>(createdByDeviceId),
       'createdByDisplayName': serializer.toJson<String>(createdByDisplayName),
+      'updatedByDeviceId': serializer.toJson<String?>(updatedByDeviceId),
+      'updatedByDisplayName': serializer.toJson<String?>(updatedByDisplayName),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
@@ -389,6 +464,8 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
     String? productTypeCode,
     String? createdByDeviceId,
     String? createdByDisplayName,
+    Value<String?> updatedByDeviceId = const Value.absent(),
+    Value<String?> updatedByDisplayName = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isDeleted,
@@ -400,6 +477,12 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
     productTypeCode: productTypeCode ?? this.productTypeCode,
     createdByDeviceId: createdByDeviceId ?? this.createdByDeviceId,
     createdByDisplayName: createdByDisplayName ?? this.createdByDisplayName,
+    updatedByDeviceId: updatedByDeviceId.present
+        ? updatedByDeviceId.value
+        : this.updatedByDeviceId,
+    updatedByDisplayName: updatedByDisplayName.present
+        ? updatedByDisplayName.value
+        : this.updatedByDisplayName,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
@@ -421,6 +504,12 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
       createdByDisplayName: data.createdByDisplayName.present
           ? data.createdByDisplayName.value
           : this.createdByDisplayName,
+      updatedByDeviceId: data.updatedByDeviceId.present
+          ? data.updatedByDeviceId.value
+          : this.updatedByDeviceId,
+      updatedByDisplayName: data.updatedByDisplayName.present
+          ? data.updatedByDisplayName.value
+          : this.updatedByDisplayName,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
@@ -437,6 +526,8 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
           ..write('productTypeCode: $productTypeCode, ')
           ..write('createdByDeviceId: $createdByDeviceId, ')
           ..write('createdByDisplayName: $createdByDisplayName, ')
+          ..write('updatedByDeviceId: $updatedByDeviceId, ')
+          ..write('updatedByDisplayName: $updatedByDisplayName, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
@@ -453,6 +544,8 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
     productTypeCode,
     createdByDeviceId,
     createdByDisplayName,
+    updatedByDeviceId,
+    updatedByDisplayName,
     createdAt,
     updatedAt,
     isDeleted,
@@ -468,6 +561,8 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
           other.productTypeCode == this.productTypeCode &&
           other.createdByDeviceId == this.createdByDeviceId &&
           other.createdByDisplayName == this.createdByDisplayName &&
+          other.updatedByDeviceId == this.updatedByDeviceId &&
+          other.updatedByDisplayName == this.updatedByDisplayName &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
@@ -481,6 +576,8 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
   final Value<String> productTypeCode;
   final Value<String> createdByDeviceId;
   final Value<String> createdByDisplayName;
+  final Value<String?> updatedByDeviceId;
+  final Value<String?> updatedByDisplayName;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
@@ -493,6 +590,8 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
     this.productTypeCode = const Value.absent(),
     this.createdByDeviceId = const Value.absent(),
     this.createdByDisplayName = const Value.absent(),
+    this.updatedByDeviceId = const Value.absent(),
+    this.updatedByDisplayName = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
@@ -506,6 +605,8 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
     required String productTypeCode,
     required String createdByDeviceId,
     required String createdByDisplayName,
+    this.updatedByDeviceId = const Value.absent(),
+    this.updatedByDisplayName = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.isDeleted = const Value.absent(),
@@ -525,6 +626,8 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
     Expression<String>? productTypeCode,
     Expression<String>? createdByDeviceId,
     Expression<String>? createdByDisplayName,
+    Expression<String>? updatedByDeviceId,
+    Expression<String>? updatedByDisplayName,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
@@ -539,6 +642,9 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
       if (createdByDeviceId != null) 'created_by_device_id': createdByDeviceId,
       if (createdByDisplayName != null)
         'created_by_display_name': createdByDisplayName,
+      if (updatedByDeviceId != null) 'updated_by_device_id': updatedByDeviceId,
+      if (updatedByDisplayName != null)
+        'updated_by_display_name': updatedByDisplayName,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
@@ -554,6 +660,8 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
     Value<String>? productTypeCode,
     Value<String>? createdByDeviceId,
     Value<String>? createdByDisplayName,
+    Value<String?>? updatedByDeviceId,
+    Value<String?>? updatedByDisplayName,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
@@ -567,6 +675,8 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
       productTypeCode: productTypeCode ?? this.productTypeCode,
       createdByDeviceId: createdByDeviceId ?? this.createdByDeviceId,
       createdByDisplayName: createdByDisplayName ?? this.createdByDisplayName,
+      updatedByDeviceId: updatedByDeviceId ?? this.updatedByDeviceId,
+      updatedByDisplayName: updatedByDisplayName ?? this.updatedByDisplayName,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
@@ -598,6 +708,14 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
         createdByDisplayName.value,
       );
     }
+    if (updatedByDeviceId.present) {
+      map['updated_by_device_id'] = Variable<String>(updatedByDeviceId.value);
+    }
+    if (updatedByDisplayName.present) {
+      map['updated_by_display_name'] = Variable<String>(
+        updatedByDisplayName.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -625,6 +743,8 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
           ..write('productTypeCode: $productTypeCode, ')
           ..write('createdByDeviceId: $createdByDeviceId, ')
           ..write('createdByDisplayName: $createdByDisplayName, ')
+          ..write('updatedByDeviceId: $updatedByDeviceId, ')
+          ..write('updatedByDisplayName: $updatedByDisplayName, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
@@ -2731,6 +2851,751 @@ class PairingTokensTableCompanion extends UpdateCompanion<PairingTokenEntry> {
   }
 }
 
+class $SyncConflictsTableTable extends SyncConflictsTable
+    with TableInfo<$SyncConflictsTableTable, SyncConflictEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncConflictsTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _productIdMeta = const VerificationMeta(
+    'productId',
+  );
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+    'product_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _productNameMeta = const VerificationMeta(
+    'productName',
+  );
+  @override
+  late final GeneratedColumn<String> productName = GeneratedColumn<String>(
+    'product_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _conflictTypeMeta = const VerificationMeta(
+    'conflictType',
+  );
+  @override
+  late final GeneratedColumn<String> conflictType = GeneratedColumn<String>(
+    'conflict_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _winningDeviceIdMeta = const VerificationMeta(
+    'winningDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> winningDeviceId = GeneratedColumn<String>(
+    'winning_device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _winningDeviceNameMeta = const VerificationMeta(
+    'winningDeviceName',
+  );
+  @override
+  late final GeneratedColumn<String> winningDeviceName =
+      GeneratedColumn<String>(
+        'winning_device_name',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _losingDeviceIdMeta = const VerificationMeta(
+    'losingDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> losingDeviceId = GeneratedColumn<String>(
+    'losing_device_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _losingDeviceNameMeta = const VerificationMeta(
+    'losingDeviceName',
+  );
+  @override
+  late final GeneratedColumn<String> losingDeviceName = GeneratedColumn<String>(
+    'losing_device_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _losingProductJsonMeta = const VerificationMeta(
+    'losingProductJson',
+  );
+  @override
+  late final GeneratedColumn<String> losingProductJson =
+      GeneratedColumn<String>(
+        'losing_product_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _occurredAtMeta = const VerificationMeta(
+    'occurredAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> occurredAt = GeneratedColumn<DateTime>(
+    'occurred_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isResolvedMeta = const VerificationMeta(
+    'isResolved',
+  );
+  @override
+  late final GeneratedColumn<bool> isResolved = GeneratedColumn<bool>(
+    'is_resolved',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_resolved" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    productId,
+    productName,
+    conflictType,
+    winningDeviceId,
+    winningDeviceName,
+    losingDeviceId,
+    losingDeviceName,
+    losingProductJson,
+    reason,
+    occurredAt,
+    isResolved,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_conflicts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncConflictEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(
+        _productIdMeta,
+        productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('product_name')) {
+      context.handle(
+        _productNameMeta,
+        productName.isAcceptableOrUnknown(
+          data['product_name']!,
+          _productNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_productNameMeta);
+    }
+    if (data.containsKey('conflict_type')) {
+      context.handle(
+        _conflictTypeMeta,
+        conflictType.isAcceptableOrUnknown(
+          data['conflict_type']!,
+          _conflictTypeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_conflictTypeMeta);
+    }
+    if (data.containsKey('winning_device_id')) {
+      context.handle(
+        _winningDeviceIdMeta,
+        winningDeviceId.isAcceptableOrUnknown(
+          data['winning_device_id']!,
+          _winningDeviceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_winningDeviceIdMeta);
+    }
+    if (data.containsKey('winning_device_name')) {
+      context.handle(
+        _winningDeviceNameMeta,
+        winningDeviceName.isAcceptableOrUnknown(
+          data['winning_device_name']!,
+          _winningDeviceNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_winningDeviceNameMeta);
+    }
+    if (data.containsKey('losing_device_id')) {
+      context.handle(
+        _losingDeviceIdMeta,
+        losingDeviceId.isAcceptableOrUnknown(
+          data['losing_device_id']!,
+          _losingDeviceIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_losingDeviceIdMeta);
+    }
+    if (data.containsKey('losing_device_name')) {
+      context.handle(
+        _losingDeviceNameMeta,
+        losingDeviceName.isAcceptableOrUnknown(
+          data['losing_device_name']!,
+          _losingDeviceNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_losingDeviceNameMeta);
+    }
+    if (data.containsKey('losing_product_json')) {
+      context.handle(
+        _losingProductJsonMeta,
+        losingProductJson.isAcceptableOrUnknown(
+          data['losing_product_json']!,
+          _losingProductJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_losingProductJsonMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_reasonMeta);
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+        _occurredAtMeta,
+        occurredAt.isAcceptableOrUnknown(data['occurred_at']!, _occurredAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_occurredAtMeta);
+    }
+    if (data.containsKey('is_resolved')) {
+      context.handle(
+        _isResolvedMeta,
+        isResolved.isAcceptableOrUnknown(data['is_resolved']!, _isResolvedMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncConflictEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncConflictEntry(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      productId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_id'],
+      )!,
+      productName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}product_name'],
+      )!,
+      conflictType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}conflict_type'],
+      )!,
+      winningDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}winning_device_id'],
+      )!,
+      winningDeviceName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}winning_device_name'],
+      )!,
+      losingDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}losing_device_id'],
+      )!,
+      losingDeviceName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}losing_device_name'],
+      )!,
+      losingProductJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}losing_product_json'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      )!,
+      occurredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}occurred_at'],
+      )!,
+      isResolved: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_resolved'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncConflictsTableTable createAlias(String alias) {
+    return $SyncConflictsTableTable(attachedDatabase, alias);
+  }
+}
+
+class SyncConflictEntry extends DataClass
+    implements Insertable<SyncConflictEntry> {
+  final String id;
+  final String productId;
+  final String productName;
+  final String conflictType;
+  final String winningDeviceId;
+  final String winningDeviceName;
+  final String losingDeviceId;
+  final String losingDeviceName;
+  final String losingProductJson;
+  final String reason;
+  final DateTime occurredAt;
+  final bool isResolved;
+  const SyncConflictEntry({
+    required this.id,
+    required this.productId,
+    required this.productName,
+    required this.conflictType,
+    required this.winningDeviceId,
+    required this.winningDeviceName,
+    required this.losingDeviceId,
+    required this.losingDeviceName,
+    required this.losingProductJson,
+    required this.reason,
+    required this.occurredAt,
+    required this.isResolved,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['product_id'] = Variable<String>(productId);
+    map['product_name'] = Variable<String>(productName);
+    map['conflict_type'] = Variable<String>(conflictType);
+    map['winning_device_id'] = Variable<String>(winningDeviceId);
+    map['winning_device_name'] = Variable<String>(winningDeviceName);
+    map['losing_device_id'] = Variable<String>(losingDeviceId);
+    map['losing_device_name'] = Variable<String>(losingDeviceName);
+    map['losing_product_json'] = Variable<String>(losingProductJson);
+    map['reason'] = Variable<String>(reason);
+    map['occurred_at'] = Variable<DateTime>(occurredAt);
+    map['is_resolved'] = Variable<bool>(isResolved);
+    return map;
+  }
+
+  SyncConflictsTableCompanion toCompanion(bool nullToAbsent) {
+    return SyncConflictsTableCompanion(
+      id: Value(id),
+      productId: Value(productId),
+      productName: Value(productName),
+      conflictType: Value(conflictType),
+      winningDeviceId: Value(winningDeviceId),
+      winningDeviceName: Value(winningDeviceName),
+      losingDeviceId: Value(losingDeviceId),
+      losingDeviceName: Value(losingDeviceName),
+      losingProductJson: Value(losingProductJson),
+      reason: Value(reason),
+      occurredAt: Value(occurredAt),
+      isResolved: Value(isResolved),
+    );
+  }
+
+  factory SyncConflictEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncConflictEntry(
+      id: serializer.fromJson<String>(json['id']),
+      productId: serializer.fromJson<String>(json['productId']),
+      productName: serializer.fromJson<String>(json['productName']),
+      conflictType: serializer.fromJson<String>(json['conflictType']),
+      winningDeviceId: serializer.fromJson<String>(json['winningDeviceId']),
+      winningDeviceName: serializer.fromJson<String>(json['winningDeviceName']),
+      losingDeviceId: serializer.fromJson<String>(json['losingDeviceId']),
+      losingDeviceName: serializer.fromJson<String>(json['losingDeviceName']),
+      losingProductJson: serializer.fromJson<String>(json['losingProductJson']),
+      reason: serializer.fromJson<String>(json['reason']),
+      occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
+      isResolved: serializer.fromJson<bool>(json['isResolved']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'productId': serializer.toJson<String>(productId),
+      'productName': serializer.toJson<String>(productName),
+      'conflictType': serializer.toJson<String>(conflictType),
+      'winningDeviceId': serializer.toJson<String>(winningDeviceId),
+      'winningDeviceName': serializer.toJson<String>(winningDeviceName),
+      'losingDeviceId': serializer.toJson<String>(losingDeviceId),
+      'losingDeviceName': serializer.toJson<String>(losingDeviceName),
+      'losingProductJson': serializer.toJson<String>(losingProductJson),
+      'reason': serializer.toJson<String>(reason),
+      'occurredAt': serializer.toJson<DateTime>(occurredAt),
+      'isResolved': serializer.toJson<bool>(isResolved),
+    };
+  }
+
+  SyncConflictEntry copyWith({
+    String? id,
+    String? productId,
+    String? productName,
+    String? conflictType,
+    String? winningDeviceId,
+    String? winningDeviceName,
+    String? losingDeviceId,
+    String? losingDeviceName,
+    String? losingProductJson,
+    String? reason,
+    DateTime? occurredAt,
+    bool? isResolved,
+  }) => SyncConflictEntry(
+    id: id ?? this.id,
+    productId: productId ?? this.productId,
+    productName: productName ?? this.productName,
+    conflictType: conflictType ?? this.conflictType,
+    winningDeviceId: winningDeviceId ?? this.winningDeviceId,
+    winningDeviceName: winningDeviceName ?? this.winningDeviceName,
+    losingDeviceId: losingDeviceId ?? this.losingDeviceId,
+    losingDeviceName: losingDeviceName ?? this.losingDeviceName,
+    losingProductJson: losingProductJson ?? this.losingProductJson,
+    reason: reason ?? this.reason,
+    occurredAt: occurredAt ?? this.occurredAt,
+    isResolved: isResolved ?? this.isResolved,
+  );
+  SyncConflictEntry copyWithCompanion(SyncConflictsTableCompanion data) {
+    return SyncConflictEntry(
+      id: data.id.present ? data.id.value : this.id,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      productName: data.productName.present
+          ? data.productName.value
+          : this.productName,
+      conflictType: data.conflictType.present
+          ? data.conflictType.value
+          : this.conflictType,
+      winningDeviceId: data.winningDeviceId.present
+          ? data.winningDeviceId.value
+          : this.winningDeviceId,
+      winningDeviceName: data.winningDeviceName.present
+          ? data.winningDeviceName.value
+          : this.winningDeviceName,
+      losingDeviceId: data.losingDeviceId.present
+          ? data.losingDeviceId.value
+          : this.losingDeviceId,
+      losingDeviceName: data.losingDeviceName.present
+          ? data.losingDeviceName.value
+          : this.losingDeviceName,
+      losingProductJson: data.losingProductJson.present
+          ? data.losingProductJson.value
+          : this.losingProductJson,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      occurredAt: data.occurredAt.present
+          ? data.occurredAt.value
+          : this.occurredAt,
+      isResolved: data.isResolved.present
+          ? data.isResolved.value
+          : this.isResolved,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncConflictEntry(')
+          ..write('id: $id, ')
+          ..write('productId: $productId, ')
+          ..write('productName: $productName, ')
+          ..write('conflictType: $conflictType, ')
+          ..write('winningDeviceId: $winningDeviceId, ')
+          ..write('winningDeviceName: $winningDeviceName, ')
+          ..write('losingDeviceId: $losingDeviceId, ')
+          ..write('losingDeviceName: $losingDeviceName, ')
+          ..write('losingProductJson: $losingProductJson, ')
+          ..write('reason: $reason, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('isResolved: $isResolved')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    productId,
+    productName,
+    conflictType,
+    winningDeviceId,
+    winningDeviceName,
+    losingDeviceId,
+    losingDeviceName,
+    losingProductJson,
+    reason,
+    occurredAt,
+    isResolved,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncConflictEntry &&
+          other.id == this.id &&
+          other.productId == this.productId &&
+          other.productName == this.productName &&
+          other.conflictType == this.conflictType &&
+          other.winningDeviceId == this.winningDeviceId &&
+          other.winningDeviceName == this.winningDeviceName &&
+          other.losingDeviceId == this.losingDeviceId &&
+          other.losingDeviceName == this.losingDeviceName &&
+          other.losingProductJson == this.losingProductJson &&
+          other.reason == this.reason &&
+          other.occurredAt == this.occurredAt &&
+          other.isResolved == this.isResolved);
+}
+
+class SyncConflictsTableCompanion extends UpdateCompanion<SyncConflictEntry> {
+  final Value<String> id;
+  final Value<String> productId;
+  final Value<String> productName;
+  final Value<String> conflictType;
+  final Value<String> winningDeviceId;
+  final Value<String> winningDeviceName;
+  final Value<String> losingDeviceId;
+  final Value<String> losingDeviceName;
+  final Value<String> losingProductJson;
+  final Value<String> reason;
+  final Value<DateTime> occurredAt;
+  final Value<bool> isResolved;
+  final Value<int> rowid;
+  const SyncConflictsTableCompanion({
+    this.id = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.productName = const Value.absent(),
+    this.conflictType = const Value.absent(),
+    this.winningDeviceId = const Value.absent(),
+    this.winningDeviceName = const Value.absent(),
+    this.losingDeviceId = const Value.absent(),
+    this.losingDeviceName = const Value.absent(),
+    this.losingProductJson = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.isResolved = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncConflictsTableCompanion.insert({
+    required String id,
+    required String productId,
+    required String productName,
+    required String conflictType,
+    required String winningDeviceId,
+    required String winningDeviceName,
+    required String losingDeviceId,
+    required String losingDeviceName,
+    required String losingProductJson,
+    required String reason,
+    required DateTime occurredAt,
+    this.isResolved = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       productId = Value(productId),
+       productName = Value(productName),
+       conflictType = Value(conflictType),
+       winningDeviceId = Value(winningDeviceId),
+       winningDeviceName = Value(winningDeviceName),
+       losingDeviceId = Value(losingDeviceId),
+       losingDeviceName = Value(losingDeviceName),
+       losingProductJson = Value(losingProductJson),
+       reason = Value(reason),
+       occurredAt = Value(occurredAt);
+  static Insertable<SyncConflictEntry> custom({
+    Expression<String>? id,
+    Expression<String>? productId,
+    Expression<String>? productName,
+    Expression<String>? conflictType,
+    Expression<String>? winningDeviceId,
+    Expression<String>? winningDeviceName,
+    Expression<String>? losingDeviceId,
+    Expression<String>? losingDeviceName,
+    Expression<String>? losingProductJson,
+    Expression<String>? reason,
+    Expression<DateTime>? occurredAt,
+    Expression<bool>? isResolved,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (productId != null) 'product_id': productId,
+      if (productName != null) 'product_name': productName,
+      if (conflictType != null) 'conflict_type': conflictType,
+      if (winningDeviceId != null) 'winning_device_id': winningDeviceId,
+      if (winningDeviceName != null) 'winning_device_name': winningDeviceName,
+      if (losingDeviceId != null) 'losing_device_id': losingDeviceId,
+      if (losingDeviceName != null) 'losing_device_name': losingDeviceName,
+      if (losingProductJson != null) 'losing_product_json': losingProductJson,
+      if (reason != null) 'reason': reason,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (isResolved != null) 'is_resolved': isResolved,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncConflictsTableCompanion copyWith({
+    Value<String>? id,
+    Value<String>? productId,
+    Value<String>? productName,
+    Value<String>? conflictType,
+    Value<String>? winningDeviceId,
+    Value<String>? winningDeviceName,
+    Value<String>? losingDeviceId,
+    Value<String>? losingDeviceName,
+    Value<String>? losingProductJson,
+    Value<String>? reason,
+    Value<DateTime>? occurredAt,
+    Value<bool>? isResolved,
+    Value<int>? rowid,
+  }) {
+    return SyncConflictsTableCompanion(
+      id: id ?? this.id,
+      productId: productId ?? this.productId,
+      productName: productName ?? this.productName,
+      conflictType: conflictType ?? this.conflictType,
+      winningDeviceId: winningDeviceId ?? this.winningDeviceId,
+      winningDeviceName: winningDeviceName ?? this.winningDeviceName,
+      losingDeviceId: losingDeviceId ?? this.losingDeviceId,
+      losingDeviceName: losingDeviceName ?? this.losingDeviceName,
+      losingProductJson: losingProductJson ?? this.losingProductJson,
+      reason: reason ?? this.reason,
+      occurredAt: occurredAt ?? this.occurredAt,
+      isResolved: isResolved ?? this.isResolved,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (productName.present) {
+      map['product_name'] = Variable<String>(productName.value);
+    }
+    if (conflictType.present) {
+      map['conflict_type'] = Variable<String>(conflictType.value);
+    }
+    if (winningDeviceId.present) {
+      map['winning_device_id'] = Variable<String>(winningDeviceId.value);
+    }
+    if (winningDeviceName.present) {
+      map['winning_device_name'] = Variable<String>(winningDeviceName.value);
+    }
+    if (losingDeviceId.present) {
+      map['losing_device_id'] = Variable<String>(losingDeviceId.value);
+    }
+    if (losingDeviceName.present) {
+      map['losing_device_name'] = Variable<String>(losingDeviceName.value);
+    }
+    if (losingProductJson.present) {
+      map['losing_product_json'] = Variable<String>(losingProductJson.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt.value);
+    }
+    if (isResolved.present) {
+      map['is_resolved'] = Variable<bool>(isResolved.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncConflictsTableCompanion(')
+          ..write('id: $id, ')
+          ..write('productId: $productId, ')
+          ..write('productName: $productName, ')
+          ..write('conflictType: $conflictType, ')
+          ..write('winningDeviceId: $winningDeviceId, ')
+          ..write('winningDeviceName: $winningDeviceName, ')
+          ..write('losingDeviceId: $losingDeviceId, ')
+          ..write('losingDeviceName: $losingDeviceName, ')
+          ..write('losingProductJson: $losingProductJson, ')
+          ..write('reason: $reason, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('isResolved: $isResolved, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2745,6 +3610,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $PairingTokensTableTable pairingTokensTable =
       $PairingTokensTableTable(this);
+  late final $SyncConflictsTableTable syncConflictsTable =
+      $SyncConflictsTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2756,6 +3623,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     devicesTable,
     workspacesTable,
     pairingTokensTable,
+    syncConflictsTable,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -2784,6 +3652,8 @@ typedef $$ProductsTableTableCreateCompanionBuilder =
       required String productTypeCode,
       required String createdByDeviceId,
       required String createdByDisplayName,
+      Value<String?> updatedByDeviceId,
+      Value<String?> updatedByDisplayName,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<bool> isDeleted,
@@ -2798,6 +3668,8 @@ typedef $$ProductsTableTableUpdateCompanionBuilder =
       Value<String> productTypeCode,
       Value<String> createdByDeviceId,
       Value<String> createdByDisplayName,
+      Value<String?> updatedByDeviceId,
+      Value<String?> updatedByDisplayName,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
@@ -2902,6 +3774,16 @@ class $$ProductsTableTableFilterComposer
 
   ColumnFilters<String> get createdByDisplayName => $composableBuilder(
     column: $table.createdByDisplayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedByDeviceId => $composableBuilder(
+    column: $table.updatedByDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedByDisplayName => $composableBuilder(
+    column: $table.updatedByDisplayName,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3017,6 +3899,16 @@ class $$ProductsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get updatedByDeviceId => $composableBuilder(
+    column: $table.updatedByDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedByDisplayName => $composableBuilder(
+    column: $table.updatedByDisplayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -3070,6 +3962,16 @@ class $$ProductsTableTableAnnotationComposer
 
   GeneratedColumn<String> get createdByDisplayName => $composableBuilder(
     column: $table.createdByDisplayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get updatedByDeviceId => $composableBuilder(
+    column: $table.updatedByDeviceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get updatedByDisplayName => $composableBuilder(
+    column: $table.updatedByDisplayName,
     builder: (column) => column,
   );
 
@@ -3178,6 +4080,8 @@ class $$ProductsTableTableTableManager
                 Value<String> productTypeCode = const Value.absent(),
                 Value<String> createdByDeviceId = const Value.absent(),
                 Value<String> createdByDisplayName = const Value.absent(),
+                Value<String?> updatedByDeviceId = const Value.absent(),
+                Value<String?> updatedByDisplayName = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
@@ -3190,6 +4094,8 @@ class $$ProductsTableTableTableManager
                 productTypeCode: productTypeCode,
                 createdByDeviceId: createdByDeviceId,
                 createdByDisplayName: createdByDisplayName,
+                updatedByDeviceId: updatedByDeviceId,
+                updatedByDisplayName: updatedByDisplayName,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
@@ -3204,6 +4110,8 @@ class $$ProductsTableTableTableManager
                 required String productTypeCode,
                 required String createdByDeviceId,
                 required String createdByDisplayName,
+                Value<String?> updatedByDeviceId = const Value.absent(),
+                Value<String?> updatedByDisplayName = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<bool> isDeleted = const Value.absent(),
@@ -3216,6 +4124,8 @@ class $$ProductsTableTableTableManager
                 productTypeCode: productTypeCode,
                 createdByDeviceId: createdByDeviceId,
                 createdByDisplayName: createdByDisplayName,
+                updatedByDeviceId: updatedByDeviceId,
+                updatedByDisplayName: updatedByDisplayName,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
@@ -4725,6 +5635,370 @@ typedef $$PairingTokensTableTableProcessedTableManager =
       PairingTokenEntry,
       PrefetchHooks Function()
     >;
+typedef $$SyncConflictsTableTableCreateCompanionBuilder =
+    SyncConflictsTableCompanion Function({
+      required String id,
+      required String productId,
+      required String productName,
+      required String conflictType,
+      required String winningDeviceId,
+      required String winningDeviceName,
+      required String losingDeviceId,
+      required String losingDeviceName,
+      required String losingProductJson,
+      required String reason,
+      required DateTime occurredAt,
+      Value<bool> isResolved,
+      Value<int> rowid,
+    });
+typedef $$SyncConflictsTableTableUpdateCompanionBuilder =
+    SyncConflictsTableCompanion Function({
+      Value<String> id,
+      Value<String> productId,
+      Value<String> productName,
+      Value<String> conflictType,
+      Value<String> winningDeviceId,
+      Value<String> winningDeviceName,
+      Value<String> losingDeviceId,
+      Value<String> losingDeviceName,
+      Value<String> losingProductJson,
+      Value<String> reason,
+      Value<DateTime> occurredAt,
+      Value<bool> isResolved,
+      Value<int> rowid,
+    });
+
+class $$SyncConflictsTableTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncConflictsTableTable> {
+  $$SyncConflictsTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get conflictType => $composableBuilder(
+    column: $table.conflictType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get winningDeviceId => $composableBuilder(
+    column: $table.winningDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get winningDeviceName => $composableBuilder(
+    column: $table.winningDeviceName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get losingDeviceId => $composableBuilder(
+    column: $table.losingDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get losingDeviceName => $composableBuilder(
+    column: $table.losingDeviceName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get losingProductJson => $composableBuilder(
+    column: $table.losingProductJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isResolved => $composableBuilder(
+    column: $table.isResolved,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncConflictsTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncConflictsTableTable> {
+  $$SyncConflictsTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+    column: $table.productId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get conflictType => $composableBuilder(
+    column: $table.conflictType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get winningDeviceId => $composableBuilder(
+    column: $table.winningDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get winningDeviceName => $composableBuilder(
+    column: $table.winningDeviceName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get losingDeviceId => $composableBuilder(
+    column: $table.losingDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get losingDeviceName => $composableBuilder(
+    column: $table.losingDeviceName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get losingProductJson => $composableBuilder(
+    column: $table.losingProductJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isResolved => $composableBuilder(
+    column: $table.isResolved,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncConflictsTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncConflictsTableTable> {
+  $$SyncConflictsTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<String> get productName => $composableBuilder(
+    column: $table.productName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get conflictType => $composableBuilder(
+    column: $table.conflictType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get winningDeviceId => $composableBuilder(
+    column: $table.winningDeviceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get winningDeviceName => $composableBuilder(
+    column: $table.winningDeviceName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get losingDeviceId => $composableBuilder(
+    column: $table.losingDeviceId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get losingDeviceName => $composableBuilder(
+    column: $table.losingDeviceName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get losingProductJson => $composableBuilder(
+    column: $table.losingProductJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get occurredAt => $composableBuilder(
+    column: $table.occurredAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get isResolved => $composableBuilder(
+    column: $table.isResolved,
+    builder: (column) => column,
+  );
+}
+
+class $$SyncConflictsTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncConflictsTableTable,
+          SyncConflictEntry,
+          $$SyncConflictsTableTableFilterComposer,
+          $$SyncConflictsTableTableOrderingComposer,
+          $$SyncConflictsTableTableAnnotationComposer,
+          $$SyncConflictsTableTableCreateCompanionBuilder,
+          $$SyncConflictsTableTableUpdateCompanionBuilder,
+          (
+            SyncConflictEntry,
+            BaseReferences<
+              _$AppDatabase,
+              $SyncConflictsTableTable,
+              SyncConflictEntry
+            >,
+          ),
+          SyncConflictEntry,
+          PrefetchHooks Function()
+        > {
+  $$SyncConflictsTableTableTableManager(
+    _$AppDatabase db,
+    $SyncConflictsTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncConflictsTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncConflictsTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncConflictsTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> productId = const Value.absent(),
+                Value<String> productName = const Value.absent(),
+                Value<String> conflictType = const Value.absent(),
+                Value<String> winningDeviceId = const Value.absent(),
+                Value<String> winningDeviceName = const Value.absent(),
+                Value<String> losingDeviceId = const Value.absent(),
+                Value<String> losingDeviceName = const Value.absent(),
+                Value<String> losingProductJson = const Value.absent(),
+                Value<String> reason = const Value.absent(),
+                Value<DateTime> occurredAt = const Value.absent(),
+                Value<bool> isResolved = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncConflictsTableCompanion(
+                id: id,
+                productId: productId,
+                productName: productName,
+                conflictType: conflictType,
+                winningDeviceId: winningDeviceId,
+                winningDeviceName: winningDeviceName,
+                losingDeviceId: losingDeviceId,
+                losingDeviceName: losingDeviceName,
+                losingProductJson: losingProductJson,
+                reason: reason,
+                occurredAt: occurredAt,
+                isResolved: isResolved,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String productId,
+                required String productName,
+                required String conflictType,
+                required String winningDeviceId,
+                required String winningDeviceName,
+                required String losingDeviceId,
+                required String losingDeviceName,
+                required String losingProductJson,
+                required String reason,
+                required DateTime occurredAt,
+                Value<bool> isResolved = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SyncConflictsTableCompanion.insert(
+                id: id,
+                productId: productId,
+                productName: productName,
+                conflictType: conflictType,
+                winningDeviceId: winningDeviceId,
+                winningDeviceName: winningDeviceName,
+                losingDeviceId: losingDeviceId,
+                losingDeviceName: losingDeviceName,
+                losingProductJson: losingProductJson,
+                reason: reason,
+                occurredAt: occurredAt,
+                isResolved: isResolved,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncConflictsTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncConflictsTableTable,
+      SyncConflictEntry,
+      $$SyncConflictsTableTableFilterComposer,
+      $$SyncConflictsTableTableOrderingComposer,
+      $$SyncConflictsTableTableAnnotationComposer,
+      $$SyncConflictsTableTableCreateCompanionBuilder,
+      $$SyncConflictsTableTableUpdateCompanionBuilder,
+      (
+        SyncConflictEntry,
+        BaseReferences<
+          _$AppDatabase,
+          $SyncConflictsTableTable,
+          SyncConflictEntry
+        >,
+      ),
+      SyncConflictEntry,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4745,4 +6019,6 @@ class $AppDatabaseManager {
       $$WorkspacesTableTableTableManager(_db, _db.workspacesTable);
   $$PairingTokensTableTableTableManager get pairingTokensTable =>
       $$PairingTokensTableTableTableManager(_db, _db.pairingTokensTable);
+  $$SyncConflictsTableTableTableManager get syncConflictsTable =>
+      $$SyncConflictsTableTableTableManager(_db, _db.syncConflictsTable);
 }

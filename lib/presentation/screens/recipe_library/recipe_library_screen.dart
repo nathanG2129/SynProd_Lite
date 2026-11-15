@@ -6,11 +6,13 @@ import '../../../domain/models/product.dart';
 import '../../../domain/models/product_type.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
+import '../../providers/sync_providers.dart';
 import '../../widgets/synprod_ui.dart';
 import '../device_management/device_management_screen.dart';
 import '../product_form/product_form_screen.dart';
 import '../profile/device_profile_screen.dart';
 import '../recipe_detail/recipe_detail_screen.dart';
+import '../sync/sync_status_screen.dart';
 
 class RecipeLibraryScreen extends ConsumerStatefulWidget {
   const RecipeLibraryScreen({super.key});
@@ -51,6 +53,7 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
     ref.watch(databaseInitProvider);
 
     final currentDevice = ref.watch(currentDeviceProvider);
+    final syncState = ref.watch(syncControllerProvider);
     final filteredProductsAsync = ref.watch(filteredProductsProvider);
     final selectedType = ref.watch(selectedTypeFilterProvider);
     final selectedComp = ref.watch(selectedComponentFilterProvider);
@@ -80,6 +83,40 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
       appBar: SynProdAppBar(
         title: const SynProdGradientText('SynProd Lite'),
         actions: [
+          IconButton(
+            tooltip: syncState.peers.isNotEmpty
+                ? 'Local Sync (${syncState.peers.length} peer${syncState.peers.length == 1 ? '' : 's'})'
+                : 'Local Sync & Conflict History',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const SyncStatusScreen(),
+                ),
+              );
+            },
+            icon: Badge(
+              isLabelVisible: syncState.unresolvedConflictsCount > 0 ||
+                  syncState.peers.isNotEmpty,
+              backgroundColor: syncState.unresolvedConflictsCount > 0
+                  ? Colors.amber.shade700
+                  : AppTheme.primaryOlive,
+              label: Text(
+                syncState.unresolvedConflictsCount > 0
+                    ? '${syncState.unresolvedConflictsCount}'
+                    : '${syncState.peers.length}',
+                style: const TextStyle(fontSize: 10),
+              ),
+              child: Icon(
+                syncState.isSyncing
+                    ? Icons.sync
+                    : (syncState.isRunning
+                        ? Icons.wifi_tethering
+                        : Icons.sync_disabled),
+                color: AppTheme.forestGreen,
+              ),
+            ),
+          ),
           if (currentDevice.role.canManageDevices)
             IconButton(
               tooltip: 'Device Management',
