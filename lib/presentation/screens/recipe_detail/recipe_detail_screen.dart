@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/constants/app_constants.dart';
@@ -6,18 +7,22 @@ import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/product.dart';
 import '../../../domain/models/product_type.dart';
 import '../../../domain/services/order_calculator.dart';
+import '../../providers/device_providers.dart';
+import '../../providers/product_providers.dart';
+import '../product_form/product_form_screen.dart';
 import 'services/recipe_pdf_generator.dart';
 
-class RecipeDetailScreen extends StatefulWidget {
+class RecipeDetailScreen extends ConsumerStatefulWidget {
   final Product product;
 
   const RecipeDetailScreen({super.key, required this.product});
 
   @override
-  State<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
+  ConsumerState<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
 }
 
-class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
+class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
+  late Product _product;
   late PackagingOption _selectedPackaging;
   late TextEditingController _quantityController;
   late TextEditingController _totalWeightController;
@@ -33,7 +38,8 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedPackaging = widget.product.productType.packagingOptions.first;
+    _product = widget.product;
+    _selectedPackaging = _product.productType.packagingOptions.first;
 
     _quantityController = TextEditingController(text: '1');
     _totalWeightController = TextEditingController();
@@ -68,7 +74,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   void _recalculateFromQuantity(double qty) {
     final sanitizedQty = qty < 0 ? 0.0 : qty;
     final total = OrderCalculatorService.calculateTotalWeight(
-      baseWeightGrams: widget.product.productType.baseWeightGrams,
+      baseWeightGrams: _product.productType.baseWeightGrams,
       orderQuantity: sanitizedQty,
       unitMultiplier: _selectedPackaging.multiplier,
     );
@@ -84,7 +90,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
   void _recalculateFromTotalWeight(double totalWeight) {
     final sanitizedTotal = totalWeight < 0 ? 0.0 : totalWeight;
     final qty = OrderCalculatorService.calculateOrderQuantity(
-      baseWeightGrams: widget.product.productType.baseWeightGrams,
+      baseWeightGrams: _product.productType.baseWeightGrams,
       totalWeightGrams: sanitizedTotal,
       unitMultiplier: _selectedPackaging.multiplier,
     );
@@ -123,11 +129,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
 
   CalculationResult get _calculationResult {
     return OrderCalculatorService.calculateFromQuantity(
-      productType: widget.product.productType,
+      productType: _product.productType,
       packagingOption: _selectedPackaging,
       orderQuantity: _currentQuantity,
-      compositions: widget.product.compositions,
-      ingredients: widget.product.additionalIngredients,
+      compositions: _product.compositions,
+      ingredients: _product.additionalIngredients,
     );
   }
 
@@ -135,7 +141,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     setState(() => _isExportingPdf = true);
     try {
       await RecipePdfGenerator.printOrShare(
-        product: widget.product,
+        product: _product,
         result: _calculationResult,
       );
     } catch (e) {
@@ -152,16 +158,97 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
     }
   }
 
+  Future<void> _editProduct() async {
+    final updated = await Navigator.push<Product>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductFormScreen(product: _product),
+      ),
+    );
+    if (updated != null && mounted) {
+      setState(() {
+        final typeChanged = updated.productType != _product.productType;
+        _product = updated;
+        if (typeChanged) {
+          _selectedPackaging = _product.productType.packagingOptions.first;
+        }
+      });
+      _recalculateFromQuantity(_currentQuantity);
+    }
+  }
+
+  Future<void> _confirmSoftDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Product'),
+        content: Text(
+          'Are you sure you want to delete "${_product.name}"? '
+          'It will be removed from all recipe lists and searches.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: AppTheme.redError,
+            ),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await ref.read(productMutationServiceProvider).softDeleteProduct(_product);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Deleted "${_product.name}"'),
+        ),
+      );
+      Navigator.of(context).pop();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete product: $e'),
+          backgroundColor: AppTheme.redError,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final currentDevice = ref.watch(currentDeviceProvider);
+    final canEdit = canDeviceEditProduct(currentDevice, _product);
+    final canDelete = canDeviceDeleteProduct(currentDevice);
     final result = _calculationResult;
     final isCompositionValid =
         (result.totalPercentage - 100.0).abs() <= AppConstants.compositionTolerance;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.product.name),
+        title: Text(_product.name),
         actions: [
+          if (canEdit)
+            IconButton(
+              tooltip: 'Edit Product',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed: _editProduct,
+            ),
+          if (canDelete)
+            IconButton(
+              tooltip: 'Delete Product',
+              icon: const Icon(Icons.delete_outline),
+              onPressed: _confirmSoftDelete,
+            ),
           IconButton(
             tooltip: 'Export / Print PDF (F3)',
             icon: _isExportingPdf
@@ -218,7 +305,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    widget.product.productType.displayName,
+                    _product.productType.displayName,
                     style: const TextStyle(
                       color: AppTheme.tealDark,
                       fontWeight: FontWeight.w600,
@@ -228,7 +315,7 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 ),
                 const Spacer(),
                 Text(
-                  'Base Unit: ${_weightFormatter.format(widget.product.productType.baseWeightGrams)} g',
+                  'Base Unit: ${_weightFormatter.format(_product.productType.baseWeightGrams)} g',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppTheme.slate600,
@@ -237,11 +324,11 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 ),
               ],
             ),
-            if (widget.product.description != null &&
-                widget.product.description!.isNotEmpty) ...[
+            if (_product.description != null &&
+                _product.description!.isNotEmpty) ...[
               const SizedBox(height: 10),
               Text(
-                widget.product.description!,
+                _product.description!,
                 style: const TextStyle(fontSize: 14, color: AppTheme.slate700),
               ),
             ],
@@ -273,12 +360,12 @@ class _RecipeDetailScreenState extends State<RecipeDetailScreen> {
                 ),
                 const Spacer(),
                 // Packaging Unit Selector
-                if (widget.product.productType.packagingOptions.length > 1)
+                if (_product.productType.packagingOptions.length > 1)
                   DropdownButton<PackagingOption>(
                     value: _selectedPackaging,
                     underline: const SizedBox.shrink(),
                     borderRadius: BorderRadius.circular(8),
-                    items: widget.product.productType.packagingOptions
+                    items: _product.productType.packagingOptions
                         .map((opt) => DropdownMenuItem(
                               value: opt,
                               child: Text(

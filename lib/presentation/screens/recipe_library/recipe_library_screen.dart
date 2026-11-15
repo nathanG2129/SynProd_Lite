@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/product.dart';
 import '../../../domain/models/product_type.dart';
+import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
+import '../product_form/product_form_screen.dart';
 import '../recipe_detail/recipe_detail_screen.dart';
 
 class RecipeLibraryScreen extends ConsumerStatefulWidget {
@@ -29,13 +31,15 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
     ref.read(selectedTypeFilterProvider.notifier).state = null;
     ref.read(selectedComponentFilterProvider.notifier).state = null;
     ref.read(selectedIngredientFilterProvider.notifier).state = null;
+    ref.read(myProductsOnlyProvider.notifier).state = false;
   }
 
   bool _hasActiveFilters(WidgetRef ref) {
     return ref.watch(searchQueryProvider).isNotEmpty ||
         ref.watch(selectedTypeFilterProvider) != null ||
         ref.watch(selectedComponentFilterProvider) != null ||
-        ref.watch(selectedIngredientFilterProvider) != null;
+        ref.watch(selectedIngredientFilterProvider) != null ||
+        ref.watch(myProductsOnlyProvider);
   }
 
   @override
@@ -43,10 +47,12 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
     // Ensure initial seed completes if database is fresh
     ref.watch(databaseInitProvider);
 
+    final currentDevice = ref.watch(currentDeviceProvider);
     final filteredProductsAsync = ref.watch(filteredProductsProvider);
     final selectedType = ref.watch(selectedTypeFilterProvider);
     final selectedComp = ref.watch(selectedComponentFilterProvider);
     final selectedIng = ref.watch(selectedIngredientFilterProvider);
+    final myProductsOnly = ref.watch(myProductsOnlyProvider);
 
     final distinctCompsAsync = ref.watch(distinctComponentsProvider);
     final distinctIngsAsync = ref.watch(distinctIngredientsProvider);
@@ -54,6 +60,20 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
     final hasFilters = _hasActiveFilters(ref);
 
     return Scaffold(
+      floatingActionButton: currentDevice.role.canCreateProduct
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const ProductFormScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('New Recipe'),
+            )
+          : null,
       appBar: AppBar(
         title: const Text('SynProd Lite'),
         bottom: PreferredSize(
@@ -129,6 +149,16 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                           ),
                         );
                       }),
+                      if (currentDevice.role.canCreateProduct)
+                        FilterChip(
+                          avatar: const Icon(Icons.person_outline, size: 16),
+                          label: const Text('My Products'),
+                          selected: myProductsOnly,
+                          onSelected: (selected) {
+                            ref.read(myProductsOnlyProvider.notifier).state =
+                                selected;
+                          },
+                        ),
                     ],
                   ),
                 ),
