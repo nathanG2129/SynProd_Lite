@@ -6,6 +6,7 @@ import '../../../domain/models/product.dart';
 import '../../../domain/models/product_type.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
+import '../../widgets/synprod_ui.dart';
 import '../product_form/product_form_screen.dart';
 import '../recipe_detail/recipe_detail_screen.dart';
 
@@ -74,8 +75,43 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
               label: const Text('New Recipe'),
             )
           : null,
-      appBar: AppBar(
-        title: const Text('SynProd Lite'),
+      appBar: SynProdAppBar(
+        title: const SynProdGradientText('SynProd Lite'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SynProdAvatar(displayName: currentDevice.displayName),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      currentDevice.displayName,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.slate800,
+                      ),
+                    ),
+                    Text(
+                      currentDevice.role.displayName.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.oliveMuted,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(64),
           child: Padding(
@@ -84,7 +120,7 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search by recipe, component, or ingredient...',
-                prefixIcon: const Icon(Icons.search, color: AppTheme.slate600),
+                prefixIcon: const Icon(Icons.search, color: AppTheme.forestGreen),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
@@ -95,11 +131,19 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                       )
                     : null,
                 filled: true,
-                fillColor: AppTheme.slate100,
+                fillColor: AppTheme.slate50,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                  borderSide: BorderSide.none,
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppTheme.borderInput, width: 1.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppTheme.borderInput, width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: AppTheme.forestGreen, width: 2),
                 ),
               ),
               onChanged: (value) {
@@ -109,7 +153,8 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
           ),
         ),
       ),
-      body: Column(
+      body: SynProdCanvas(
+        child: Column(
         children: [
           // Filter Chips Section
           Container(
@@ -324,6 +369,7 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
           ),
         ],
       ),
+      ),
     );
   }
 
@@ -336,10 +382,11 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: AppTheme.slate100,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: value != null ? AppTheme.tealPrimary : AppTheme.slate200,
+          color: value != null ? AppTheme.forestGreen : AppTheme.borderInput,
+          width: value != null ? 1.5 : 1,
         ),
       ),
       child: DropdownButtonHideUnderline(
@@ -388,106 +435,104 @@ class _RecipeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
+    return SynProdCard(
+      onTap: onTap,
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Text(
-                      product.name,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.slate900,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.tealLight,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      product.productType.displayName,
-                      style: const TextStyle(
-                        color: AppTheme.tealDark,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              if (product.description != null &&
-                  product.description!.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  product.description!,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+              Expanded(
+                child: Text(
+                  product.name,
                   style: const TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.slate600,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.slate800,
                   ),
                 ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  const Icon(Icons.scale_outlined,
-                      size: 15, color: AppTheme.slate500),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${product.productType.baseWeightGrams.toInt()}g base',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.slate600,
-                      fontWeight: FontWeight.w500,
-                    ),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.softTintGradient,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: AppTheme.primaryOlive.withValues(alpha: 0.4),
                   ),
-                  const SizedBox(width: 14),
-                  const Icon(Icons.pie_chart_outline,
-                      size: 15, color: AppTheme.slate500),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${product.compositions.length} components',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.slate600,
-                      fontWeight: FontWeight.w500,
-                    ),
+                ),
+                child: Text(
+                  product.productType.displayName,
+                  style: const TextStyle(
+                    color: AppTheme.forestGreen,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
                   ),
-                  if (product.additionalIngredients.isNotEmpty) ...[
-                    const SizedBox(width: 14),
-                    const Icon(Icons.add_circle_outline,
-                        size: 15, color: AppTheme.slate500),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${product.additionalIngredients.length} ingredients',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.slate600,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                  const Spacer(),
-                  const Icon(Icons.chevron_right, color: AppTheme.slate400),
-                ],
+                ),
               ),
             ],
           ),
-        ),
+          if (product.description != null &&
+              product.description!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              product.description!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.slate500,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(Icons.scale_outlined,
+                  size: 15, color: AppTheme.oliveMuted),
+              const SizedBox(width: 4),
+              Text(
+                '${product.productType.baseWeightGrams.toInt()}g base',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.slate600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Icon(Icons.pie_chart_outline,
+                  size: 15, color: AppTheme.oliveMuted),
+              const SizedBox(width: 4),
+              Text(
+                '${product.compositions.length} components',
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.slate600,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              if (product.additionalIngredients.isNotEmpty) ...[
+                const SizedBox(width: 14),
+                const Icon(Icons.add_circle_outline,
+                    size: 15, color: AppTheme.oliveMuted),
+                const SizedBox(width: 4),
+                Text(
+                  '${product.additionalIngredients.length} ingredients',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.slate600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+              const Spacer(),
+              const Icon(Icons.chevron_right, color: AppTheme.oliveMuted),
+            ],
+          ),
+        ],
       ),
     );
   }

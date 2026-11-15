@@ -13,6 +13,7 @@ import '../../../domain/models/product_type.dart';
 import '../../../domain/services/product_validator.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
+import '../../widgets/synprod_ui.dart';
 
 class ProductFormScreen extends ConsumerStatefulWidget {
   final Product? product;
@@ -239,15 +240,25 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final isSumValid = ProductValidator.isCompositionSumValid(compositions);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? 'Edit Product' : 'New Product'),
+      appBar: SynProdAppBar(
+        title: Text(
+          _isEditing ? 'Edit Product' : 'New Product',
+          style: const TextStyle(
+            color: AppTheme.forestGreen,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: FilledButton.icon(
+            padding: const EdgeInsets.only(right: 12, top: 10, bottom: 10),
+            child: SynProdGradientButton(
               onPressed: _isSaving ? null : _save,
-              icon: _isSaving
-                  ? const SizedBox(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_isSaving)
+                    const SizedBox(
                       width: 16,
                       height: 16,
                       child: CircularProgressIndicator(
@@ -255,73 +266,78 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                         color: Colors.white,
                       ),
                     )
-                  : const Icon(Icons.save_outlined, size: 18),
-              label: Text(_isSaving ? 'Saving...' : 'Save'),
+                  else
+                    const Icon(Icons.save_outlined, size: 18),
+                  const SizedBox(width: 6),
+                  Text(_isSaving ? 'Saving...' : 'Save'),
+                ],
+              ),
             ),
           ),
         ],
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          controller: _scrollController,
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (_errorMessage != null) ...[
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.red.shade300),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(Icons.error_outline,
-                        color: Colors.red.shade700, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        _errorMessage!,
-                        style: TextStyle(
-                          color: Colors.red.shade900,
-                          fontWeight: FontWeight.w500,
+      body: SynProdCanvas(
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            controller: _scrollController,
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (_errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.errorBg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppTheme.inputErrorBorder),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: AppTheme.redError, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            color: AppTheme.errorText,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 16),
+              ],
+              _buildBasicInfoCard(),
               const SizedBox(height: 16),
+              _buildCompositionsCard(totalPercentage, isSumValid),
+              const SizedBox(height: 16),
+              _buildIngredientsCard(),
+              const SizedBox(height: 32),
             ],
-            _buildBasicInfoCard(),
-            const SizedBox(height: 16),
-            _buildCompositionsCard(totalPercentage, isSumValid),
-            const SizedBox(height: 16),
-            _buildIngredientsCard(),
-            const SizedBox(height: 32),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildBasicInfoCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Product Details',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.slate900,
-              ),
+    return SynProdCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Product Details',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppTheme.forestGreen,
             ),
+          ),
             const SizedBox(height: 14),
             TextFormField(
               controller: _nameController,
@@ -369,7 +385,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               ),
             ),
           ],
-        ),
       ),
     );
   }
@@ -378,80 +393,89 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     final hasCompositions = _compositionRows.isNotEmpty;
     final statusColor = !hasCompositions
         ? AppTheme.slate600
-        : (isSumValid ? AppTheme.greenSuccess : AppTheme.amberWarning);
+        : (isSumValid ? AppTheme.forestGreen : AppTheme.warningText);
+    final statusBorder = !hasCompositions
+        ? AppTheme.slate200
+        : (isSumValid ? AppTheme.primaryOlive : AppTheme.amberWarning);
     final statusBg = !hasCompositions
         ? AppTheme.slate100
-        : (isSumValid ? const Color(0xFFD1FAE5) : const Color(0xFFFEF3C7));
+        : (isSumValid ? AppTheme.percentageValidBg : AppTheme.warningBg);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Composition (% of Weight)',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.slate900,
-                    ),
+    return SynProdCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Composition (% of Weight)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.forestGreen,
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: _addCompositionRow,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Row'),
+              ),
+              SynProdSecondaryButton(
+                onPressed: _addCompositionRow,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, size: 16),
+                    SizedBox(width: 4),
+                    Text('Add Row'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: statusBg,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: statusBorder),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  !hasCompositions
+                      ? Icons.info_outline
+                      : (isSumValid
+                          ? Icons.check_circle_outline
+                          : Icons.warning_amber_rounded),
+                  color: statusColor,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    !hasCompositions
+                        ? 'No composition rows (optional). Add rows to define % split.'
+                        : isSumValid
+                            ? 'Total: ${totalPercentage.toStringAsFixed(1)}% (Balanced at 100%)'
+                            : 'Total: ${totalPercentage.toStringAsFixed(1)}% (Must equal 100%)',
+                    style: TextStyle(
+                      color: statusColor,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: statusBg,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: statusColor.withValues(alpha: 0.4)),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    !hasCompositions
-                        ? Icons.info_outline
-                        : (isSumValid
-                            ? Icons.check_circle_outline
-                            : Icons.warning_amber_rounded),
-                    color: statusColor,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      !hasCompositions
-                          ? 'No composition rows (optional). Add rows to define % split.'
-                          : isSumValid
-                              ? 'Total: ${totalPercentage.toStringAsFixed(1)}% (Balanced at 100%)'
-                              : 'Total: ${totalPercentage.toStringAsFixed(1)}% (Must equal 100%)',
-                      style: TextStyle(
-                        color: statusColor,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (_compositionRows.isNotEmpty) const SizedBox(height: 12),
-            ...List.generate(_compositionRows.length, (index) {
-              return _buildCompositionRow(index, totalPercentage);
-            }),
-          ],
-        ),
+          ),
+          if (_compositionRows.isNotEmpty) const SizedBox(height: 12),
+          ...List.generate(_compositionRows.length, (index) {
+            return _buildCompositionRow(index, totalPercentage);
+          }),
+        ],
       ),
     );
   }
@@ -464,9 +488,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.slate50,
+        gradient: AppTheme.subtleSurfaceGradient,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.slate200),
+        border: Border.all(color: AppTheme.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,44 +619,50 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   Widget _buildIngredientsCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Additional Ingredients (per Base Unit)',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.slate900,
-                    ),
+    return SynProdCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Additional Ingredients (per Base Unit)',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.forestGreen,
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: _addIngredientRow,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Add Row'),
-                ),
-              ],
-            ),
-            if (_ingredientRows.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'No additional ingredients added (optional).',
-                  style: TextStyle(color: AppTheme.slate600, fontSize: 13),
+              ),
+              SynProdSecondaryButton(
+                onPressed: _addIngredientRow,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, size: 16),
+                    SizedBox(width: 4),
+                    Text('Add Row'),
+                  ],
                 ),
               ),
-            ...List.generate(_ingredientRows.length, (index) {
-              return _buildIngredientRow(index);
-            }),
-          ],
-        ),
+            ],
+          ),
+          if (_ingredientRows.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'No additional ingredients added (optional).',
+                style: TextStyle(color: AppTheme.slate600, fontSize: 13),
+              ),
+            ),
+          ...List.generate(_ingredientRows.length, (index) {
+            return _buildIngredientRow(index);
+          }),
+        ],
       ),
     );
   }
@@ -649,9 +679,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppTheme.slate50,
+        gradient: AppTheme.subtleSurfaceGradient,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.slate200),
+        border: Border.all(color: AppTheme.cardBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

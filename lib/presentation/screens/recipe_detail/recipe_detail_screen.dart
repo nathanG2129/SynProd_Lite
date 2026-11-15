@@ -9,6 +9,7 @@ import '../../../domain/models/product_type.dart';
 import '../../../domain/services/order_calculator.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
+import '../../widgets/synprod_ui.dart';
 import '../product_form/product_form_screen.dart';
 import 'services/recipe_pdf_generator.dart';
 
@@ -234,19 +235,25 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         (result.totalPercentage - 100.0).abs() <= AppConstants.compositionTolerance;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_product.name),
+      appBar: SynProdAppBar(
+        title: Text(
+          _product.name,
+          style: const TextStyle(
+            color: AppTheme.forestGreen,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
         actions: [
           if (canEdit)
             IconButton(
               tooltip: 'Edit Product',
-              icon: const Icon(Icons.edit_outlined),
+              icon: const Icon(Icons.edit_outlined, color: AppTheme.forestGreen),
               onPressed: _editProduct,
             ),
           if (canDelete)
             IconButton(
               tooltip: 'Delete Product',
-              icon: const Icon(Icons.delete_outline),
+              icon: const Icon(Icons.delete_outline, color: AppTheme.redError),
               onPressed: _confirmSoftDelete,
             ),
           IconButton(
@@ -257,108 +264,111 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.picture_as_pdf_outlined),
+                : const Icon(Icons.picture_as_pdf_outlined,
+                    color: AppTheme.forestGreen),
             onPressed: _isExportingPdf ? null : _exportPdf,
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Product Info Card
-            _buildProductInfoCard(),
-            const SizedBox(height: 16),
+      body: SynProdCanvas(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Product Info Card
+              _buildProductInfoCard(),
+              const SizedBox(height: 16),
 
-            // Calculator Controls Card (F2)
-            _buildCalculatorControlsCard(),
-            const SizedBox(height: 16),
+              // Calculator Controls Card (F2)
+              _buildCalculatorControlsCard(),
+              const SizedBox(height: 16),
 
-            // Composition Section
-            _buildCompositionCard(result, isCompositionValid),
-            const SizedBox(height: 16),
+              // Composition Section
+              _buildCompositionCard(result, isCompositionValid),
+              const SizedBox(height: 16),
 
-            // Additional Ingredients Section
-            _buildIngredientsCard(result),
-            const SizedBox(height: 24),
-          ],
+              // Additional Ingredients Section
+              _buildIngredientsCard(result),
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildProductInfoCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppTheme.tealLight,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    _product.productType.displayName,
-                    style: const TextStyle(
-                      color: AppTheme.tealDark,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
+    return SynProdCard(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: AppTheme.softTintGradient,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: AppTheme.primaryOlive.withValues(alpha: 0.4),
                   ),
                 ),
-                const Spacer(),
-                Text(
-                  'Base Unit: ${_weightFormatter.format(_product.productType.baseWeightGrams)} g',
+                child: Text(
+                  _product.productType.displayName,
                   style: const TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.slate600,
-                    fontWeight: FontWeight.w500,
+                    color: AppTheme.forestGreen,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
                   ),
                 ),
-              ],
-            ),
-            if (_product.description != null &&
-                _product.description!.isNotEmpty) ...[
-              const SizedBox(height: 10),
+              ),
+              const Spacer(),
               Text(
-                _product.description!,
-                style: const TextStyle(fontSize: 14, color: AppTheme.slate700),
+                'Base Unit: ${_weightFormatter.format(_product.productType.baseWeightGrams)} g',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.oliveMuted,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
+          ),
+          if (_product.description != null &&
+              _product.description!.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              _product.description!,
+              style: const TextStyle(fontSize: 14, color: AppTheme.slate600),
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
 
   Widget _buildCalculatorControlsCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.calculate_outlined,
-                    size: 20, color: AppTheme.tealPrimary),
-                const SizedBox(width: 8),
-                const Text(
-                  'Order Capacity Calculator',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.slate900,
-                  ),
+    return SynProdCard(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.calculate_outlined,
+                  size: 20, color: AppTheme.primaryOlive),
+              const SizedBox(width: 8),
+              const Text(
+                'Order Capacity Calculator',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.forestGreen,
                 ),
-                const Spacer(),
+              ),
+              const Spacer(),
                 // Packaging Unit Selector
                 if (_product.productType.packagingOptions.length > 1)
                   DropdownButton<PackagingOption>(
@@ -468,71 +478,34 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               ],
             ),
           ],
-        ),
       ),
     );
   }
 
   Widget _buildCompositionCard(CalculationResult result, bool isValid) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Text(
-                  'Batch Composition',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.slate900,
-                  ),
+    return SynProdCard(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Batch Composition',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.forestGreen,
                 ),
-                const Spacer(),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isValid
-                        ? AppTheme.greenSuccess.withAlpha(25)
-                        : AppTheme.amberWarning.withAlpha(25),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isValid
-                          ? AppTheme.greenSuccess.withAlpha(80)
-                          : AppTheme.amberWarning.withAlpha(80),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        isValid ? Icons.check_circle : Icons.warning_amber,
-                        size: 14,
-                        color: isValid
-                            ? AppTheme.greenSuccess
-                            : AppTheme.amberWarning,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        isValid
-                            ? '100% Balanced'
-                            : 'Total: ${_decimalFormatter.format(result.totalPercentage)}%',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: isValid
-                              ? AppTheme.greenSuccess
-                              : AppTheme.amberWarning,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+              ),
+              const Spacer(),
+              SynProdPercentageBadge(
+                totalPercentage: result.totalPercentage,
+                isValid: isValid,
+                compact: true,
+              ),
+            ],
+          ),
             const SizedBox(height: 12),
             const Divider(),
             // Table Header
@@ -670,26 +643,24 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               ),
             ),
           ],
-        ),
       ),
     );
   }
 
   Widget _buildIngredientsCard(CalculationResult result) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Additional Ingredients',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.slate900,
-              ),
+    return SynProdCard(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Additional Ingredients',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.forestGreen,
             ),
+          ),
             const SizedBox(height: 12),
             if (result.ingredients.isEmpty)
               const Padding(
@@ -793,7 +764,6 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               }),
             ],
           ],
-        ),
       ),
     );
   }
