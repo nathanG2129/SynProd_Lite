@@ -1,6 +1,5 @@
 import 'package:drift/drift.dart';
 
-import '../../core/utils/uuid_generator.dart';
 import '../../domain/models/composition.dart';
 import '../../domain/models/ingredient.dart';
 import '../../domain/models/product.dart';
@@ -225,20 +224,20 @@ class ProductRepositoryImpl implements ProductRepository {
 
     if (count > 0) return;
 
-    final now = DateTime.now();
+    final seedTimestamp = DateTime.utc(2026, 1, 1);
     const systemDeviceId = 'device_seed_001';
     const systemDisplayName = 'System Administrator';
 
     final sampleProducts = [
       Product(
-        id: UuidGenerator.v4(),
+        id: '00000000-0000-4000-8000-000000000001',
         name: 'Classic Greek Yogurt',
         description: 'Traditional strained whole milk Greek yogurt with high protein.',
         productType: ProductType.greekYogurt,
         createdByDeviceId: systemDeviceId,
         createdByDisplayName: systemDisplayName,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: seedTimestamp,
+        updatedAt: seedTimestamp,
         compositions: const [
           Composition(componentName: 'Strained Whole Milk Base', percentage: 90.0, sortOrder: 0),
           Composition(componentName: 'Whey Protein Isolate', percentage: 6.0, sortOrder: 1),
@@ -250,14 +249,14 @@ class ProductRepositoryImpl implements ProductRepository {
         ],
       ),
       Product(
-        id: UuidGenerator.v4(),
+        id: '00000000-0000-4000-8000-000000000002',
         name: 'Artisan Farmhouse Cheddar',
         description: 'Aged sharp cheddar prepared from raw pasteurized curd.',
         productType: ProductType.cheese,
         createdByDeviceId: systemDeviceId,
         createdByDisplayName: systemDisplayName,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: seedTimestamp,
+        updatedAt: seedTimestamp,
         compositions: const [
           Composition(componentName: 'Pasteurized Whole Milk', percentage: 86.0, sortOrder: 0),
           Composition(componentName: 'Heavy Dairy Cream', percentage: 9.0, sortOrder: 1),
@@ -269,14 +268,14 @@ class ProductRepositoryImpl implements ProductRepository {
         ],
       ),
       Product(
-        id: UuidGenerator.v4(),
+        id: '00000000-0000-4000-8000-000000000003',
         name: 'Wild Berry Probiotic Kefir',
         description: 'Cultured probiotic dairy drink with organic berry infusion.',
         productType: ProductType.drinks,
         createdByDeviceId: systemDeviceId,
         createdByDisplayName: systemDisplayName,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: seedTimestamp,
+        updatedAt: seedTimestamp,
         compositions: const [
           Composition(componentName: 'Fermented Cultured Skim Milk', percentage: 80.0, sortOrder: 0),
           Composition(componentName: 'Organic Wild Berry Puree', percentage: 15.0, sortOrder: 1),

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:synprod_lite/core/services/p2p_sync_server.dart';
+import 'package:synprod_lite/domain/models/composition.dart';
 import 'package:synprod_lite/domain/models/device.dart';
 import 'package:synprod_lite/domain/models/product.dart';
 import 'package:synprod_lite/domain/models/product_type.dart';
@@ -10,6 +11,7 @@ import 'package:synprod_lite/domain/models/sync_models.dart';
 import 'package:synprod_lite/domain/models/workspace.dart';
 import 'package:synprod_lite/domain/repositories/device_repository.dart';
 import 'package:synprod_lite/domain/repositories/product_repository.dart';
+import 'package:synprod_lite/domain/services/sync_merge_engine.dart';
 
 class _InMemoryDeviceRepository implements DeviceRepository {
   Workspace? _workspace;
@@ -221,5 +223,73 @@ void main() {
       await adminServer.stop();
       await peerServer.stop();
     }
+  });
+
+  test(
+      'SyncMergeEngine accepts seeded device_seed_001 products and rejects unknown device IDs',
+      () {
+    final now = DateTime.now();
+    final adminDevice = Device(
+      id: 'admin-1',
+      displayName: 'Admin Tablet',
+      role: DeviceRole.admin,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+    final peerDevice = Device(
+      id: 'peer-1',
+      displayName: 'Floor Tablet',
+      role: DeviceRole.production,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+
+    final seededProduct = Product(
+      id: '00000000-0000-4000-8000-000000000001',
+      name: 'Classic Greek Yogurt',
+      productType: ProductType.greekYogurt,
+      createdByDeviceId: SyncMergeEngine.seedDeviceId,
+      createdByDisplayName: 'System Administrator',
+      createdAt: now,
+      updatedAt: now,
+      compositions: const [
+        Composition(componentName: 'Milk', percentage: 100.0, sortOrder: 0),
+      ],
+    );
+
+    final unknownModifierProduct = Product(
+      id: '00000000-0000-4000-8000-000000000099',
+      name: 'Rogue Recipe',
+      productType: ProductType.greekYogurt,
+      createdByDeviceId: 'unknown_device_999',
+      createdByDisplayName: 'Unknown',
+      createdAt: now,
+      updatedAt: now,
+      compositions: const [
+        Composition(componentName: 'Milk', percentage: 100.0, sortOrder: 0),
+      ],
+    );
+
+    final engine = SyncMergeEngine(now: () => now);
+    final result = engine.merge(
+      localDevice: peerDevice,
+      localDevices: [peerDevice, adminDevice],
+      localProducts: const [],
+      incoming: SyncSnapshot(
+        workspaceId: 'ws-1',
+        senderDeviceId: adminDevice.id,
+        generatedAt: now,
+        devices: [adminDevice, peerDevice],
+        products: [seededProduct, unknownModifierProduct],
+      ),
+    );
+
+    expect(result.productsToSave.map((p) => p.id), [seededProduct.id]);
+    expect(result.newConflicts.length, 1);
+    expect(
+      result.newConflicts.first.conflictType,
+      SyncConflictType.permissionRejected,
+    );
+    expect(result.newConflicts.first.losingDeviceId, 'unknown_device_999');
   });
 }
