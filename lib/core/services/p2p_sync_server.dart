@@ -100,7 +100,15 @@ class P2pSyncServer {
       final sender = localDevices
           .where((d) => d.id == incomingSnapshot.senderDeviceId)
           .firstOrNull;
-      if (sender == null || sender.isRevoked) {
+      final incomingSender = incomingSnapshot.devices
+          .where((d) => d.id == incomingSnapshot.senderDeviceId)
+          .firstOrNull;
+      final isSenderRevoked =
+          (sender != null && sender.isRevoked) ||
+              (incomingSender != null && incomingSender.isRevoked);
+      // Newly QR-paired peers only hold their own device row until their first
+      // sync; allow authenticated workspace peers present in incomingSnapshot.
+      if (isSenderRevoked || (sender == null && incomingSender == null)) {
         request.response
           ..statusCode = HttpStatus.forbidden
           ..write('Device is not paired or has been revoked.');
@@ -165,7 +173,7 @@ class P2pSyncServer {
     final localDevices = await deviceRepository.getAllDevices();
     final peerRecord =
         localDevices.where((d) => d.id == peer.deviceId).firstOrNull;
-    if (peerRecord == null || peerRecord.isRevoked) {
+    if (peerRecord != null && peerRecord.isRevoked) {
       throw const P2pSyncException(
         'Peer is not paired in this workspace or has been revoked.',
       );

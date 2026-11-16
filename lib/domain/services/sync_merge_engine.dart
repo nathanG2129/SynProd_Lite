@@ -24,9 +24,24 @@ class SyncMergeEngine {
     };
 
     final senderInRegistry = deviceMap[incoming.senderDeviceId];
-    final isSenderKnownAndActive =
-        senderInRegistry != null && !senderInRegistry.isRevoked;
-    if (!isSenderKnownAndActive) {
+    final senderInIncoming = incoming.devices
+        .where((d) => d.id == incoming.senderDeviceId)
+        .firstOrNull;
+    final hasExistingAdmin =
+        deviceMap.values.any((d) => d.role == DeviceRole.admin);
+
+    final Device? effectiveSender;
+    if (senderInRegistry != null) {
+      effectiveSender = senderInRegistry.isRevoked ? null : senderInRegistry;
+    } else if (senderInIncoming != null &&
+        !senderInIncoming.isRevoked &&
+        (senderInIncoming.role != DeviceRole.admin || !hasExistingAdmin)) {
+      effectiveSender = senderInIncoming;
+    } else {
+      effectiveSender = null;
+    }
+
+    if (effectiveSender == null) {
       return SyncMergeResult(
         updatedDevices: localDevices,
         productsToSave: const [],
@@ -34,8 +49,11 @@ class SyncMergeEngine {
       );
     }
 
-    final senderIsAdmin = senderInRegistry.role == DeviceRole.admin;
+    final senderIsAdmin = effectiveSender.role == DeviceRole.admin;
     final updatedDevicesMap = Map<String, Device>.from(deviceMap);
+    if (senderInRegistry == null) {
+      updatedDevicesMap[effectiveSender.id] = effectiveSender;
+    }
     var localDeviceRevoked = false;
 
     for (final remoteDevice in incoming.devices) {
@@ -66,7 +84,7 @@ class SyncMergeEngine {
       }
     }
 
-    updatedDevicesMap[incoming.senderDeviceId] = senderInRegistry.copyWith(
+    updatedDevicesMap[incoming.senderDeviceId] = effectiveSender.copyWith(
       lastSeenAt: now,
     );
 
