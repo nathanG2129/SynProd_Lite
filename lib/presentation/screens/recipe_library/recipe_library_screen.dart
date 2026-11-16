@@ -22,6 +22,7 @@ class RecipeLibraryScreen extends ConsumerStatefulWidget {
 
 class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
+  bool _filtersExpanded = true;
 
   @override
   void dispose() {
@@ -256,101 +257,179 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
       body: SynProdCanvas(
         child: Column(
         children: [
-          // Filter Chips Section
+          // Filter Chips Section (Collapsible)
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
             color: AppTheme.cardColorFor(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Product Type Filter Chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      FilterChip(
-                        label: const Text('All Types'),
-                        selected: selectedType == null,
-                        onSelected: (selected) {
-                          if (selected) {
-                            ref.read(selectedTypeFilterProvider.notifier).state =
-                                null;
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      ...productTypes.map((type) {
-                        return Padding(
-                          padding: const EdgeInsets.only(right: 8.0),
-                          child: FilterChip(
-                            label: Text(type.displayName),
-                            selected: selectedType == type,
-                            onSelected: (selected) {
-                              ref
-                                  .read(selectedTypeFilterProvider.notifier)
-                                  .state = selected ? type : null;
-                            },
-                          ),
-                        );
-                      }),
-                      if (currentDevice.role.canCreateProduct)
-                        FilterChip(
-                          avatar: const Icon(Icons.person_outline, size: 16),
-                          label: const Text('My Products'),
-                          selected: myProductsOnly,
-                          onSelected: (selected) {
-                            ref.read(myProductsOnlyProvider.notifier).state =
-                                selected;
-                          },
+                InkWell(
+                  onTap: () => setState(() => _filtersExpanded = !_filtersExpanded),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.tune,
+                          size: 16,
+                          color: AppTheme.headingColorFor(context),
                         ),
-                    ],
+                        const SizedBox(width: 6),
+                        Text(
+                          'Filters',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.headingColorFor(context),
+                          ),
+                        ),
+                        if (selectedType != null ||
+                            selectedComp != null ||
+                            selectedIng != null ||
+                            myProductsOnly) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.softTintColorFor(context),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Text(
+                              '${(selectedType != null ? 1 : 0) + (selectedComp != null ? 1 : 0) + (selectedIng != null ? 1 : 0) + (myProductsOnly ? 1 : 0)} active',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.headingColorFor(context),
+                              ),
+                            ),
+                          ),
+                        ],
+                        const Spacer(),
+                        Icon(
+                          _filtersExpanded
+                              ? Icons.expand_less
+                              : Icons.expand_more,
+                          size: 20,
+                          color: AppTheme.mutedTextFor(context),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 220),
+                  sizeCurve: Curves.easeOutCubic,
+                  crossFadeState: _filtersExpanded
+                      ? CrossFadeState.showFirst
+                      : CrossFadeState.showSecond,
+                  firstChild: Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Product Type Filter Chips
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              FilterChip(
+                                label: const Text('All Types'),
+                                selected: selectedType == null,
+                                onSelected: (selected) {
+                                  if (selected) {
+                                    ref
+                                        .read(selectedTypeFilterProvider.notifier)
+                                        .state = null;
+                                  }
+                                },
+                              ),
+                              const SizedBox(width: 8),
+                              ...productTypes.map((type) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 8.0),
+                                  child: FilterChip(
+                                    label: Text(type.displayName),
+                                    selected: selectedType == type,
+                                    onSelected: (selected) {
+                                      ref
+                                          .read(selectedTypeFilterProvider
+                                              .notifier)
+                                          .state = selected ? type : null;
+                                    },
+                                  ),
+                                );
+                              }),
+                              if (currentDevice.role.canCreateProduct)
+                                FilterChip(
+                                  avatar:
+                                      const Icon(Icons.person_outline, size: 16),
+                                  label: const Text('My Products'),
+                                  selected: myProductsOnly,
+                                  onSelected: (selected) {
+                                    ref
+                                        .read(myProductsOnlyProvider.notifier)
+                                        .state = selected;
+                                  },
+                                ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
 
-                // Component & Ingredient Filter Dropdowns
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      // Component Filter Dropdown
-                      Expanded(
-                        child: distinctCompsAsync.when(
-                          data: (components) => _buildDropdownFilter(
-                            label: 'Component',
-                            value: selectedComp,
-                            items: components,
-                            onChanged: (val) {
-                              ref
-                                  .read(selectedComponentFilterProvider.notifier)
-                                  .state = val;
-                            },
+                        // Component & Ingredient Filter Dropdowns
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: distinctCompsAsync.when(
+                                  data: (components) => _buildDropdownFilter(
+                                    label: 'Component',
+                                    value: selectedComp,
+                                    items: components,
+                                    onChanged: (val) {
+                                      ref
+                                          .read(selectedComponentFilterProvider
+                                              .notifier)
+                                          .state = val;
+                                    },
+                                  ),
+                                  loading: () => const SizedBox.shrink(),
+                                  error: (_, _) => const SizedBox.shrink(),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: distinctIngsAsync.when(
+                                  data: (ingredients) => _buildDropdownFilter(
+                                    label: 'Ingredient',
+                                    value: selectedIng,
+                                    items: ingredients,
+                                    onChanged: (val) {
+                                      ref
+                                          .read(selectedIngredientFilterProvider
+                                              .notifier)
+                                          .state = val;
+                                    },
+                                  ),
+                                  loading: () => const SizedBox.shrink(),
+                                  error: (_, _) => const SizedBox.shrink(),
+                                ),
+                              ),
+                            ],
                           ),
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, _) => const SizedBox.shrink(),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      // Ingredient Filter Dropdown
-                      Expanded(
-                        child: distinctIngsAsync.when(
-                          data: (ingredients) => _buildDropdownFilter(
-                            label: 'Ingredient',
-                            value: selectedIng,
-                            items: ingredients,
-                            onChanged: (val) {
-                              ref
-                                  .read(selectedIngredientFilterProvider.notifier)
-                                  .state = val;
-                            },
-                          ),
-                          loading: () => const SizedBox.shrink(),
-                          error: (_, _) => const SizedBox.shrink(),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
+                  secondChild: const SizedBox(width: double.infinity),
                 ),
               ],
             ),
