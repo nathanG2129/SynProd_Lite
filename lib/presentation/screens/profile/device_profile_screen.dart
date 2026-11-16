@@ -92,7 +92,18 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
 
           final isSecondStep = step == 2;
           return SynProdDialog(
-            icon: Icons.delete_forever_outlined,
+            onBack: isBusy
+                ? null
+                : () {
+                    if (isSecondStep) {
+                      setDialogState(() {
+                        step = 1;
+                        error = null;
+                      });
+                    } else {
+                      Navigator.of(ctx).pop();
+                    }
+                  },
             title: 'Factory Reset App',
             content: SynProdPinPad(
               key: ValueKey('factory-reset-$step-$resetNonce'),
@@ -142,12 +153,6 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                 Navigator.of(context).popUntil((r) => r.isFirst);
               },
             ),
-            actions: [
-              TextButton(
-                onPressed: isBusy ? null : () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel'),
-              ),
-            ],
           );
         },
       ),
@@ -187,7 +192,23 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
           };
 
           return SynProdDialog(
-            icon: Icons.pin_outlined,
+            onBack: isBusy
+                ? null
+                : () {
+                    if (step > 0) {
+                      setDialogState(() {
+                        if (step == 2) {
+                          step = 1;
+                          pendingNewPin = null;
+                        } else {
+                          step = 0;
+                        }
+                        error = null;
+                      });
+                    } else {
+                      Navigator.of(ctx).pop();
+                    }
+                  },
             title: 'Change Device PIN',
             content: SynProdPinPad(
               key: ValueKey('change-pin-$step-$resetNonce'),
@@ -252,27 +273,6 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                 );
               },
             ),
-            actions: [
-              if (step > 0 && !isBusy)
-                TextButton(
-                  onPressed: () {
-                    setDialogState(() {
-                      if (step == 2) {
-                        step = 1;
-                        pendingNewPin = null;
-                      } else {
-                        step = 0;
-                      }
-                      error = null;
-                    });
-                  },
-                  child: const Text('Back'),
-                ),
-              TextButton(
-                onPressed: isBusy ? null : () => Navigator.of(ctx).pop(),
-                child: const Text('Cancel'),
-              ),
-            ],
           );
         },
       ),

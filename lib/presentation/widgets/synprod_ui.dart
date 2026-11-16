@@ -400,6 +400,7 @@ class SynProdDialog extends StatelessWidget {
   final String title;
   final String? subtitle;
   final IconData? icon;
+  final VoidCallback? onBack;
   final Widget content;
   final List<Widget> actions;
   final double maxWidth;
@@ -410,6 +411,7 @@ class SynProdDialog extends StatelessWidget {
     required this.content,
     this.subtitle,
     this.icon,
+    this.onBack,
     this.actions = const [],
     this.maxWidth = 440,
   });
@@ -431,7 +433,21 @@ class SynProdDialog extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (icon != null) ...[
+                  if (onBack != null) ...[
+                    IconButton(
+                      onPressed: onBack,
+                      icon: const Icon(Icons.arrow_back),
+                      color: AppTheme.headingColorFor(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 32,
+                        minHeight: 32,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Back',
+                    ),
+                    const SizedBox(width: 6),
+                  ] else if (icon != null) ...[
                     Icon(
                       icon,
                       color: AppTheme.headingColorFor(context),

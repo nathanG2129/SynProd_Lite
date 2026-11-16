@@ -153,27 +153,36 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
           ),
         ],
         const SizedBox(height: 14),
-        _buildKeypadRow(['1', '2', '3']),
-        const SizedBox(height: 8),
-        _buildKeypadRow(['4', '5', '6']),
-        const SizedBox(height: 8),
-        _buildKeypadRow(['7', '8', '9']),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-          children: [
-            _buildActionKey(
-              label: 'Clear',
-              onTap: _pin.isEmpty || !_isInteractive ? null : _clear,
-            ),
-            _buildDigitKey('0'),
-            _buildIconKey(
-              icon: Icons.backspace_outlined,
-              tooltip: 'Delete',
-              onTap: _pin.isEmpty || !_isInteractive ? null : _backspace,
-            ),
-          ],
-        ),
+        _buildKeypadRow([
+          _buildDigitKey('1'),
+          _buildDigitKey('2'),
+          _buildDigitKey('3'),
+        ]),
+        const SizedBox(height: 6),
+        _buildKeypadRow([
+          _buildDigitKey('4'),
+          _buildDigitKey('5'),
+          _buildDigitKey('6'),
+        ]),
+        const SizedBox(height: 6),
+        _buildKeypadRow([
+          _buildDigitKey('7'),
+          _buildDigitKey('8'),
+          _buildDigitKey('9'),
+        ]),
+        const SizedBox(height: 6),
+        _buildKeypadRow([
+          _buildActionKey(
+            label: 'Clear',
+            onTap: _pin.isEmpty || !_isInteractive ? null : _clear,
+          ),
+          _buildDigitKey('0'),
+          _buildIconKey(
+            icon: Icons.backspace_outlined,
+            tooltip: 'Delete',
+            onTap: _pin.isEmpty || !_isInteractive ? null : _backspace,
+          ),
+        ]),
         const SizedBox(height: 14),
         SynProdGradientButton(
           onPressed: !_isInteractive || _pin.length < PinAuthService.minPinLength
@@ -192,10 +201,17 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
     );
   }
 
-  Widget _buildKeypadRow(List<String> digits) {
+  Widget _buildKeypadRow(List<Widget> keys) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: digits.map(_buildDigitKey).toList(),
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        keys[0],
+        const SizedBox(width: 6),
+        keys[1],
+        const SizedBox(width: 6),
+        keys[2],
+      ],
     );
   }
 
