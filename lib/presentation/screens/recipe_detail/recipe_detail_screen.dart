@@ -239,8 +239,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       appBar: SynProdAppBar(
         title: Text(
           _product.name,
-          style: const TextStyle(
-            color: AppTheme.forestGreen,
+          style: TextStyle(
+            color: AppTheme.headingColorFor(context),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -248,7 +248,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           if (canEdit)
             IconButton(
               tooltip: 'Edit Product',
-              icon: const Icon(Icons.edit_outlined, color: AppTheme.forestGreen),
+              icon: Icon(
+                Icons.edit_outlined,
+                color: AppTheme.headingColorFor(context),
+              ),
               onPressed: _editProduct,
             ),
           if (canDelete)
@@ -265,8 +268,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     height: 20,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
-                : const Icon(Icons.picture_as_pdf_outlined,
-                    color: AppTheme.forestGreen),
+                : Icon(
+                    Icons.picture_as_pdf_outlined,
+                    color: AppTheme.headingColorFor(context),
+                  ),
             onPressed: _isExportingPdf ? null : _exportPdf,
           ),
         ],
@@ -311,7 +316,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  gradient: AppTheme.softTintGradient,
+                  gradient: AppTheme.softTintGradientFor(context),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: AppTheme.primaryOlive.withValues(alpha: 0.4),
@@ -319,8 +324,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 ),
                 child: Text(
                   _product.productType.displayName,
-                  style: const TextStyle(
-                    color: AppTheme.forestGreen,
+                  style: TextStyle(
+                    color: AppTheme.headingColorFor(context),
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
                   ),
@@ -329,9 +334,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               const Spacer(),
               Text(
                 'Base Unit: ${_weightFormatter.format(_product.productType.baseWeightGrams)} g',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: AppTheme.oliveMuted,
+                  color: AppTheme.isDark(context)
+                      ? AppTheme.darkOliveAccent
+                      : AppTheme.oliveMuted,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -342,7 +349,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             const SizedBox(height: 10),
             Text(
               _product.description!,
-              style: const TextStyle(fontSize: 14, color: AppTheme.slate600),
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.secondaryTextFor(context),
+              ),
             ),
           ],
         ],
@@ -361,12 +371,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               const Icon(Icons.calculate_outlined,
                   size: 20, color: AppTheme.primaryOlive),
               const SizedBox(width: 8),
-              const Text(
+              Text(
                 'Order Capacity Calculator',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.forestGreen,
+                  color: AppTheme.headingColorFor(context),
                 ),
               ),
               const Spacer(),
@@ -397,10 +407,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                 else
                   Text(
                     '${_selectedPackaging.unitName} (×${_selectedPackaging.multiplier})',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
-                      color: AppTheme.slate600,
+                      color: AppTheme.secondaryTextFor(context),
                     ),
                   ),
               ],
@@ -415,10 +425,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     children: [
                       Text(
                         'Order Quantity (${_selectedPackaging.unitName})',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: AppTheme.slate700,
+                          color: AppTheme.secondaryTextFor(context),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -440,9 +450,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   ),
                 ),
                 const SizedBox(width: 16),
-                const Padding(
-                  padding: EdgeInsets.only(top: 20),
-                  child: Icon(Icons.sync_alt, color: AppTheme.slate400),
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: Icon(
+                    Icons.sync_alt,
+                    color: AppTheme.mutedTextFor(context),
+                  ),
                 ),
                 const SizedBox(width: 16),
                 // Two-way Input: Total Batch Weight
@@ -450,12 +463,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Total Batch Weight (g)',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: AppTheme.slate700,
+                          color: AppTheme.secondaryTextFor(context),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -484,6 +497,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   }
 
   Widget _buildCompositionCard(CalculationResult result, bool isValid) {
+    final headerStyle = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: AppTheme.secondaryTextFor(context),
+    );
+    final primaryText = AppTheme.primaryTextFor(context);
+    final secondaryText = AppTheme.secondaryTextFor(context);
+
     return SynProdCard(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -491,12 +512,12 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'Batch Composition',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.forestGreen,
+                  color: AppTheme.headingColorFor(context),
                 ),
               ),
               const Spacer(),
@@ -513,28 +534,17 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Row(
-                children: const [
+                children: [
                   Expanded(
                     flex: 3,
-                    child: Text(
-                      'Component',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.slate600,
-                      ),
-                    ),
+                    child: Text('Component', style: headerStyle),
                   ),
                   Expanded(
                     flex: 2,
                     child: Text(
                       'Base %',
                       textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.slate600,
-                      ),
+                      style: headerStyle,
                     ),
                   ),
                   Expanded(
@@ -542,11 +552,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     child: Text(
                       'Calculated Weight',
                       textAlign: TextAlign.right,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.slate600,
-                      ),
+                      style: headerStyle,
                     ),
                   ),
                 ],
@@ -563,10 +569,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       flex: 3,
                       child: Text(
                         comp.composition.componentName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: AppTheme.slate900,
+                          color: primaryText,
                         ),
                       ),
                     ),
@@ -575,9 +581,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       child: Text(
                         '${_decimalFormatter.format(comp.composition.percentage)}%',
                         textAlign: TextAlign.right,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
-                          color: AppTheme.slate700,
+                          color: secondaryText,
                         ),
                       ),
                     ),
@@ -586,10 +592,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       child: Text(
                         '${_decimalFormatter.format(comp.calculatedWeightGrams)} g',
                         textAlign: TextAlign.right,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.slate900,
+                          color: primaryText,
                         ),
                       ),
                     ),
@@ -603,14 +609,14 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     flex: 3,
                     child: Text(
                       'Total',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.slate900,
+                        color: primaryText,
                       ),
                     ),
                   ),
@@ -633,10 +639,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                     child: Text(
                       '${_decimalFormatter.format(result.totalWeightGrams)} g',
                       textAlign: TextAlign.right,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.slate900,
+                        color: primaryText,
                       ),
                     ),
                   ),
@@ -649,29 +655,37 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   }
 
   Widget _buildIngredientsCard(CalculationResult result) {
+    final headerStyle = TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: AppTheme.secondaryTextFor(context),
+    );
+    final primaryText = AppTheme.primaryTextFor(context);
+    final secondaryText = AppTheme.secondaryTextFor(context);
+
     return SynProdCard(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Additional Ingredients',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppTheme.forestGreen,
+              color: AppTheme.headingColorFor(context),
             ),
           ),
             const SizedBox(height: 12),
             if (result.ingredients.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 8.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Text(
                   'No additional ingredients specified.',
                   style: TextStyle(
                     fontSize: 13,
                     fontStyle: FontStyle.italic,
-                    color: AppTheme.slate600,
+                    color: secondaryText,
                   ),
                 ),
               )
@@ -680,28 +694,17 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8.0),
                 child: Row(
-                  children: const [
+                  children: [
                     Expanded(
                       flex: 3,
-                      child: Text(
-                        'Ingredient',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.slate600,
-                        ),
-                      ),
+                      child: Text('Ingredient', style: headerStyle),
                     ),
                     Expanded(
                       flex: 2,
                       child: Text(
                         'Base Qty',
                         textAlign: TextAlign.right,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.slate600,
-                        ),
+                        style: headerStyle,
                       ),
                     ),
                     Expanded(
@@ -709,11 +712,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                       child: Text(
                         'Calculated Batch',
                         textAlign: TextAlign.right,
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.slate600,
-                        ),
+                        style: headerStyle,
                       ),
                     ),
                   ],
@@ -729,10 +728,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         flex: 3,
                         child: Text(
                           ing.ingredient.ingredientName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
-                            color: AppTheme.slate900,
+                            color: primaryText,
                           ),
                         ),
                       ),
@@ -741,9 +740,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         child: Text(
                           '${_decimalFormatter.format(ing.ingredient.quantity)} ${ing.ingredient.unit}',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppTheme.slate700,
+                            color: secondaryText,
                           ),
                         ),
                       ),
@@ -752,10 +751,10 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
                         child: Text(
                           '${_decimalFormatter.format(ing.calculatedQuantity)} ${ing.ingredient.unit}',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.slate900,
+                            color: primaryText,
                           ),
                         ),
                       ),

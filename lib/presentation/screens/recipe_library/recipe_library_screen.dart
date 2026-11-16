@@ -113,14 +113,17 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                     : (syncState.isRunning
                         ? Icons.wifi_tethering
                         : Icons.sync_disabled),
-                color: AppTheme.forestGreen,
+                color: AppTheme.headingColorFor(context),
               ),
             ),
           ),
           if (currentDevice.role.canManageDevices)
             IconButton(
               tooltip: 'Device Management',
-              icon: const Icon(Icons.devices_outlined, color: AppTheme.forestGreen),
+              icon: Icon(
+                Icons.devices_outlined,
+                color: AppTheme.headingColorFor(context),
+              ),
               onPressed: () {
                 Navigator.push(
                   context,
@@ -153,18 +156,20 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                     children: [
                       Text(
                         currentDevice.displayName,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.slate800,
+                          color: AppTheme.primaryTextFor(context),
                         ),
                       ),
                       Text(
                         currentDevice.role.displayName.toUpperCase(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.oliveMuted,
+                          color: AppTheme.isDark(context)
+                              ? AppTheme.darkOliveAccent
+                              : AppTheme.oliveMuted,
                           letterSpacing: 0.4,
                         ),
                       ),
@@ -183,7 +188,10 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search by recipe, component, or ingredient...',
-                prefixIcon: const Icon(Icons.search, color: AppTheme.forestGreen),
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: AppTheme.headingColorFor(context),
+                ),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
@@ -194,19 +202,34 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                       )
                     : null,
                 filled: true,
-                fillColor: AppTheme.slate50,
+                fillColor: AppTheme.isDark(context)
+                    ? AppTheme.darkInputFill
+                    : AppTheme.slate50,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppTheme.borderInput, width: 1.5),
+                  borderSide: BorderSide(
+                    color: AppTheme.isDark(context)
+                        ? AppTheme.darkBorder
+                        : AppTheme.borderInput,
+                    width: 1.5,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppTheme.borderInput, width: 1.5),
+                  borderSide: BorderSide(
+                    color: AppTheme.isDark(context)
+                        ? AppTheme.darkBorder
+                        : AppTheme.borderInput,
+                    width: 1.5,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppTheme.forestGreen, width: 2),
+                  borderSide: BorderSide(
+                    color: AppTheme.headingColorFor(context),
+                    width: 2,
+                  ),
                 ),
               ),
               onChanged: (value) {
@@ -222,7 +245,7 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
           // Filter Chips Section
           Container(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            color: Colors.white,
+            color: AppTheme.cardColorFor(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -329,10 +352,10 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                 filteredProductsAsync.when(
                   data: (products) => Text(
                     'All Recipes (${products.length})',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppTheme.slate700,
+                      color: AppTheme.secondaryTextFor(context),
                     ),
                   ),
                   loading: () => const Text('Loading recipes...'),
@@ -364,24 +387,24 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.search_off,
-                              size: 48, color: AppTheme.slate400),
+                          Icon(Icons.search_off,
+                              size: 48, color: AppTheme.mutedTextFor(context)),
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             'No recipes found',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.slate800,
+                              color: AppTheme.primaryTextFor(context),
                             ),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
+                          Text(
                             'Try adjusting your search query or removing active filters.',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 13,
-                              color: AppTheme.slate600,
+                              color: AppTheme.secondaryTextFor(context),
                             ),
                           ),
                           if (hasFilters) ...[
@@ -445,10 +468,16 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.isDark(context)
+            ? AppTheme.darkSurfaceElevated
+            : Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: value != null ? AppTheme.forestGreen : AppTheme.borderInput,
+          color: value != null
+              ? AppTheme.headingColorFor(context)
+              : (AppTheme.isDark(context)
+                  ? AppTheme.darkBorder
+                  : AppTheme.borderInput),
           width: value != null ? 1.5 : 1,
         ),
       ),
@@ -458,7 +487,10 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
           isExpanded: true,
           hint: Text(
             label,
-            style: const TextStyle(fontSize: 12, color: AppTheme.slate600),
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.secondaryTextFor(context),
+            ),
           ),
           icon: const Icon(Icons.arrow_drop_down, size: 20),
           items: [
@@ -510,10 +542,10 @@ class _RecipeCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   product.name,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.slate800,
+                    color: AppTheme.primaryTextFor(context),
                   ),
                 ),
               ),
@@ -521,7 +553,7 @@ class _RecipeCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  gradient: AppTheme.softTintGradient,
+                  gradient: AppTheme.softTintGradientFor(context),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
                     color: AppTheme.primaryOlive.withValues(alpha: 0.4),
@@ -529,8 +561,8 @@ class _RecipeCard extends StatelessWidget {
                 ),
                 child: Text(
                   product.productType.displayName,
-                  style: const TextStyle(
-                    color: AppTheme.forestGreen,
+                  style: TextStyle(
+                    color: AppTheme.headingColorFor(context),
                     fontWeight: FontWeight.w600,
                     fontSize: 11,
                   ),
@@ -545,54 +577,54 @@ class _RecipeCard extends StatelessWidget {
               product.description!,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: AppTheme.slate500,
+                color: AppTheme.mutedTextFor(context),
               ),
             ),
           ],
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.scale_outlined,
-                  size: 15, color: AppTheme.oliveMuted),
+              Icon(Icons.scale_outlined,
+                  size: 15, color: AppTheme.mutedTextFor(context)),
               const SizedBox(width: 4),
               Text(
                 '${product.productType.baseWeightGrams.toInt()}g base',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.slate600,
+                  color: AppTheme.secondaryTextFor(context),
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const SizedBox(width: 14),
-              const Icon(Icons.pie_chart_outline,
-                  size: 15, color: AppTheme.oliveMuted),
+              Icon(Icons.pie_chart_outline,
+                  size: 15, color: AppTheme.mutedTextFor(context)),
               const SizedBox(width: 4),
               Text(
                 '${product.compositions.length} components',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppTheme.slate600,
+                  color: AppTheme.secondaryTextFor(context),
                   fontWeight: FontWeight.w500,
                 ),
               ),
               if (product.additionalIngredients.isNotEmpty) ...[
                 const SizedBox(width: 14),
-                const Icon(Icons.add_circle_outline,
-                    size: 15, color: AppTheme.oliveMuted),
+                Icon(Icons.add_circle_outline,
+                    size: 15, color: AppTheme.mutedTextFor(context)),
                 const SizedBox(width: 4),
                 Text(
                   '${product.additionalIngredients.length} ingredients',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppTheme.slate600,
+                    color: AppTheme.secondaryTextFor(context),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
               const Spacer(),
-              const Icon(Icons.chevron_right, color: AppTheme.oliveMuted),
+              Icon(Icons.chevron_right, color: AppTheme.mutedTextFor(context)),
             ],
           ),
         ],

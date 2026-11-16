@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:synprod_lite/core/theme/app_theme.dart';
 import 'package:synprod_lite/domain/models/device.dart';
 import 'package:synprod_lite/domain/models/product.dart';
 import 'package:synprod_lite/domain/models/sync_models.dart';
@@ -14,6 +15,8 @@ import 'package:synprod_lite/domain/repositories/product_repository.dart';
 import 'package:synprod_lite/main.dart';
 import 'package:synprod_lite/presentation/providers/auth_providers.dart';
 import 'package:synprod_lite/presentation/providers/product_providers.dart';
+import 'package:synprod_lite/presentation/providers/theme_providers.dart';
+import 'package:synprod_lite/presentation/screens/profile/device_profile_screen.dart';
 
 class _SmokeDeviceRepository implements DeviceRepository {
   bool createdWorkspace = false;
@@ -224,5 +227,49 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(deviceRepo.createdWorkspace, isTrue);
+  });
+
+  testWidgets('ThemeModeNotifier persists and DeviceProfileScreen switches to dark mode',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          deviceRepositoryProvider.overrideWithValue(_SmokeDeviceRepository()),
+          productRepositoryProvider.overrideWithValue(_SmokeProductRepository()),
+        ],
+        child: Consumer(
+          builder: (context, ref, _) {
+            final themeMode = ref.watch(themeModeProvider);
+            return MaterialApp(
+              theme: AppTheme.lightTheme,
+              darkTheme: AppTheme.darkTheme,
+              themeMode: themeMode,
+              home: const DeviceProfileScreen(),
+            );
+          },
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Appearance'), findsOneWidget);
+    expect(prefs.getString('synprod_theme_mode'), isNull);
+
+    await tester.tap(find.text('Dark'));
+    await tester.pumpAndSettle();
+
+    expect(prefs.getString('synprod_theme_mode'), 'dark');
+    final scaffoldContext = tester.element(find.byType(Scaffold));
+    expect(Theme.of(scaffoldContext).brightness, Brightness.dark);
+
+    await tester.tap(find.text('Light'));
+    await tester.pumpAndSettle();
+
+    expect(prefs.getString('synprod_theme_mode'), 'light');
+    expect(Theme.of(scaffoldContext).brightness, Brightness.light);
   });
 }

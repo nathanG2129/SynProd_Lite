@@ -161,8 +161,8 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
                         Center(
                           child: Text(
                             '${device.displayName} • ${device.role.displayName}',
-                            style: const TextStyle(
-                              color: AppTheme.slate500,
+                            style: TextStyle(
+                              color: AppTheme.mutedTextFor(context),
                               fontSize: 13,
                             ),
                           ),
@@ -173,14 +173,14 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
                         Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppTheme.errorBg,
+                            color: AppTheme.errorBgFor(context),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: AppTheme.inputErrorBorder),
                           ),
-                          child: const Text(
+                          child: Text(
                             'This device has been revoked by an Administrator. Ask an Admin to restore or re-pair this device.',
                             style: TextStyle(
-                              color: AppTheme.errorText,
+                              color: AppTheme.errorTextFor(context),
                               fontWeight: FontWeight.w600,
                               fontSize: 13,
                             ),
@@ -192,14 +192,14 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppTheme.errorBg,
+                              color: AppTheme.errorBgFor(context),
                               borderRadius: BorderRadius.circular(8),
                               border: Border.all(color: AppTheme.inputErrorBorder),
                             ),
                             child: Text(
                               _error!,
-                              style: const TextStyle(
-                                color: AppTheme.errorText,
+                              style: TextStyle(
+                                color: AppTheme.errorTextFor(context),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
                               ),

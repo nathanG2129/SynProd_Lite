@@ -42,29 +42,29 @@ class _DeviceManagementScreenState
               padding: const EdgeInsets.all(24),
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 420),
-                child: const SynProdCard(
+                child: SynProdCard(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
                         Icons.lock_outline,
                         size: 48,
-                        color: AppTheme.errorText,
+                        color: AppTheme.errorTextFor(context),
                       ),
-                      SizedBox(height: 12),
+                      const SizedBox(height: 12),
                       Text(
                         'Access Denied',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.slate800,
+                          color: AppTheme.primaryTextFor(context),
                         ),
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Text(
                         'Admins only. Only an Administrator device can manage paired devices and roles.',
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: AppTheme.slate500),
+                        style: TextStyle(color: AppTheme.mutedTextFor(context)),
                       ),
                     ],
                   ),
@@ -155,9 +155,9 @@ class _DeviceManagementScreenState
                       const SizedBox(height: 12),
                       Text(
                         'Paired Devices (${filtered.length})',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: AppTheme.forestGreen,
+                          color: AppTheme.headingColorFor(context),
                         ),
                       ),
                     ],
@@ -165,13 +165,15 @@ class _DeviceManagementScreenState
                 ),
                 const SizedBox(height: 12),
                 if (filtered.isEmpty)
-                  const SynProdCard(
+                  SynProdCard(
                     child: Center(
                       child: Padding(
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         child: Text(
                           'No matching devices found.',
-                          style: TextStyle(color: AppTheme.slate500),
+                          style: TextStyle(
+                            color: AppTheme.mutedTextFor(context),
+                          ),
                         ),
                       ),
                     ),
@@ -243,20 +245,22 @@ class _DeviceManagementScreenState
                         Flexible(
                           child: Text(
                             device.displayName,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: AppTheme.slate800,
+                              color: AppTheme.primaryTextFor(context),
                             ),
                           ),
                         ),
                         if (isSelf) ...[
                           const SizedBox(width: 8),
-                          const Text(
+                          Text(
                             '(This Device)',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppTheme.oliveMuted,
+                              color: AppTheme.isDark(context)
+                                  ? AppTheme.darkOliveAccent
+                                  : AppTheme.oliveMuted,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -266,16 +270,16 @@ class _DeviceManagementScreenState
                     const SizedBox(height: 4),
                     Text(
                       'Paired: ${dateFormat.format(device.pairedAt)} • Last seen: ${dateFormat.format(device.lastSeenAt)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.slate500,
+                        color: AppTheme.mutedTextFor(context),
                       ),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
-              _buildRoleBadge(device),
+              _buildRoleBadge(context, device),
             ],
           ),
           if (!isSelf && device.role != DeviceRole.admin) ...[
@@ -299,15 +303,15 @@ class _DeviceManagementScreenState
                     device.isRevoked ? Icons.restore : Icons.block,
                     size: 18,
                     color: device.isRevoked
-                        ? AppTheme.forestGreen
-                        : AppTheme.redError,
+                        ? AppTheme.headingColorFor(context)
+                        : AppTheme.errorTextFor(context),
                   ),
                   label: Text(
                     device.isRevoked ? 'Restore' : 'Revoke',
                     style: TextStyle(
                       color: device.isRevoked
-                          ? AppTheme.forestGreen
-                          : AppTheme.redError,
+                          ? AppTheme.headingColorFor(context)
+                          : AppTheme.errorTextFor(context),
                     ),
                   ),
                 ),
@@ -329,31 +333,31 @@ class _DeviceManagementScreenState
     );
   }
 
-  Widget _buildRoleBadge(Device device) {
+  Widget _buildRoleBadge(BuildContext context, Device device) {
     final Color bg;
     final Color text;
     final Color border;
     final String label;
 
     if (device.isRevoked) {
-      bg = AppTheme.errorBg;
-      text = AppTheme.errorText;
+      bg = AppTheme.errorBgFor(context);
+      text = AppTheme.errorTextFor(context);
       border = AppTheme.inputErrorBorder;
       label = 'REVOKED';
     } else if (device.role == DeviceRole.admin) {
-      bg = AppTheme.successBg;
-      text = AppTheme.forestGreen;
+      bg = AppTheme.successBgFor(context);
+      text = AppTheme.headingColorFor(context);
       border = AppTheme.primaryOlive;
       label = 'ADMIN';
     } else if (device.role == DeviceRole.manager) {
-      bg = AppTheme.warningBg;
-      text = AppTheme.warningText;
+      bg = AppTheme.warningBgFor(context);
+      text = AppTheme.warningTextFor(context);
       border = AppTheme.amberWarning;
       label = 'MANAGER';
     } else {
-      bg = AppTheme.softTintGradient.colors.first;
-      text = AppTheme.forestGreen;
-      border = AppTheme.slate200;
+      bg = AppTheme.softTintColorFor(context);
+      text = AppTheme.headingColorFor(context);
+      border = AppTheme.borderFor(context);
       label = 'PRODUCTION';
     }
 
@@ -407,7 +411,10 @@ class _DeviceManagementScreenState
               if (error != null) ...[
                 Text(
                   error!,
-                  style: const TextStyle(color: AppTheme.errorText, fontSize: 13),
+                  style: TextStyle(
+                    color: AppTheme.errorTextFor(ctx),
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -527,7 +534,7 @@ class _DeviceManagementScreenState
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.slate200),
+                border: Border.all(color: AppTheme.borderFor(ctx)),
               ),
               child: SizedBox(
                 width: 220,
@@ -539,10 +546,13 @@ class _DeviceManagementScreenState
               ),
             ),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'Single-use code • Expires in 10 minutes.\nScan this code on the new device.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 12, color: AppTheme.slate500),
+              style: TextStyle(
+                fontSize: 12,
+                color: AppTheme.mutedTextFor(ctx),
+              ),
             ),
           ],
         ),

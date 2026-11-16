@@ -53,6 +53,28 @@ class AppTheme {
   static const Color softTintEnd = Color(0xFFE8F5C8);
   static const Color subtleSurfaceStart = Color(0xFFF9FCF4);
 
+  // Dark Mode Tokens
+  static const Color darkCanvasStart = Color(0xFF0F172A);
+  static const Color darkCanvasEnd = Color(0xFF132017);
+  static const Color darkSurface = Color(0xFF1E293B);
+  static const Color darkSurfaceElevated = Color(0xFF263344);
+  static const Color darkInputFill = Color(0xFF162032);
+  static const Color darkBorder = Color(0xFF334155);
+  static const Color darkCardBorder = Color(0x4DA8C842);
+  static const Color darkCardShadow = Color(0x55000000);
+  static const Color darkSoftTintStart = Color(0xFF22301E);
+  static const Color darkSoftTintEnd = Color(0xFF2A3D24);
+  static const Color darkSubtleSurface = Color(0xFF1A251B);
+  static const Color darkOliveAccent = Color(0xFFA8C842);
+  static const Color darkHeadingAccent = Color(0xFFB8D957);
+  static const Color darkPercentageValidBg = Color(0xFF23381B);
+  static const Color darkWarningBg = Color(0xFF3B2B12);
+  static const Color darkWarningText = Color(0xFFFCD34D);
+  static const Color darkErrorBg = Color(0xFF3F1A1D);
+  static const Color darkErrorText = Color(0xFFFCA5A5);
+  static const Color darkSuccessBg = Color(0xFF133829);
+  static const Color darkSuccessText = Color(0xFF6EE7B7);
+
   // Brand Gradients
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -66,10 +88,22 @@ class AppTheme {
     colors: [forestGreen, primaryOlive],
   );
 
+  static const LinearGradient darkBrandHeadingGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [darkOliveAccent, darkHeadingAccent],
+  );
+
   static const LinearGradient canvasGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [slate50, canvasTintEnd],
+  );
+
+  static const LinearGradient darkCanvasGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [darkCanvasStart, darkCanvasEnd],
   );
 
   static const LinearGradient softTintGradient = LinearGradient(
@@ -78,11 +112,78 @@ class AppTheme {
     colors: [softTintStart, softTintEnd],
   );
 
+  static const LinearGradient darkSoftTintGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [darkSoftTintStart, darkSoftTintEnd],
+  );
+
   static const LinearGradient subtleSurfaceGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [subtleSurfaceStart, softTintStart],
   );
+
+  // Brightness-aware helpers
+  static bool isDark(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark;
+
+  static LinearGradient canvasGradientFor(BuildContext context) =>
+      isDark(context) ? darkCanvasGradient : canvasGradient;
+
+  static LinearGradient headingGradientFor(BuildContext context) =>
+      isDark(context) ? darkBrandHeadingGradient : brandHeadingGradient;
+
+  static LinearGradient softTintGradientFor(BuildContext context) =>
+      isDark(context) ? darkSoftTintGradient : softTintGradient;
+
+  static Color cardColorFor(BuildContext context) =>
+      isDark(context) ? darkSurface : Colors.white;
+
+  static Color elevatedSurfaceFor(BuildContext context) =>
+      isDark(context) ? darkSurfaceElevated : slate50;
+
+  static Color subtleSurfaceFor(BuildContext context) =>
+      isDark(context) ? darkSubtleSurface : subtleSurfaceStart;
+
+  static Color softTintColorFor(BuildContext context) =>
+      isDark(context) ? darkSoftTintStart : softTintStart;
+
+  static Color cardBorderFor(BuildContext context) =>
+      isDark(context) ? darkCardBorder : cardBorder;
+
+  static Color borderFor(BuildContext context) =>
+      isDark(context) ? darkBorder : slate200;
+
+  static Color headingColorFor(BuildContext context) =>
+      isDark(context) ? darkHeadingAccent : forestGreen;
+
+  static Color primaryTextFor(BuildContext context) =>
+      isDark(context) ? slate100 : slate800;
+
+  static Color secondaryTextFor(BuildContext context) =>
+      isDark(context) ? slate300 : slate600;
+
+  static Color mutedTextFor(BuildContext context) =>
+      isDark(context) ? slate400 : slate500;
+
+  static Color errorBgFor(BuildContext context) =>
+      isDark(context) ? darkErrorBg : errorBg;
+
+  static Color errorTextFor(BuildContext context) =>
+      isDark(context) ? darkErrorText : errorText;
+
+  static Color warningBgFor(BuildContext context) =>
+      isDark(context) ? darkWarningBg : warningBg;
+
+  static Color warningTextFor(BuildContext context) =>
+      isDark(context) ? darkWarningText : warningText;
+
+  static Color successBgFor(BuildContext context) =>
+      isDark(context) ? darkSuccessBg : successBg;
+
+  static Color successTextFor(BuildContext context) =>
+      isDark(context) ? darkSuccessText : successText;
 
   static ThemeData get lightTheme {
     final colorScheme = ColorScheme.fromSeed(
@@ -214,6 +315,150 @@ class AppTheme {
       ),
       dividerTheme: const DividerThemeData(
         color: slate200,
+        thickness: 1,
+        space: 1,
+      ),
+    );
+  }
+
+  static ThemeData get darkTheme {
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: primaryOlive,
+      primary: darkOliveAccent,
+      secondary: darkHeadingAccent,
+      surface: darkSurface,
+      error: darkErrorText,
+      brightness: Brightness.dark,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: darkCanvasStart,
+      fontFamily: null,
+      appBarTheme: const AppBarTheme(
+        backgroundColor: darkSurface,
+        foregroundColor: slate100,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleTextStyle: TextStyle(
+          color: slate100,
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.2,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: darkSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: darkCardBorder, width: 2),
+        ),
+        margin: EdgeInsets.zero,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: darkInputFill,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: darkBorder, width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: darkBorder, width: 2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: darkOliveAccent, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: inputErrorBorder, width: 2),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(6),
+          borderSide: const BorderSide(color: inputErrorBorder, width: 2),
+        ),
+        labelStyle: const TextStyle(color: slate300, fontSize: 14),
+        hintStyle: const TextStyle(color: slate400, fontSize: 14),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryOlive,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(6),
+            side: const BorderSide(color: primaryOlive),
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: darkHeadingAccent,
+          backgroundColor: darkSoftTintStart,
+          side: BorderSide(color: darkOliveAccent.withValues(alpha: 0.45)),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: darkHeadingAccent,
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: primaryOlive,
+        foregroundColor: Colors.white,
+        elevation: 3,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      sliderTheme: SliderThemeData(
+        activeTrackColor: darkOliveAccent,
+        inactiveTrackColor: darkBorder,
+        thumbColor: darkOliveAccent,
+        overlayColor: darkOliveAccent.withValues(alpha: 0.2),
+        valueIndicatorColor: forestGreen,
+        trackHeight: 4,
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: darkSurfaceElevated,
+        selectedColor: darkSoftTintEnd,
+        secondarySelectedColor: darkSoftTintEnd,
+        labelStyle: const TextStyle(
+          fontSize: 13,
+          color: slate300,
+          fontWeight: FontWeight.w500,
+        ),
+        secondaryLabelStyle: const TextStyle(
+          fontSize: 13,
+          color: darkHeadingAccent,
+          fontWeight: FontWeight.w600,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: darkBorder),
+        ),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          selectedBackgroundColor: darkSoftTintEnd,
+          selectedForegroundColor: darkHeadingAccent,
+          foregroundColor: slate300,
+          side: const BorderSide(color: darkBorder),
+        ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: darkBorder,
         thickness: 1,
         space: 1,
       ),

@@ -79,6 +79,9 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
   @override
   Widget build(BuildContext context) {
     final activeError = _validationError ?? widget.errorText;
+    final headingColor = AppTheme.headingColorFor(context);
+    final mutedColor = AppTheme.mutedTextFor(context);
+    final isDark = AppTheme.isDark(context);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -87,19 +90,19 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
         Text(
           widget.title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 17,
             fontWeight: FontWeight.w700,
-            color: AppTheme.forestGreen,
+            color: headingColor,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           widget.subtitle,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
-            color: AppTheme.slate500,
+            color: mutedColor,
           ),
         ),
         const SizedBox(height: 18),
@@ -115,13 +118,13 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
               height: 14,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: filled ? AppTheme.forestGreen : Colors.transparent,
+                color: filled ? headingColor : Colors.transparent,
                 border: Border.all(
                   color: filled
-                      ? AppTheme.forestGreen
+                      ? headingColor
                       : (isRequiredSlot
-                          ? AppTheme.oliveMuted
-                          : AppTheme.slate300),
+                          ? (isDark ? AppTheme.slate400 : AppTheme.oliveMuted)
+                          : AppTheme.borderFor(context)),
                   width: 2,
                 ),
               ),
@@ -133,15 +136,15 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
-              color: AppTheme.errorBg,
+              color: AppTheme.errorBgFor(context),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppTheme.inputErrorBorder),
             ),
             child: Text(
               activeError,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppTheme.errorText,
+              style: TextStyle(
+                color: AppTheme.errorTextFor(context),
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
               ),
@@ -200,10 +203,10 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
       onTap: widget.isBusy ? null : () => _appendDigit(digit),
       child: Text(
         digit,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 22,
           fontWeight: FontWeight.w600,
-          color: AppTheme.forestGreen,
+          color: AppTheme.headingColorFor(context),
         ),
       ),
     );
@@ -214,6 +217,8 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
     required String tooltip,
     required VoidCallback? onTap,
   }) {
+    final disabledColor =
+        AppTheme.isDark(context) ? AppTheme.slate600 : AppTheme.slate300;
     return Tooltip(
       message: tooltip,
       child: _KeypadButton(
@@ -222,7 +227,7 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
         child: Icon(
           icon,
           size: 20,
-          color: onTap == null ? AppTheme.slate300 : AppTheme.forestGreen,
+          color: onTap == null ? disabledColor : AppTheme.headingColorFor(context),
         ),
       ),
     );
@@ -232,6 +237,9 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
     required String label,
     required VoidCallback? onTap,
   }) {
+    final isDark = AppTheme.isDark(context);
+    final disabledColor = isDark ? AppTheme.slate600 : AppTheme.slate300;
+    final enabledColor = isDark ? AppTheme.slate300 : AppTheme.oliveMuted;
     return _KeypadButton(
       onTap: onTap,
       isSecondary: true,
@@ -240,7 +248,7 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: onTap == null ? AppTheme.slate300 : AppTheme.oliveMuted,
+          color: onTap == null ? disabledColor : enabledColor,
         ),
       ),
     );
@@ -260,18 +268,21 @@ class _KeypadButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppTheme.isDark(context);
+    final keyBg = isDark ? AppTheme.darkSurfaceElevated : const Color(0xFFF6F9F0);
+    final borderColor = (isDark ? AppTheme.darkOliveAccent : AppTheme.primaryOlive)
+        .withValues(alpha: 0.25);
+
     return SizedBox(
       width: 68,
       height: 54,
       child: Material(
-        color: isSecondary ? Colors.transparent : const Color(0xFFF6F9F0),
+        color: isSecondary ? Colors.transparent : keyBg,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: isSecondary
               ? BorderSide.none
-              : BorderSide(
-                  color: AppTheme.primaryOlive.withValues(alpha: 0.25),
-                ),
+              : BorderSide(color: borderColor),
         ),
         child: InkWell(
           onTap: onTap,

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/providers/auth_providers.dart';
 import 'presentation/providers/sync_providers.dart';
+import 'presentation/providers/theme_providers.dart';
 import 'presentation/screens/auth/pin_lock_screen.dart';
 import 'presentation/screens/onboarding/onboarding_screen.dart';
 import 'presentation/screens/recipe_library/recipe_library_screen.dart';
@@ -29,6 +30,8 @@ class SynProdLiteApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (_) =>
@@ -37,6 +40,8 @@ class SynProdLiteApp extends ConsumerWidget {
         title: 'SynProd Lite',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeMode,
         home: const _AuthGate(),
       ),
     );

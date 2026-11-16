@@ -243,8 +243,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       appBar: SynProdAppBar(
         title: Text(
           _isEditing ? 'Edit Product' : 'New Product',
-          style: const TextStyle(
-            color: AppTheme.forestGreen,
+          style: TextStyle(
+            color: AppTheme.headingColorFor(context),
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -287,7 +287,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppTheme.errorBg,
+                    color: AppTheme.errorBgFor(context),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppTheme.inputErrorBorder),
                   ),
@@ -300,8 +300,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                       Expanded(
                         child: Text(
                           _errorMessage!,
-                          style: const TextStyle(
-                            color: AppTheme.errorText,
+                          style: TextStyle(
+                            color: AppTheme.errorTextFor(context),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -330,12 +330,12 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Product Details',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppTheme.forestGreen,
+              color: AppTheme.headingColorFor(context),
             ),
           ),
             const SizedBox(height: 14),
@@ -390,16 +390,23 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   }
 
   Widget _buildCompositionsCard(double totalPercentage, bool isSumValid) {
+    final isDark = AppTheme.isDark(context);
     final hasCompositions = _compositionRows.isNotEmpty;
     final statusColor = !hasCompositions
-        ? AppTheme.slate600
-        : (isSumValid ? AppTheme.forestGreen : AppTheme.warningText);
+        ? AppTheme.secondaryTextFor(context)
+        : (isSumValid
+            ? AppTheme.headingColorFor(context)
+            : AppTheme.warningTextFor(context));
     final statusBorder = !hasCompositions
-        ? AppTheme.slate200
+        ? AppTheme.borderFor(context)
         : (isSumValid ? AppTheme.primaryOlive : AppTheme.amberWarning);
     final statusBg = !hasCompositions
-        ? AppTheme.slate100
-        : (isSumValid ? AppTheme.percentageValidBg : AppTheme.warningBg);
+        ? AppTheme.elevatedSurfaceFor(context)
+        : (isSumValid
+            ? (isDark
+                ? AppTheme.darkPercentageValidBg
+                : AppTheme.percentageValidBg)
+            : AppTheme.warningBgFor(context));
 
     return SynProdCard(
       padding: const EdgeInsets.all(16),
@@ -408,13 +415,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Composition (% of Weight)',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.forestGreen,
+                    color: AppTheme.headingColorFor(context),
                   ),
                 ),
               ),
@@ -488,9 +495,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: AppTheme.subtleSurfaceGradient,
+        color: AppTheme.subtleSurfaceFor(context),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.cardBorder),
+        border: Border.all(color: AppTheme.cardBorderFor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,10 +506,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             children: [
               Text(
                 'Component #${index + 1}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.slate600,
+                  color: AppTheme.secondaryTextFor(context),
                 ),
               ),
               const Spacer(),
@@ -626,13 +633,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         children: [
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Additional Ingredients (per Base Unit)',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.forestGreen,
+                    color: AppTheme.headingColorFor(context),
                   ),
                 ),
               ),
@@ -652,11 +659,14 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             ],
           ),
           if (_ingredientRows.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(
                 'No additional ingredients added (optional).',
-                style: TextStyle(color: AppTheme.slate600, fontSize: 13),
+                style: TextStyle(
+                  color: AppTheme.secondaryTextFor(context),
+                  fontSize: 13,
+                ),
               ),
             ),
           ...List.generate(_ingredientRows.length, (index) {
@@ -679,9 +689,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       margin: const EdgeInsets.only(top: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        gradient: AppTheme.subtleSurfaceGradient,
+        color: AppTheme.subtleSurfaceFor(context),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.cardBorder),
+        border: Border.all(color: AppTheme.cardBorderFor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -690,10 +700,10 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
             children: [
               Text(
                 'Ingredient #${index + 1}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.slate600,
+                  color: AppTheme.secondaryTextFor(context),
                 ),
               ),
               const Spacer(),

@@ -11,8 +11,8 @@ class SynProdCanvas extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppTheme.canvasGradient,
+      decoration: BoxDecoration(
+        gradient: AppTheme.canvasGradientFor(context),
       ),
       child: child,
     );
@@ -41,7 +41,7 @@ class SynProdGradientText extends StatelessWidget {
 
     return ShaderMask(
       blendMode: BlendMode.srcIn,
-      shaderCallback: (bounds) => AppTheme.brandHeadingGradient.createShader(
+      shaderCallback: (bounds) => AppTheme.headingGradientFor(context).createShader(
         Rect.fromLTWH(0, 0, bounds.width, bounds.height),
       ),
       child: Text(text, style: effectiveStyle),
@@ -73,17 +73,21 @@ class SynProdAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppTheme.isDark(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: AppTheme.cardColorFor(context),
         border: Border(
-          bottom: BorderSide(color: AppTheme.forestGreen, width: 3),
+          bottom: BorderSide(
+            color: isDark ? AppTheme.darkOliveAccent : AppTheme.forestGreen,
+            width: 3,
+          ),
         ),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.headerShadow,
+            color: isDark ? AppTheme.darkCardShadow : AppTheme.headerShadow,
             blurRadius: 12,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -133,23 +137,32 @@ class SynProdCard extends StatelessWidget {
       ],
     );
 
+    final isDark = AppTheme.isDark(context);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.cardColorFor(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.cardBorder, width: 2),
-        boxShadow: const [
-          BoxShadow(
-            color: AppTheme.cardShadow,
-            blurRadius: 12,
-            offset: Offset(0, 4),
-          ),
-          BoxShadow(
-            color: Color(0x1A445C3C),
-            blurRadius: 4,
-            offset: Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: AppTheme.cardBorderFor(context), width: 2),
+        boxShadow: isDark
+            ? const [
+                BoxShadow(
+                  color: AppTheme.darkCardShadow,
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+              ]
+            : const [
+                BoxShadow(
+                  color: AppTheme.cardShadow,
+                  blurRadius: 12,
+                  offset: Offset(0, 4),
+                ),
+                BoxShadow(
+                  color: Color(0x1A445C3C),
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
@@ -183,13 +196,15 @@ class SynProdGradientButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
+    final disabledColor =
+        AppTheme.isDark(context) ? AppTheme.darkBorder : AppTheme.slate300;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: enabled ? AppTheme.primaryGradient : null,
-        color: enabled ? null : AppTheme.slate300,
+        color: enabled ? null : disabledColor,
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: enabled ? AppTheme.primaryOlive : AppTheme.slate300,
+          color: enabled ? AppTheme.primaryOlive : disabledColor,
         ),
       ),
       child: Material(
@@ -232,18 +247,21 @@ class SynProdSecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppTheme.isDark(context);
+    final fgColor = AppTheme.headingColorFor(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        gradient: AppTheme.softTintGradient,
+        gradient: AppTheme.softTintGradientFor(context),
         borderRadius: BorderRadius.circular(6),
         border: Border.all(
-          color: AppTheme.primaryOlive.withValues(alpha: 0.3),
+          color: (isDark ? AppTheme.darkOliveAccent : AppTheme.primaryOlive)
+              .withValues(alpha: 0.35),
         ),
       ),
       child: TextButton(
         onPressed: onPressed,
         style: TextButton.styleFrom(
-          foregroundColor: AppTheme.forestGreen,
+          foregroundColor: fgColor,
           padding: padding,
           minimumSize: Size.zero,
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -256,7 +274,7 @@ class SynProdSecondaryButton extends StatelessWidget {
           ),
         ),
         child: IconTheme(
-          data: const IconThemeData(color: AppTheme.forestGreen, size: 16),
+          data: IconThemeData(color: fgColor, size: 16),
           child: child,
         ),
       ),
@@ -279,12 +297,16 @@ class SynProdPercentageBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor =
-        isValid ? AppTheme.percentageValidBg : AppTheme.warningBg;
-    final borderColor =
-        isValid ? AppTheme.primaryOlive : AppTheme.amberWarning;
-    final textColor =
-        isValid ? AppTheme.forestGreen : AppTheme.warningText;
+    final isDark = AppTheme.isDark(context);
+    final bgColor = isValid
+        ? (isDark ? AppTheme.darkPercentageValidBg : AppTheme.percentageValidBg)
+        : (isDark ? AppTheme.darkWarningBg : AppTheme.warningBg);
+    final borderColor = isValid
+        ? (isDark ? AppTheme.darkOliveAccent : AppTheme.primaryOlive)
+        : AppTheme.amberWarning;
+    final textColor = isValid
+        ? (isDark ? AppTheme.darkHeadingAccent : AppTheme.forestGreen)
+        : (isDark ? AppTheme.darkWarningText : AppTheme.warningText);
 
     return Container(
       padding: EdgeInsets.symmetric(
@@ -403,7 +425,11 @@ class SynProdDialog extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (icon != null) ...[
-                    Icon(icon, color: AppTheme.forestGreen, size: 22),
+                    Icon(
+                      icon,
+                      color: AppTheme.headingColorFor(context),
+                      size: 22,
+                    ),
                     const SizedBox(width: 10),
                   ],
                   Expanded(
@@ -412,19 +438,21 @@ class SynProdDialog extends StatelessWidget {
                       children: [
                         Text(
                           title,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.forestGreen,
+                            color: AppTheme.headingColorFor(context),
                           ),
                         ),
                         if (subtitle != null) ...[
                           const SizedBox(height: 2),
                           Text(
                             subtitle!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppTheme.oliveMuted,
+                              color: AppTheme.isDark(context)
+                                  ? AppTheme.slate400
+                                  : AppTheme.oliveMuted,
                             ),
                           ),
                         ],

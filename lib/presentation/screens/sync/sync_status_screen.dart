@@ -36,7 +36,7 @@ class SyncStatusScreen extends ConsumerWidget {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.sync, color: AppTheme.forestGreen),
+                  : Icon(Icons.sync, color: AppTheme.headingColorFor(context)),
             ),
           ),
         ],
@@ -47,7 +47,7 @@ class SyncStatusScreen extends ConsumerWidget {
           children: [
             _buildStatusCard(context, ref, syncState),
             const SizedBox(height: 16),
-            _buildPeersCard(syncState),
+            _buildPeersCard(context, syncState),
             const SizedBox(height: 16),
             _buildConflictsSection(
               context,
@@ -81,7 +81,7 @@ class SyncStatusScreen extends ConsumerWidget {
                 syncState.isRunning ? Icons.wifi_tethering : Icons.wifi_off,
                 color: syncState.isRunning
                     ? AppTheme.primaryOlive
-                    : AppTheme.slate500,
+                    : AppTheme.mutedTextFor(context),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -92,18 +92,18 @@ class SyncStatusScreen extends ConsumerWidget {
                       syncState.isRunning
                           ? 'Peer Discovery Active'
                           : 'Peer Discovery Paused',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.slate800,
+                        color: AppTheme.primaryTextFor(context),
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Last synced: $lastSyncedText',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.slate600,
+                        color: AppTheme.secondaryTextFor(context),
                       ),
                     ),
                   ],
@@ -122,13 +122,16 @@ class SyncStatusScreen extends ConsumerWidget {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color: AppTheme.errorBgFor(context),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.red.shade200),
+                border: Border.all(color: AppTheme.inputErrorBorder),
               ),
               child: Text(
                 syncState.lastError!,
-                style: TextStyle(fontSize: 12, color: Colors.red.shade800),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.errorTextFor(context),
+                ),
               ),
             ),
           ],
@@ -137,7 +140,7 @@ class SyncStatusScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPeersCard(SyncStatusState syncState) {
+  Widget _buildPeersCard(BuildContext context, SyncStatusState syncState) {
     return SynProdCard(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -145,17 +148,20 @@ class SyncStatusScreen extends ConsumerWidget {
         children: [
           Text(
             'Nearby Paired Peers (${syncState.peers.length})',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: AppTheme.forestGreen,
+              color: AppTheme.headingColorFor(context),
             ),
           ),
           const SizedBox(height: 10),
           if (syncState.peers.isEmpty)
-            const Text(
+            Text(
               'No paired devices currently detected on this Wi-Fi network.',
-              style: TextStyle(fontSize: 13, color: AppTheme.slate600),
+              style: TextStyle(
+                fontSize: 13,
+                color: AppTheme.secondaryTextFor(context),
+              ),
             )
           else
             ...syncState.peers.map(
@@ -164,14 +170,17 @@ class SyncStatusScreen extends ConsumerWidget {
                 leading: SynProdAvatar(displayName: peer.displayName),
                 title: Text(
                   peer.displayName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w600,
-                    color: AppTheme.slate800,
+                    color: AppTheme.primaryTextFor(context),
                   ),
                 ),
                 subtitle: Text(
                   '${peer.host}:${peer.port}',
-                  style: const TextStyle(fontSize: 12, color: AppTheme.slate500),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.mutedTextFor(context),
+                  ),
                 ),
                 trailing: const Icon(
                   Icons.check_circle,
@@ -196,12 +205,12 @@ class SyncStatusScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Sync Conflict & Audit History',
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: AppTheme.forestGreen,
+              color: AppTheme.headingColorFor(context),
             ),
           ),
           const SizedBox(height: 10),
@@ -210,9 +219,12 @@ class SyncStatusScreen extends ConsumerWidget {
             error: (e, _) => Text('Failed to load conflict history: $e'),
             data: (records) {
               if (records.isEmpty) {
-                return const Text(
+                return Text(
                   'No sync conflicts or overwritten versions recorded.',
-                  style: TextStyle(fontSize: 13, color: AppTheme.slate600),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppTheme.secondaryTextFor(context),
+                  ),
                 );
               }
               return Column(
@@ -252,13 +264,13 @@ class _ConflictTile extends ConsumerWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: record.isResolved
-            ? AppTheme.slate50
-            : Colors.amber.shade50.withValues(alpha: 0.7),
+            ? AppTheme.elevatedSurfaceFor(context)
+            : AppTheme.warningBgFor(context),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: record.isResolved
-              ? AppTheme.slate200
-              : Colors.amber.shade300,
+              ? AppTheme.borderFor(context)
+              : AppTheme.amberWarning,
         ),
       ),
       child: Column(
@@ -269,23 +281,29 @@ class _ConflictTile extends ConsumerWidget {
               Expanded(
                 child: Text(
                   '${record.productName} • ${record.conflictType.displayName}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
-                    color: AppTheme.slate800,
+                    color: AppTheme.primaryTextFor(context),
                   ),
                 ),
               ),
               Text(
                 timestamp,
-                style: const TextStyle(fontSize: 11, color: AppTheme.slate500),
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.mutedTextFor(context),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(
             record.reason,
-            style: const TextStyle(fontSize: 12, color: AppTheme.slate600),
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.secondaryTextFor(context),
+            ),
           ),
           if (!record.isResolved) ...[
             const SizedBox(height: 8),

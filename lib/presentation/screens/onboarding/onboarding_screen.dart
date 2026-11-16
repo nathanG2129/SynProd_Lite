@@ -169,32 +169,40 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: AppTheme.cardColorFor(ctx),
                 border: Border(
-                  bottom: BorderSide(color: AppTheme.forestGreen, width: 3),
+                  bottom: BorderSide(
+                    color: AppTheme.isDark(ctx)
+                        ? AppTheme.darkOliveAccent
+                        : AppTheme.forestGreen,
+                    width: 3,
+                  ),
                 ),
               ),
               child: Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.qr_code_scanner,
-                    color: AppTheme.forestGreen,
+                    color: AppTheme.headingColorFor(ctx),
                     size: 22,
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       'Scan Pairing QR Code',
                       style: TextStyle(
-                        color: AppTheme.forestGreen,
+                        color: AppTheme.headingColorFor(ctx),
                         fontSize: 17,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppTheme.forestGreen),
+                    icon: Icon(
+                      Icons.close,
+                      color: AppTheme.headingColorFor(ctx),
+                    ),
                     onPressed: () => Navigator.of(ctx).pop(),
                   ),
                 ],
@@ -337,7 +345,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                             IconButton(
                               onPressed: _isBusy ? null : _handleBack,
                               icon: const Icon(Icons.arrow_back),
-                              color: AppTheme.forestGreen,
+                              color: AppTheme.headingColorFor(context),
                             ),
                           Expanded(
                             child: Column(
@@ -352,8 +360,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                                 ),
                                 Text(
                                   _subtitleForMode(),
-                                  style: const TextStyle(
-                                    color: AppTheme.oliveMuted,
+                                  style: TextStyle(
+                                    color: AppTheme.isDark(context)
+                                        ? AppTheme.slate400
+                                        : AppTheme.oliveMuted,
                                     fontSize: 13,
                                     fontWeight: FontWeight.w500,
                                   ),
@@ -369,14 +379,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppTheme.errorBg,
+                            color: AppTheme.errorBgFor(context),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: AppTheme.inputErrorBorder),
                           ),
                           child: Text(
                             _error!,
-                            style: const TextStyle(
-                              color: AppTheme.errorText,
+                            style: TextStyle(
+                              color: AppTheme.errorTextFor(context),
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
                             ),
@@ -419,12 +429,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildChooseMode() {
+    final isDark = AppTheme.isDark(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
+        Text(
           "Scan a pairing QR code from an Admin device to join your team's offline workspace.",
-          style: TextStyle(color: AppTheme.slate500, fontSize: 14),
+          style: TextStyle(
+            color: AppTheme.mutedTextFor(context),
+            fontSize: 14,
+          ),
         ),
         const SizedBox(height: 20),
         SynProdGradientButton(
@@ -450,7 +464,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: TextButton(
             onPressed: () => _switchMode(_OnboardingMode.createAdmin),
             style: TextButton.styleFrom(
-              foregroundColor: AppTheme.oliveMuted,
+              foregroundColor:
+                  isDark ? AppTheme.slate300 : AppTheme.oliveMuted,
               textStyle: const TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -466,7 +481,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             icon: const Icon(Icons.restore_outlined, size: 16),
             label: const Text('Restore Admin Workspace from Backup'),
             style: TextButton.styleFrom(
-              foregroundColor: AppTheme.forestGreen,
+              foregroundColor: AppTheme.headingColorFor(context),
               textStyle: const TextStyle(fontSize: 13),
             ),
           ),
@@ -580,7 +595,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppTheme.successBg,
+              color: AppTheme.successBgFor(context),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: AppTheme.primaryOlive),
             ),
@@ -589,17 +604,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               children: [
                 Text(
                   'Workspace: ${_validatedQr!.workspaceName}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: AppTheme.forestGreen,
+                    color: AppTheme.successTextFor(context),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Device: ${_validatedQr!.displayName} • Role: ${_validatedQr!.role.displayName}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppTheme.forestGreen,
+                    color: AppTheme.successTextFor(context),
                   ),
                 ),
               ],

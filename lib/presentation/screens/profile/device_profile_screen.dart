@@ -11,6 +11,7 @@ import '../../../domain/models/device.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
+import '../../providers/theme_providers.dart';
 import '../../widgets/synprod_ui.dart';
 
 class DeviceProfileScreen extends ConsumerStatefulWidget {
@@ -67,7 +68,10 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
               if (error != null) ...[
                 Text(
                   error!,
-                  style: const TextStyle(color: AppTheme.errorText, fontSize: 13),
+                  style: TextStyle(
+                    color: AppTheme.errorTextFor(context),
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -162,15 +166,21 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Create a password-protected backup of your workspace, devices, and recipes.',
-                style: TextStyle(fontSize: 13, color: AppTheme.slate500),
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.mutedTextFor(context),
+                ),
               ),
               const SizedBox(height: 12),
               if (error != null) ...[
                 Text(
                   error!,
-                  style: const TextStyle(color: AppTheme.errorText, fontSize: 13),
+                  style: TextStyle(
+                    color: AppTheme.errorTextFor(context),
+                    fontSize: 13,
+                  ),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -260,6 +270,9 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
     final authState = ref.watch(authControllerProvider);
     final device = ref.watch(currentDeviceProvider);
     final workspace = authState.workspace;
+    final themeMode = ref.watch(themeModeProvider);
+    final headingColor = AppTheme.headingColorFor(context);
+    final mutedColor = AppTheme.mutedTextFor(context);
 
     return Scaffold(
       appBar: const SynProdAppBar(
@@ -281,28 +294,28 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                       children: [
                         Text(
                           device.displayName,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w700,
-                            color: AppTheme.slate800,
+                            color: AppTheme.primaryTextFor(context),
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'Role: ${device.role.displayName}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
-                            color: AppTheme.forestGreen,
+                            color: headingColor,
                           ),
                         ),
                         if (workspace != null) ...[
                           const SizedBox(height: 4),
                           Text(
                             'Workspace: ${workspace.name}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
-                              color: AppTheme.slate500,
+                              color: mutedColor,
                             ),
                           ),
                         ],
@@ -318,12 +331,63 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
+                  Text(
+                    'Appearance',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: headingColor,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Choose how SynProd Lite looks on this device.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: mutedColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SegmentedButton<ThemeMode>(
+                    segments: const [
+                      ButtonSegment<ThemeMode>(
+                        value: ThemeMode.system,
+                        icon: Icon(Icons.brightness_auto_outlined, size: 18),
+                        label: Text('System'),
+                      ),
+                      ButtonSegment<ThemeMode>(
+                        value: ThemeMode.light,
+                        icon: Icon(Icons.light_mode_outlined, size: 18),
+                        label: Text('Light'),
+                      ),
+                      ButtonSegment<ThemeMode>(
+                        value: ThemeMode.dark,
+                        icon: Icon(Icons.dark_mode_outlined, size: 18),
+                        label: Text('Dark'),
+                      ),
+                    ],
+                    selected: {themeMode},
+                    onSelectionChanged: (selection) {
+                      ref
+                          .read(themeModeProvider.notifier)
+                          .setThemeMode(selection.first);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SynProdCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
                     'Security & Session',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
-                      color: AppTheme.forestGreen,
+                      color: headingColor,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -371,20 +435,20 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
+                    Text(
                       'Admin Recovery',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
-                        color: AppTheme.forestGreen,
+                        color: headingColor,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'Export an encrypted workspace backup to restore Admin access on a replacement device.',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppTheme.slate500,
+                        color: mutedColor,
                       ),
                     ),
                     const SizedBox(height: 14),
