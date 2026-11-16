@@ -513,21 +513,46 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                   );
                 }
 
-                return ListView.separated(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0, vertical: 8.0),
-                  itemCount: products.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final product = products[index];
-                    return _RecipeCard(
-                      product: product,
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                RecipeDetailScreen(product: product),
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isTwoColumn = constraints.maxWidth >= 640;
+                    if (!isTwoColumn) {
+                      return ListView.separated(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
+                        itemCount: products.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) =>
+                            _buildRecipeCard(context, products[index]),
+                      );
+                    }
+
+                    final rowCount = (products.length / 2).ceil();
+                    return ListView.separated(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 8.0),
+                      itemCount: rowCount,
+                      separatorBuilder: (_, _) => const SizedBox(height: 12),
+                      itemBuilder: (context, rowIndex) {
+                        final leftIndex = rowIndex * 2;
+                        final rightIndex = leftIndex + 1;
+                        final hasRight = rightIndex < products.length;
+                        return IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Expanded(
+                                child: _buildRecipeCard(
+                                    context, products[leftIndex]),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: hasRight
+                                    ? _buildRecipeCard(
+                                        context, products[rightIndex])
+                                    : const SizedBox.shrink(),
+                              ),
+                            ],
                           ),
                         );
                       },
@@ -549,6 +574,20 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
         ],
       ),
       ),
+    );
+  }
+
+  Widget _buildRecipeCard(BuildContext context, Product product) {
+    return _RecipeCard(
+      product: product,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => RecipeDetailScreen(product: product),
+          ),
+        );
+      },
     );
   }
 
@@ -679,49 +718,61 @@ class _RecipeCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.scale_outlined,
-                  size: 15, color: AppTheme.mutedTextFor(context)),
-              const SizedBox(width: 4),
-              Text(
-                '${product.productType.baseWeightGrams.toInt()}g base',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.secondaryTextFor(context),
-                  fontWeight: FontWeight.w500,
+              Expanded(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _buildMetaItem(
+                      context,
+                      icon: Icons.scale_outlined,
+                      label:
+                          '${product.productType.baseWeightGrams.toInt()}g base',
+                    ),
+                    _buildMetaItem(
+                      context,
+                      icon: Icons.pie_chart_outline,
+                      label: '${product.compositions.length} components',
+                    ),
+                    if (product.additionalIngredients.isNotEmpty)
+                      _buildMetaItem(
+                        context,
+                        icon: Icons.add_circle_outline,
+                        label:
+                            '${product.additionalIngredients.length} ingredients',
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 14),
-              Icon(Icons.pie_chart_outline,
-                  size: 15, color: AppTheme.mutedTextFor(context)),
-              const SizedBox(width: 4),
-              Text(
-                '${product.compositions.length} components',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.secondaryTextFor(context),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              if (product.additionalIngredients.isNotEmpty) ...[
-                const SizedBox(width: 14),
-                Icon(Icons.add_circle_outline,
-                    size: 15, color: AppTheme.mutedTextFor(context)),
-                const SizedBox(width: 4),
-                Text(
-                  '${product.additionalIngredients.length} ingredients',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.secondaryTextFor(context),
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-              const Spacer(),
+              const SizedBox(width: 8),
               Icon(Icons.chevron_right, color: AppTheme.mutedTextFor(context)),
             ],
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildMetaItem(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: AppTheme.mutedTextFor(context)),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: AppTheme.secondaryTextFor(context),
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 }
