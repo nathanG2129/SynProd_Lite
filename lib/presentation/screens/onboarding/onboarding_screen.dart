@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-import '../../../core/services/pin_auth_service.dart';
 import '../../../core/services/qr_pairing_service.dart';
 import '../../../core/services/workspace_backup_service.dart';
 import '../../../core/theme/app_theme.dart';
@@ -13,7 +12,15 @@ import '../../providers/auth_providers.dart';
 import '../../widgets/synprod_pin_pad.dart';
 import '../../widgets/synprod_ui.dart';
 
-enum _OnboardingMode { choose, createAdmin, createAdminPin, joinQr, restoreBackup }
+enum _OnboardingMode {
+  choose,
+  createAdmin,
+  createAdminPin,
+  joinQr,
+  joinQrPin,
+  restoreBackup,
+  restoreBackupPin,
+}
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -31,12 +38,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   // Create Admin controllers
   final _workspaceNameCtrl = TextEditingController();
   final _deviceNameCtrl = TextEditingController();
-  String? _pendingAdminPin;
+  String? _pendingPin;
   int _pinMismatchCount = 0;
-
-  // PIN controllers (shared across flows)
-  final _pinCtrl = TextEditingController();
-  final _confirmPinCtrl = TextEditingController();
 
   // QR Join state
   final _qrRawCtrl = TextEditingController();
@@ -46,59 +49,52 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String? _backupFileContent;
   String? _backupFileName;
   final _backupPasswordCtrl = TextEditingController();
+  WorkspaceBackupBundle? _decryptedBackup;
 
   @override
   void dispose() {
     _workspaceNameCtrl.dispose();
     _deviceNameCtrl.dispose();
-    _pinCtrl.dispose();
-    _confirmPinCtrl.dispose();
     _qrRawCtrl.dispose();
     _backupPasswordCtrl.dispose();
     super.dispose();
   }
+
+  bool get _isPinMode =>
+      _mode == _OnboardingMode.createAdminPin ||
+      _mode == _OnboardingMode.joinQrPin ||
+      _mode == _OnboardingMode.restoreBackupPin;
 
   void _switchMode(_OnboardingMode mode, {bool forward = true}) {
     setState(() {
       _navigatingForward = forward;
       _mode = mode;
       _error = null;
-      _pendingAdminPin = null;
-      _pinCtrl.clear();
-      _confirmPinCtrl.clear();
+      _pendingPin = null;
+      _pinMismatchCount = 0;
     });
   }
 
   void _handleBack() {
-    if (_mode == _OnboardingMode.createAdminPin) {
-      if (_pendingAdminPin != null) {
+    if (_isPinMode) {
+      if (_pendingPin != null) {
         setState(() {
           _navigatingForward = false;
-          _pendingAdminPin = null;
+          _pendingPin = null;
           _error = null;
         });
-      } else {
-        setState(() {
-          _navigatingForward = false;
-          _mode = _OnboardingMode.createAdmin;
-          _error = null;
-        });
+        return;
       }
+      final parentMode = switch (_mode) {
+        _OnboardingMode.createAdminPin => _OnboardingMode.createAdmin,
+        _OnboardingMode.joinQrPin => _OnboardingMode.joinQr,
+        _OnboardingMode.restoreBackupPin => _OnboardingMode.restoreBackup,
+        _ => _OnboardingMode.choose,
+      };
+      _switchMode(parentMode, forward: false);
       return;
     }
     _switchMode(_OnboardingMode.choose, forward: false);
-  }
-
-  String? _validatePinFields() {
-    final pin = _pinCtrl.text.trim();
-    final confirm = _confirmPinCtrl.text.trim();
-    if (!PinAuthService.isValidPinFormat(pin)) {
-      return 'PIN must be 4 to 6 digits.';
-    }
-    if (pin != confirm) {
-      return 'PINs do not match.';
-    }
-    return null;
   }
 
   void _continueToAdminPin() {
@@ -112,25 +108,67 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       setState(() => _error = 'Device display name is required.');
       return;
     }
-    setState(() {
-      _navigatingForward = true;
-      _mode = _OnboardingMode.createAdminPin;
-      _pendingAdminPin = null;
-      _error = null;
-    });
+    _switchMode(_OnboardingMode.createAdminPin);
   }
 
-  Future<void> _submitCreateAdminWithPin(String pin) async {
+  void _continueToJoinQrPin() {
+    if (_validatedQr == null) {
+      setState(() => _error = 'Please scan or paste a valid QR pairing code.');
+      return;
+    }
+    _switchMode(_OnboardingMode.joinQrPin);
+  }
+
+  void _continueToRestoreBackupPin() {
+    final raw = _backupFileContent;
+    if (raw == null || raw.isEmpty) {
+      setState(() => _error = 'Please select a .synprod backup file.');
+      return;
+    }
+    final password = _backupPasswordCtrl.text;
+    if (password.isEmpty) {
+      setState(() => _error = 'Backup password is required.');
+      return;
+    }
+    try {
+      final bundle = ref.read(workspaceBackupServiceProvider).decryptBundle(
+            rawContent: raw,
+            password: password,
+          );
+      _decryptedBackup = bundle;
+      _switchMode(_OnboardingMode.restoreBackupPin);
+    } on WorkspaceBackupException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    }
+  }
+
+  Future<void> _submitPinForMode(String pin) async {
     setState(() {
       _isBusy = true;
       _error = null;
     });
     try {
-      await ref.read(authControllerProvider.notifier).createWorkspaceAndAdmin(
+      final auth = ref.read(authControllerProvider.notifier);
+      switch (_mode) {
+        case _OnboardingMode.createAdminPin:
+          await auth.createWorkspaceAndAdmin(
             workspaceName: _workspaceNameCtrl.text.trim(),
             displayName: _deviceNameCtrl.text.trim(),
             pin: pin,
           );
+        case _OnboardingMode.joinQrPin:
+          final payload = _validatedQr;
+          if (payload == null) throw StateError('Missing QR payload.');
+          await auth.completeQrPairing(payload: payload, pin: pin);
+        case _OnboardingMode.restoreBackupPin:
+          final bundle = _decryptedBackup;
+          if (bundle == null) throw StateError('Missing decrypted backup.');
+          await auth.restoreAdminBackup(bundle: bundle, pin: pin);
+        default:
+          break;
+      }
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     } finally {
@@ -236,34 +274,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  Future<void> _submitJoinQr() async {
-    final payload = _validatedQr;
-    if (payload == null) {
-      setState(() => _error = 'Please scan or paste a valid QR pairing code.');
-      return;
-    }
-    final pinErr = _validatePinFields();
-    if (pinErr != null) {
-      setState(() => _error = pinErr);
-      return;
-    }
-
-    setState(() {
-      _isBusy = true;
-      _error = null;
-    });
-    try {
-      await ref.read(authControllerProvider.notifier).completeQrPairing(
-            payload: payload,
-            pin: _pinCtrl.text.trim(),
-          );
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _isBusy = false);
-    }
-  }
-
   Future<void> _pickBackupFile() async {
     try {
       final result = await FilePicker.platform.pickFiles(
@@ -286,45 +296,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       }
     } catch (e) {
       if (mounted) setState(() => _error = 'Could not read backup file: $e');
-    }
-  }
-
-  Future<void> _submitRestoreBackup() async {
-    final raw = _backupFileContent;
-    if (raw == null || raw.isEmpty) {
-      setState(() => _error = 'Please select a .synprod backup file.');
-      return;
-    }
-    final password = _backupPasswordCtrl.text;
-    if (password.isEmpty) {
-      setState(() => _error = 'Backup password is required.');
-      return;
-    }
-    final pinErr = _validatePinFields();
-    if (pinErr != null) {
-      setState(() => _error = pinErr);
-      return;
-    }
-
-    setState(() {
-      _isBusy = true;
-      _error = null;
-    });
-    try {
-      final bundle = ref.read(workspaceBackupServiceProvider).decryptBundle(
-            rawContent: raw,
-            password: password,
-          );
-      await ref.read(authControllerProvider.notifier).restoreAdminBackup(
-            bundle: bundle,
-            pin: _pinCtrl.text.trim(),
-          );
-    } on WorkspaceBackupException catch (e) {
-      if (mounted) setState(() => _error = e.message);
-    } catch (e) {
-      if (mounted) setState(() => _error = e.toString());
-    } finally {
-      if (mounted) setState(() => _isBusy = false);
     }
   }
 
@@ -379,8 +350,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      if (_error != null &&
-                          _mode != _OnboardingMode.createAdminPin) ...[
+                      if (_error != null && !_isPinMode) ...[
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -406,7 +376,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         child: Builder(
                           builder: (context) {
                             final activeKey =
-                                ValueKey('$_mode-${_pendingAdminPin != null}');
+                                ValueKey('$_mode-${_pendingPin != null}');
                             return AnimatedSwitcher(
                               duration: const Duration(milliseconds: 260),
                               switchInCurve: Curves.easeOutCubic,
@@ -466,11 +436,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case _OnboardingMode.createAdmin:
         return _buildCreateAdminForm();
       case _OnboardingMode.createAdminPin:
-        return _buildCreateAdminPinStep();
+        return _buildTwoStepPinStep(
+          confirmLabel: _isBusy ? 'Creating...' : 'Create Workspace',
+          confirmIcon: Icons.check_circle_outline,
+        );
       case _OnboardingMode.joinQr:
         return _buildJoinQrForm();
+      case _OnboardingMode.joinQrPin:
+        return _buildTwoStepPinStep(
+          confirmLabel: _isBusy ? 'Pairing...' : 'Complete Pairing',
+          confirmIcon: Icons.link,
+        );
       case _OnboardingMode.restoreBackup:
         return _buildRestoreBackupForm();
+      case _OnboardingMode.restoreBackupPin:
+        return _buildTwoStepPinStep(
+          confirmLabel: _isBusy ? 'Restoring...' : 'Restore Workspace',
+          confirmIcon: Icons.restore,
+        );
     }
   }
 
@@ -481,6 +464,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case _OnboardingMode.createAdmin:
         return 'Create Workspace (Admin Device)';
       case _OnboardingMode.createAdminPin:
+      case _OnboardingMode.joinQrPin:
+      case _OnboardingMode.restoreBackupPin:
         return 'Set Device PIN';
       case _OnboardingMode.joinQr:
         return 'Join Workspace via QR Pairing';
@@ -608,39 +593,39 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
-  Widget _buildCreateAdminPinStep() {
-    final isConfirmStep = _pendingAdminPin != null;
+  Widget _buildTwoStepPinStep({
+    required String confirmLabel,
+    required IconData confirmIcon,
+  }) {
+    final isConfirmStep = _pendingPin != null;
     return SynProdPinPad(
-      key: ValueKey('admin-pin-$isConfirmStep-$_pinMismatchCount'),
+      key: ValueKey('$_mode-$isConfirmStep-$_pinMismatchCount'),
       title: isConfirmStep ? 'Confirm Device PIN' : 'Create Device PIN',
       subtitle: isConfirmStep
-          ? 'Re-enter your PIN to confirm.'
-          : 'Enter a 4–6 digit PIN to lock this device.',
-      submitLabel: isConfirmStep
-          ? (_isBusy ? 'Creating...' : 'Create Workspace')
-          : 'Next',
-      submitIcon:
-          isConfirmStep ? Icons.check_circle_outline : Icons.arrow_forward,
+          ? 'Re-enter your 6-digit PIN to confirm.'
+          : 'Enter a 6-digit PIN to lock this device.',
+      submitLabel: isConfirmStep ? confirmLabel : 'Next',
+      submitIcon: isConfirmStep ? confirmIcon : Icons.arrow_forward,
       isBusy: _isBusy,
       errorText: _error,
       onSubmit: (pin) {
         if (!isConfirmStep) {
           setState(() {
             _navigatingForward = true;
-            _pendingAdminPin = pin;
+            _pendingPin = pin;
             _pinMismatchCount = 0;
             _error = null;
           });
           return;
         }
-        if (pin != _pendingAdminPin) {
+        if (pin != _pendingPin) {
           setState(() {
             _pinMismatchCount++;
             _error = 'PINs do not match. Try again.';
           });
           return;
         }
-        _submitCreateAdminWithPin(pin);
+        _submitPinForMode(pin);
       },
     );
   }
@@ -704,17 +689,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 14),
-          _buildPinInputs(),
           const SizedBox(height: 20),
           SynProdGradientButton(
-            onPressed: _isBusy ? null : _submitJoinQr,
-            child: Row(
+            onPressed: _isBusy ? null : _continueToJoinQrPin,
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.link, size: 18),
-                const SizedBox(width: 8),
-                Text(_isBusy ? 'Pairing...' : 'Complete Pairing'),
+                Icon(Icons.arrow_forward, size: 18),
+                SizedBox(width: 8),
+                Text('Continue'),
               ],
             ),
           ),
@@ -751,46 +734,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             labelText: 'Backup Password *',
           ),
         ),
-        const SizedBox(height: 14),
-        _buildPinInputs(pinLabel: 'New Device PIN (4–6 digits) *'),
         const SizedBox(height: 20),
         SynProdGradientButton(
-          onPressed: _isBusy ? null : _submitRestoreBackup,
-          child: Row(
+          onPressed: _isBusy ? null : _continueToRestoreBackupPin,
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.restore, size: 18),
-              const SizedBox(width: 8),
-              Text(_isBusy ? 'Restoring...' : 'Restore Workspace'),
+              Icon(Icons.arrow_forward, size: 18),
+              SizedBox(width: 8),
+              Text('Continue'),
             ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPinInputs({String pinLabel = 'Device PIN (4–6 digits) *'}) {
-    return Column(
-      children: [
-        TextField(
-          controller: _pinCtrl,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          decoration: InputDecoration(
-            labelText: pinLabel,
-            counterText: '',
-          ),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _confirmPinCtrl,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          decoration: const InputDecoration(
-            labelText: 'Confirm PIN *',
-            counterText: '',
           ),
         ),
       ],

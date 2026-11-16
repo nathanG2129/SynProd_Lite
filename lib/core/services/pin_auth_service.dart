@@ -28,7 +28,7 @@ class PinAuthService {
   static const String _keyFailedAttempts = 'synprod_pin_failed_attempts';
   static const String _keyLockoutUntil = 'synprod_pin_lockout_until';
 
-  static const int minPinLength = 4;
+  static const int minPinLength = 6;
   static const int maxPinLength = 6;
   static const int freeAttemptsBeforeLockout = 5;
 
@@ -63,7 +63,7 @@ class PinAuthService {
 
   Future<void> setPin(String pin) async {
     if (!isValidPinFormat(pin)) {
-      throw ArgumentError('PIN must be 4 to 6 digits.');
+      throw ArgumentError('PIN must be 6 digits.');
     }
     final salt = _generateSalt();
     final hash = _hashPin(pin, salt);

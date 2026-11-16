@@ -187,7 +187,7 @@ void main() {
 
     expect(find.text('Create Device PIN'), findsOneWidget);
 
-    for (final digit in ['1', '2', '3', '4']) {
+    for (final digit in ['1', '2', '3', '4', '5', '6']) {
       await tester.tap(find.text(digit));
     }
     await tester.pump();
@@ -197,7 +197,7 @@ void main() {
     expect(find.text('Confirm Device PIN'), findsOneWidget);
 
     // Mismatching PIN shows error and stays on confirm step
-    for (final digit in ['9', '9', '9', '9']) {
+    for (final digit in ['9', '9', '9', '9', '9', '9']) {
       await tester.tap(find.text(digit));
     }
     await tester.pump();
@@ -219,13 +219,13 @@ void main() {
     // Complete matching 2-step PIN flow
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
-    for (final digit in ['1', '2', '3', '4']) {
+    for (final digit in ['1', '2', '3', '4', '5', '6']) {
       await tester.tap(find.text(digit));
     }
     await tester.pump();
     await tester.tap(find.text('Next'));
     await tester.pumpAndSettle();
-    for (final digit in ['1', '2', '3', '4']) {
+    for (final digit in ['1', '2', '3', '4', '5', '6']) {
       await tester.tap(find.text(digit));
     }
     await tester.pump();

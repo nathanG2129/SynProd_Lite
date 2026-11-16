@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../providers/auth_providers.dart';
+import '../../widgets/synprod_pin_pad.dart';
 import '../../widgets/synprod_ui.dart';
 
 class PinLockScreen extends ConsumerStatefulWidget {
@@ -15,8 +16,8 @@ class PinLockScreen extends ConsumerStatefulWidget {
 }
 
 class _PinLockScreenState extends ConsumerState<PinLockScreen> {
-  final _pinCtrl = TextEditingController();
   String? _error;
+  int _pinResetNonce = 0;
   bool _isBusy = false;
   bool _biometricsAvailable = false;
   Timer? _lockoutTimer;
@@ -64,17 +65,10 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
   @override
   void dispose() {
     _lockoutTimer?.cancel();
-    _pinCtrl.dispose();
     super.dispose();
   }
 
-  Future<void> _submitPin() async {
-    final pin = _pinCtrl.text.trim();
-    if (pin.length < 4) {
-      setState(() => _error = 'Enter your 4–6 digit PIN.');
-      return;
-    }
-
+  Future<void> _submitPin(String pin) async {
     setState(() {
       _isBusy = true;
       _error = null;
@@ -86,9 +80,11 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
 
     setState(() => _isBusy = false);
     if (!result.success) {
-      _pinCtrl.clear();
       _updateLockoutState();
-      setState(() => _error = result.errorMessage ?? 'Incorrect PIN.');
+      setState(() {
+        _pinResetNonce++;
+        _error = result.errorMessage ?? 'Incorrect PIN.';
+      });
     }
   }
 
@@ -188,61 +184,18 @@ class _PinLockScreenState extends ConsumerState<PinLockScreen> {
                           ),
                         ),
                       ] else ...[
-                        if (_error != null) ...[
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppTheme.errorBgFor(context),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppTheme.inputErrorBorder),
-                            ),
-                            child: Text(
-                              _error!,
-                              style: TextStyle(
-                                color: AppTheme.errorTextFor(context),
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                        ],
-                        TextField(
-                          controller: _pinCtrl,
-                          obscureText: true,
-                          enabled: !_isBusy && _lockoutRemaining == null,
-                          keyboardType: TextInputType.number,
-                          maxLength: 6,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            letterSpacing: 8,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          decoration: const InputDecoration(
-                            labelText: 'Enter Device PIN',
-                            counterText: '',
-                          ),
-                          onSubmitted: (_) => _submitPin(),
-                        ),
-                        const SizedBox(height: 16),
-                        SynProdGradientButton(
-                          onPressed: (_isBusy || _lockoutRemaining != null)
-                              ? null
-                              : _submitPin,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.lock_open, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                _lockoutRemaining != null
-                                    ? 'Locked (${_lockoutRemaining!.inSeconds}s)'
-                                    : (_isBusy ? 'Unlocking...' : 'Unlock'),
-                              ),
-                            ],
-                          ),
+                        SynProdPinPad(
+                          key: ValueKey('lock-pin-$_pinResetNonce'),
+                          title: 'Enter Device PIN',
+                          subtitle: 'Enter your 6-digit PIN to unlock.',
+                          submitLabel: _lockoutRemaining != null
+                              ? 'Locked (${_lockoutRemaining!.inSeconds}s)'
+                              : (_isBusy ? 'Unlocking...' : 'Unlock'),
+                          submitIcon: Icons.lock_open,
+                          enabled: _lockoutRemaining == null,
+                          isBusy: _isBusy,
+                          errorText: _error,
+                          onSubmit: _submitPin,
                         ),
                         if (_biometricsAvailable) ...[
                           const SizedBox(height: 12),

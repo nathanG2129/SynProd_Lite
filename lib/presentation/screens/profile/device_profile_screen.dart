@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../core/services/pin_auth_service.dart';
 import '../../../core/services/workspace_backup_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/device.dart';
@@ -12,6 +11,7 @@ import '../../providers/auth_providers.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
 import '../../providers/theme_providers.dart';
+import '../../widgets/synprod_pin_pad.dart';
 import '../../widgets/synprod_ui.dart';
 
 class DeviceProfileScreen extends ConsumerStatefulWidget {
@@ -51,92 +51,95 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
   }
 
   Future<void> _showChangePinDialog() async {
-    final currentCtrl = TextEditingController();
-    final newCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
+    var step = 0; // 0 = current, 1 = new, 2 = confirm
+    String? pendingNewPin;
     String? error;
+    var isBusy = false;
+    var resetNonce = 0;
 
     await showSynProdDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => SynProdDialog(
-          icon: Icons.pin_outlined,
-          title: 'Change Device PIN',
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (error != null) ...[
-                Text(
-                  error!,
-                  style: TextStyle(
-                    color: AppTheme.errorTextFor(context),
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 8),
-              ],
-              TextField(
-                controller: currentCtrl,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                decoration: const InputDecoration(
-                  labelText: 'Current PIN',
-                  counterText: '',
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: newCtrl,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                decoration: const InputDecoration(
-                  labelText: 'New PIN (4–6 digits)',
-                  counterText: '',
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: confirmCtrl,
-                obscureText: true,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                decoration: const InputDecoration(
-                  labelText: 'Confirm New PIN',
-                  counterText: '',
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cancel'),
+        builder: (ctx, setDialogState) {
+          final (title, subtitle, submitLabel, submitIcon) = switch (step) {
+            0 => (
+              'Current Device PIN',
+              'Enter your current 6-digit PIN.',
+              'Verify',
+              Icons.arrow_forward,
             ),
-            SynProdGradientButton(
-              onPressed: () async {
+            1 => (
+              'New Device PIN',
+              'Enter a new 6-digit PIN.',
+              'Next',
+              Icons.arrow_forward,
+            ),
+            _ => (
+              'Confirm New PIN',
+              'Re-enter your new 6-digit PIN.',
+              isBusy ? 'Saving...' : 'Save PIN',
+              Icons.check_circle_outline,
+            ),
+          };
+
+          return SynProdDialog(
+            icon: Icons.pin_outlined,
+            title: 'Change Device PIN',
+            content: SynProdPinPad(
+              key: ValueKey('change-pin-$step-$resetNonce'),
+              title: title,
+              subtitle: subtitle,
+              submitLabel: submitLabel,
+              submitIcon: submitIcon,
+              isBusy: isBusy,
+              errorText: error,
+              onSubmit: (pin) async {
                 final pinService = ref.read(pinAuthServiceProvider);
-                final verify =
-                    await pinService.verifyPin(currentCtrl.text.trim());
-                if (!verify.success) {
-                  setDialogState(
-                    () => error = verify.errorMessage ?? 'Incorrect current PIN.',
-                  );
+                if (step == 0) {
+                  setDialogState(() {
+                    isBusy = true;
+                    error = null;
+                  });
+                  final verify = await pinService.verifyPin(pin);
+                  if (!ctx.mounted) return;
+                  if (!verify.success) {
+                    setDialogState(() {
+                      isBusy = false;
+                      resetNonce++;
+                      error = verify.errorMessage ?? 'Incorrect current PIN.';
+                    });
+                    return;
+                  }
+                  setDialogState(() {
+                    isBusy = false;
+                    step = 1;
+                    error = null;
+                  });
                   return;
                 }
-                final nextPin = newCtrl.text.trim();
-                if (!PinAuthService.isValidPinFormat(nextPin)) {
-                  setDialogState(
-                    () => error = 'New PIN must be 4 to 6 digits.',
-                  );
+
+                if (step == 1) {
+                  setDialogState(() {
+                    pendingNewPin = pin;
+                    step = 2;
+                    error = null;
+                  });
                   return;
                 }
-                if (nextPin != confirmCtrl.text.trim()) {
-                  setDialogState(() => error = 'New PINs do not match.');
+
+                if (pin != pendingNewPin) {
+                  setDialogState(() {
+                    resetNonce++;
+                    error = 'New PINs do not match. Try again.';
+                  });
                   return;
                 }
-                await pinService.setPin(nextPin);
+
+                setDialogState(() {
+                  isBusy = true;
+                  error = null;
+                });
+                await pinService.setPin(pin);
                 if (!ctx.mounted) return;
                 Navigator.of(ctx).pop();
                 if (!mounted) return;
@@ -144,10 +147,30 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                   const SnackBar(content: Text('Device PIN updated.')),
                 );
               },
-              child: const Text('Save PIN'),
             ),
-          ],
-        ),
+            actions: [
+              if (step > 0 && !isBusy)
+                TextButton(
+                  onPressed: () {
+                    setDialogState(() {
+                      if (step == 2) {
+                        step = 1;
+                        pendingNewPin = null;
+                      } else {
+                        step = 0;
+                      }
+                      error = null;
+                    });
+                  },
+                  child: const Text('Back'),
+                ),
+              TextButton(
+                onPressed: isBusy ? null : () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
