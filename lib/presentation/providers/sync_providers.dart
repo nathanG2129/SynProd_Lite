@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -41,12 +42,16 @@ final syncControllerProvider =
 
 class SyncController extends StateNotifier<SyncStatusState> {
   static const String _lastSyncedPrefsKey = 'synprod_last_synced_at';
+  static const Duration periodicSyncInterval = Duration(seconds: 20);
 
   final Ref _ref;
   P2pSyncServer? _server;
   StreamSubscription<List<DiscoveredPeer>>? _peersSub;
   StreamSubscription<List<SyncConflictRecord>>? _conflictsSub;
+  Timer? _periodicTimer;
+  Timer? _debouncedSyncTimer;
   bool _isStarting = false;
+  bool _pendingResync = false;
 
   SyncController(this._ref) : super(const SyncStatusState()) {
     _loadLastSyncedAt();
@@ -107,7 +112,7 @@ class SyncController extends StateNotifier<SyncStatusState> {
         final newlyFound =
             peers.where((p) => !previousIds.contains(p.deviceId)).toList();
         if (newlyFound.isNotEmpty) {
-          unawaited(_syncPeers(newlyFound));
+          unawaited(_syncPeers(newlyFound, retryOnTimeout: true));
         }
       });
 
@@ -117,6 +122,13 @@ class SyncController extends StateNotifier<SyncStatusState> {
         localDisplayName: device.displayName,
         port: port,
       );
+
+      _periodicTimer?.cancel();
+      _periodicTimer = Timer.periodic(periodicSyncInterval, (_) {
+        if (state.isRunning && state.peers.isNotEmpty && !state.isSyncing) {
+          unawaited(_syncPeers(state.peers, isBackground: true));
+        }
+      });
 
       state = state.copyWith(isRunning: true, clearError: true);
     } catch (e) {
@@ -130,6 +142,11 @@ class SyncController extends StateNotifier<SyncStatusState> {
   }
 
   Future<void> stop() async {
+    _periodicTimer?.cancel();
+    _periodicTimer = null;
+    _debouncedSyncTimer?.cancel();
+    _debouncedSyncTimer = null;
+    _pendingResync = false;
     await _peersSub?.cancel();
     _peersSub = null;
     try {
@@ -140,16 +157,38 @@ class SyncController extends StateNotifier<SyncStatusState> {
     state = state.copyWith(isRunning: false, isSyncing: false, peers: const []);
   }
 
+  /// Schedules a debounced push sync after local data changes (products, types, devices).
+  void scheduleSync() {
+    if (!state.isRunning) return;
+    _debouncedSyncTimer?.cancel();
+    _debouncedSyncTimer = Timer(const Duration(milliseconds: 400), () {
+      if (!state.isRunning || state.peers.isEmpty) return;
+      if (state.isSyncing) {
+        _pendingResync = true;
+        return;
+      }
+      unawaited(_syncPeers(state.peers, retryOnTimeout: true));
+    });
+  }
+
   Future<void> syncNow() async {
     if (!state.isRunning) {
       await start();
     }
-    await _syncPeers(state.peers);
+    await _syncPeers(state.peers, retryOnTimeout: true);
   }
 
-  Future<void> _syncPeers(List<DiscoveredPeer> peers) async {
+  Future<void> _syncPeers(
+    List<DiscoveredPeer> peers, {
+    bool retryOnTimeout = false,
+    bool isBackground = false,
+  }) async {
     final server = _server;
-    if (server == null || peers.isEmpty || state.isSyncing) return;
+    if (server == null || peers.isEmpty) return;
+    if (state.isSyncing) {
+      _pendingResync = true;
+      return;
+    }
 
     state = state.copyWith(isSyncing: true, clearError: true);
     String? firstError;
@@ -158,7 +197,18 @@ class SyncController extends StateNotifier<SyncStatusState> {
       try {
         await server.syncWithPeer(peer);
       } catch (e) {
-        firstError ??= '${peer.displayName}: $e';
+        final isTransient = e is TimeoutException || e is SocketException;
+        if (retryOnTimeout && isTransient) {
+          await Future<void>.delayed(const Duration(milliseconds: 1500));
+          try {
+            await server.syncWithPeer(peer);
+            continue;
+          } catch (retryErr) {
+            firstError ??= '${peer.displayName}: $retryErr';
+          }
+        } else if (!isBackground || !isTransient) {
+          firstError ??= '${peer.displayName}: $e';
+        }
       }
     }
 
@@ -167,6 +217,13 @@ class SyncController extends StateNotifier<SyncStatusState> {
       lastError: firstError,
       clearError: firstError == null,
     );
+
+    if (_pendingResync && state.isRunning && state.peers.isNotEmpty) {
+      _pendingResync = false;
+      unawaited(_syncPeers(state.peers));
+    } else {
+      _pendingResync = false;
+    }
   }
 
   void _recordSyncTimestamp() {
@@ -200,6 +257,7 @@ class SyncController extends StateNotifier<SyncStatusState> {
     );
     await repo.saveProduct(recovered);
     await repo.markConflictResolved(record.id);
+    scheduleSync();
   }
 
   Future<void> dismissConflict(String conflictId) async {
@@ -208,6 +266,8 @@ class SyncController extends StateNotifier<SyncStatusState> {
 
   @override
   void dispose() {
+    _periodicTimer?.cancel();
+    _debouncedSyncTimer?.cancel();
     _conflictsSub?.cancel();
     _peersSub?.cancel();
     _server?.stop();

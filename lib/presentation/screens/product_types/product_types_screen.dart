@@ -6,6 +6,7 @@ import '../../../domain/models/device.dart';
 import '../../../domain/models/product_type.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
+import '../../providers/sync_providers.dart';
 import '../../widgets/synprod_ui.dart';
 
 class ProductTypesScreen extends ConsumerWidget {
@@ -225,6 +226,7 @@ class ProductTypesScreen extends ConsumerWidget {
     if (confirmed == true) {
       await ref.read(productRepositoryProvider).deleteProductType(type.code);
       ref.invalidate(activeProductsStreamProvider);
+      ref.read(syncControllerProvider.notifier).scheduleSync();
     }
   }
 
@@ -408,6 +410,7 @@ class ProductTypesScreen extends ConsumerWidget {
                     .read(productRepositoryProvider)
                     .saveProductType(updated);
                 ref.invalidate(activeProductsStreamProvider);
+                ref.read(syncControllerProvider.notifier).scheduleSync();
                 if (!ctx.mounted) return;
                 Navigator.of(ctx).pop();
               },

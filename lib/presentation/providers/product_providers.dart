@@ -9,6 +9,7 @@ import '../../domain/models/product_type.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../../domain/services/product_validator.dart';
 import 'device_providers.dart';
+import 'sync_providers.dart';
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -171,8 +172,13 @@ final filteredProductsProvider = Provider<AsyncValue<List<Product>>>((ref) {
 class ProductMutationService {
   final ProductRepository _repository;
   final Device _currentDevice;
+  final void Function()? _onMutated;
 
-  ProductMutationService(this._repository, this._currentDevice);
+  ProductMutationService(
+    this._repository,
+    this._currentDevice, {
+    void Function()? onMutated,
+  }) : _onMutated = onMutated;
 
   Future<void> saveProduct(Product product, {required bool isEditing}) async {
     if (isEditing) {
@@ -210,6 +216,7 @@ class ProductMutationService {
     );
 
     await _repository.saveProduct(sanitizedProduct);
+    _onMutated?.call();
   }
 
   Future<void> softDeleteProduct(Product product) async {
@@ -223,11 +230,16 @@ class ProductMutationService {
       deletedByDeviceId: _currentDevice.id,
       deletedByDisplayName: _currentDevice.displayName,
     );
+    _onMutated?.call();
   }
 }
 
 final productMutationServiceProvider = Provider<ProductMutationService>((ref) {
   final repo = ref.watch(productRepositoryProvider);
   final device = ref.watch(currentDeviceProvider);
-  return ProductMutationService(repo, device);
+  return ProductMutationService(
+    repo,
+    device,
+    onMutated: () => ref.read(syncControllerProvider.notifier).scheduleSync(),
+  );
 });

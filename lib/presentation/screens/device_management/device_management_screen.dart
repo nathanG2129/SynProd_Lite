@@ -10,6 +10,7 @@ import '../../../core/utils/uuid_generator.dart';
 import '../../../domain/models/device.dart';
 import '../../providers/auth_providers.dart';
 import '../../providers/device_providers.dart';
+import '../../providers/sync_providers.dart';
 import '../../widgets/synprod_ui.dart';
 
 enum _DeviceSortField { name, role, pairedAt, lastSeenAt }
@@ -395,12 +396,14 @@ class _DeviceManagementScreenState
         ? DeviceRole.manager
         : DeviceRole.production;
     await ref.read(deviceRepositoryProvider).updateDeviceRole(device.id, nextRole);
+    ref.read(syncControllerProvider.notifier).scheduleSync();
   }
 
   Future<void> _toggleRevoke(Device device) async {
     await ref
         .read(deviceRepositoryProvider)
         .setDeviceRevoked(device.id, !device.isRevoked);
+    ref.read(syncControllerProvider.notifier).scheduleSync();
   }
 
   Future<void> _showAddDeviceDialog(BuildContext context) async {
