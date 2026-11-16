@@ -1,6 +1,6 @@
 {
-    "name": "synprod_lite",
-    "short_name": "synprod_lite",
+    "name": "SynProd Lite",
+    "short_name": "SynProd Lite",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
