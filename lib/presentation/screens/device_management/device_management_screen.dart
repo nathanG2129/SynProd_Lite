@@ -80,19 +80,29 @@ class _DeviceManagementScreenState
 
     return Scaffold(
       appBar: SynProdAppBar(
-        title: const SynProdGradientText('Device Management'),
+        title: const FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: SynProdGradientText('Device Management'),
+        ),
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 12),
-            child: SynProdGradientButton(
-              onPressed: () => _showAddDeviceDialog(context),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.qr_code_2, size: 18),
-                  SizedBox(width: 6),
-                  Text('Add Device'),
-                ],
+            child: Center(
+              child: SynProdGradientButton(
+                onPressed: () => _showAddDeviceDialog(context),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.qr_code_2, size: 18),
+                    SizedBox(width: 6),
+                    Text('Add Device'),
+                  ],
+                ),
               ),
             ),
           ),

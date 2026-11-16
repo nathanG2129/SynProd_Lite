@@ -14,9 +14,13 @@ import 'package:synprod_lite/domain/repositories/device_repository.dart';
 import 'package:synprod_lite/domain/repositories/product_repository.dart';
 import 'package:synprod_lite/main.dart';
 import 'package:synprod_lite/presentation/providers/auth_providers.dart';
+import 'package:synprod_lite/presentation/providers/device_providers.dart';
 import 'package:synprod_lite/presentation/providers/product_providers.dart';
 import 'package:synprod_lite/presentation/providers/theme_providers.dart';
+import 'package:synprod_lite/presentation/screens/device_management/device_management_screen.dart';
 import 'package:synprod_lite/presentation/screens/profile/device_profile_screen.dart';
+import 'package:synprod_lite/presentation/screens/recipe_library/recipe_library_screen.dart';
+import 'package:synprod_lite/presentation/widgets/synprod_ui.dart';
 
 class _SmokeDeviceRepository implements DeviceRepository {
   bool createdWorkspace = false;
@@ -271,5 +275,68 @@ void main() {
 
     expect(prefs.getString('synprod_theme_mode'), 'light');
     expect(Theme.of(scaffoldContext).brightness, Brightness.light);
+  });
+
+  testWidgets('Topbar profile ripple and Add Device button have compact centered layout',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final adminDevice = Device(
+      id: 'admin-1',
+      displayName: 'Admin Tablet',
+      role: DeviceRole.admin,
+      pairedAt: DateTime(2026, 11, 16),
+      lastSeenAt: DateTime(2026, 11, 16),
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentDeviceProvider.overrideWithValue(adminDevice),
+          deviceRepositoryProvider.overrideWithValue(_SmokeDeviceRepository()),
+          productRepositoryProvider.overrideWithValue(_SmokeProductRepository()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const DeviceManagementScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final addDeviceButton = find.ancestor(
+      of: find.text('Add Device'),
+      matching: find.byType(SynProdGradientButton),
+    );
+    expect(addDeviceButton, findsOneWidget);
+    final addButtonSize = tester.getSize(addDeviceButton);
+    expect(addButtonSize.height, lessThan(50));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentDeviceProvider.overrideWithValue(adminDevice),
+          deviceRepositoryProvider.overrideWithValue(_SmokeDeviceRepository()),
+          productRepositoryProvider.overrideWithValue(_SmokeProductRepository()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const RecipeLibraryScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final profileInkWell = find.ancestor(
+      of: find.byType(SynProdAvatar),
+      matching: find.byType(InkWell),
+    );
+    expect(profileInkWell, findsOneWidget);
+    final inkWellWidget = tester.widget<InkWell>(profileInkWell);
+    expect(inkWellWidget.customBorder, const StadiumBorder());
+    expect(tester.getSize(profileInkWell).height, lessThan(56));
   });
 }

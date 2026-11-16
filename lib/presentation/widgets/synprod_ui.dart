@@ -222,7 +222,11 @@ class SynProdGradientButton extends StatelessWidget {
               ),
               child: IconTheme(
                 data: const IconThemeData(color: Colors.white, size: 18),
-                child: Center(child: child),
+                child: Center(
+                  widthFactor: 1,
+                  heightFactor: 1,
+                  child: child,
+                ),
               ),
             ),
           ),
