@@ -51,6 +51,109 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
     }
   }
 
+  Future<void> _showFactoryResetDialog() async {
+    var step = 0; // 0 = warning, 1 = PIN #1, 2 = PIN #2
+    String? error;
+    var isBusy = false;
+    var resetNonce = 0;
+
+    await showSynProdDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          if (step == 0) {
+            return SynProdDialog(
+              icon: Icons.warning_amber_rounded,
+              title: 'Factory Reset App',
+              content: Text(
+                'This will permanently erase all recipes, workspace data, paired devices, sync history, and your PIN from this device.\n\nYou will be asked to enter your 6-digit PIN twice to confirm.',
+                style: TextStyle(
+                  fontSize: 13.5,
+                  color: AppTheme.mutedTextFor(context),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  child: const Text('Cancel'),
+                ),
+                SynProdGradientButton(
+                  onPressed: () {
+                    setDialogState(() {
+                      step = 1;
+                      error = null;
+                    });
+                  },
+                  child: const Text('Continue'),
+                ),
+              ],
+            );
+          }
+
+          final isSecondStep = step == 2;
+          return SynProdDialog(
+            icon: Icons.delete_forever_outlined,
+            title: 'Factory Reset App',
+            content: SynProdPinPad(
+              key: ValueKey('factory-reset-$step-$resetNonce'),
+              title: isSecondStep
+                  ? 'Confirm PIN (2 of 2)'
+                  : 'Verify PIN (1 of 2)',
+              subtitle: isSecondStep
+                  ? 'Re-enter your 6-digit PIN to permanently erase all data.'
+                  : 'Enter your 6-digit PIN to authorize factory reset.',
+              submitLabel: isSecondStep
+                  ? (isBusy ? 'Resetting...' : 'Erase All Data')
+                  : 'Next',
+              submitIcon:
+                  isSecondStep ? Icons.delete_forever : Icons.arrow_forward,
+              isBusy: isBusy,
+              errorText: error,
+              onSubmit: (pin) async {
+                setDialogState(() {
+                  isBusy = true;
+                  error = null;
+                });
+                final verify =
+                    await ref.read(pinAuthServiceProvider).verifyPin(pin);
+                if (!ctx.mounted) return;
+                if (!verify.success) {
+                  setDialogState(() {
+                    isBusy = false;
+                    resetNonce++;
+                    error = verify.errorMessage ?? 'Incorrect PIN.';
+                  });
+                  return;
+                }
+
+                if (!isSecondStep) {
+                  setDialogState(() {
+                    isBusy = false;
+                    step = 2;
+                    error = null;
+                  });
+                  return;
+                }
+
+                await ref.read(authControllerProvider.notifier).factoryReset();
+                if (!ctx.mounted) return;
+                Navigator.of(ctx).pop();
+                if (!mounted) return;
+                Navigator.of(context).popUntil((r) => r.isFirst);
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: isBusy ? null : () => Navigator.of(ctx).pop(),
+                child: const Text('Cancel'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _showChangePinDialog() async {
     var step = 0; // 0 = current, 1 = new, 2 = confirm
     String? pendingNewPin;
@@ -509,6 +612,45 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                 ),
               ),
             ],
+            const SizedBox(height: 16),
+            SynProdCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Danger Zone',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.errorTextFor(context),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Clean all workspace data, recipes, paired devices, and PIN settings from this device.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: mutedColor,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _showFactoryResetDialog,
+                    icon: const Icon(Icons.delete_forever_outlined, size: 18),
+                    label: const Text('Factory Reset App'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppTheme.errorTextFor(context),
+                      side: BorderSide(color: AppTheme.errorTextFor(context)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

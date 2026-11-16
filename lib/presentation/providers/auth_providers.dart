@@ -12,6 +12,7 @@ import '../../domain/models/device.dart';
 import '../../domain/models/workspace.dart';
 import '../../domain/repositories/device_repository.dart';
 import 'product_providers.dart';
+import 'sync_providers.dart';
 
 final sharedPreferencesProvider = Provider<SharedPreferences>((ref) {
   throw UnimplementedError(
@@ -350,6 +351,22 @@ class AuthController extends StateNotifier<AuthState> {
         remainingBeforeLock: remaining,
       );
     }
+  }
+
+  Future<void> factoryReset() async {
+    _idleCheckTimer?.cancel();
+    await _ref.read(syncControllerProvider.notifier).stop();
+    await _ref.read(databaseProvider).clearAllData();
+    await _ref.read(pinAuthServiceProvider).clearAllAuthData();
+    await _ref.read(sharedPreferencesProvider).clear();
+
+    _ref.invalidate(searchQueryProvider);
+    _ref.invalidate(selectedTypeFilterProvider);
+    _ref.invalidate(selectedComponentFilterProvider);
+    _ref.invalidate(selectedIngredientFilterProvider);
+    _ref.invalidate(myProductsOnlyProvider);
+
+    state = const AuthState(status: AuthStatus.needsOnboarding);
   }
 
   @override
