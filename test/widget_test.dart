@@ -339,4 +339,53 @@ void main() {
     expect(inkWellWidget.customBorder, const StadiumBorder());
     expect(tester.getSize(profileInkWell).height, lessThan(56));
   });
+
+  testWidgets('AppTheme uses horizontal page transitions and showSynProdDialog slides',
+      (WidgetTester tester) async {
+    expect(
+      AppTheme.lightTheme.pageTransitionsTheme.builders[TargetPlatform.android],
+      isA<CupertinoPageTransitionsBuilder>(),
+    );
+    expect(
+      AppTheme.darkTheme.pageTransitionsTheme.builders[TargetPlatform.android],
+      isA<CupertinoPageTransitionsBuilder>(),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () {
+                  showSynProdDialog<void>(
+                    context: context,
+                    builder: (_) => const SynProdDialog(
+                      title: 'Animated Modal',
+                      content: Text('Slide transition check'),
+                    ),
+                  );
+                },
+                child: const Text('Open Modal'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Open Modal'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+
+    expect(find.byType(SynProdDialog), findsOneWidget);
+    expect(
+      find.ancestor(
+        of: find.byType(SynProdDialog),
+        matching: find.byType(SlideTransition),
+      ),
+      findsWidgets,
+    );
+  });
 }

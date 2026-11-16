@@ -185,6 +185,16 @@ class AppTheme {
   static Color successTextFor(BuildContext context) =>
       isDark(context) ? darkSuccessText : successText;
 
+  static const PageTransitionsTheme _pageTransitionsTheme = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+    },
+  );
+
   static ThemeData get lightTheme {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: primaryOlive,
@@ -198,6 +208,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      pageTransitionsTheme: _pageTransitionsTheme,
       scaffoldBackgroundColor: slate50,
       fontFamily: null,
       appBarTheme: const AppBarTheme(
@@ -334,6 +345,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
+      pageTransitionsTheme: _pageTransitionsTheme,
       scaffoldBackgroundColor: darkCanvasStart,
       fontFamily: null,
       appBarTheme: const AppBarTheme(

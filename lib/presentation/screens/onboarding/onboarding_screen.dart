@@ -24,6 +24,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   _OnboardingMode _mode = _OnboardingMode.choose;
+  bool _navigatingForward = true;
   bool _isBusy = false;
   String? _error;
 
@@ -57,8 +58,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     super.dispose();
   }
 
-  void _switchMode(_OnboardingMode mode) {
+  void _switchMode(_OnboardingMode mode, {bool forward = true}) {
     setState(() {
+      _navigatingForward = forward;
       _mode = mode;
       _error = null;
       _pendingAdminPin = null;
@@ -71,18 +73,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_mode == _OnboardingMode.createAdminPin) {
       if (_pendingAdminPin != null) {
         setState(() {
+          _navigatingForward = false;
           _pendingAdminPin = null;
           _error = null;
         });
       } else {
         setState(() {
+          _navigatingForward = false;
           _mode = _OnboardingMode.createAdmin;
           _error = null;
         });
       }
       return;
     }
-    _switchMode(_OnboardingMode.choose);
+    _switchMode(_OnboardingMode.choose, forward: false);
   }
 
   String? _validatePinFields() {
@@ -109,6 +113,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       return;
     }
     setState(() {
+      _navigatingForward = true;
       _mode = _OnboardingMode.createAdminPin;
       _pendingAdminPin = null;
       _error = null;
@@ -394,14 +399,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ),
                         const SizedBox(height: 16),
                       ],
-                      if (_mode == _OnboardingMode.choose) _buildChooseMode(),
-                      if (_mode == _OnboardingMode.createAdmin)
-                        _buildCreateAdminForm(),
-                      if (_mode == _OnboardingMode.createAdminPin)
-                        _buildCreateAdminPinStep(),
-                      if (_mode == _OnboardingMode.joinQr) _buildJoinQrForm(),
-                      if (_mode == _OnboardingMode.restoreBackup)
-                        _buildRestoreBackupForm(),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 260),
+                        switchInCurve: Curves.easeOutCubic,
+                        switchOutCurve: Curves.easeInCubic,
+                        transitionBuilder: (child, animation) {
+                          final beginOffset = _navigatingForward
+                              ? const Offset(0.18, 0)
+                              : const Offset(-0.18, 0);
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: beginOffset,
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: KeyedSubtree(
+                          key: ValueKey('$_mode-${_pendingAdminPin != null}'),
+                          child: _buildActiveStep(),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -411,6 +432,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildActiveStep() {
+    switch (_mode) {
+      case _OnboardingMode.choose:
+        return _buildChooseMode();
+      case _OnboardingMode.createAdmin:
+        return _buildCreateAdminForm();
+      case _OnboardingMode.createAdminPin:
+        return _buildCreateAdminPinStep();
+      case _OnboardingMode.joinQr:
+        return _buildJoinQrForm();
+      case _OnboardingMode.restoreBackup:
+        return _buildRestoreBackupForm();
+    }
   }
 
   String _subtitleForMode() {
@@ -543,6 +579,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       onSubmit: (pin) {
         if (!isConfirmStep) {
           setState(() {
+            _navigatingForward = true;
             _pendingAdminPin = pin;
             _pinMismatchCount = 0;
             _error = null;

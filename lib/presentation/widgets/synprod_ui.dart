@@ -487,15 +487,37 @@ class SynProdDialog extends StatelessWidget {
   }
 }
 
-/// Shows a `SynProdDialog` using the standard modal dialog entry point.
+/// Shows a `SynProdDialog` with a horizontal swipe-left/right slide and fade transition.
 Future<T?> showSynProdDialog<T>({
   required BuildContext context,
   required WidgetBuilder builder,
   bool barrierDismissible = true,
 }) {
-  return showDialog<T>(
+  return showGeneralDialog<T>(
     context: context,
     barrierDismissible: barrierDismissible,
-    builder: builder,
+    barrierLabel: MaterialLocalizations.of(context).modalBarrierDismissLabel,
+    barrierColor: Colors.black54,
+    transitionDuration: const Duration(milliseconds: 260),
+    pageBuilder: (ctx, animation, secondaryAnimation) => builder(ctx),
+    transitionBuilder: (ctx, animation, secondaryAnimation, child) {
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+      final slide = Tween<Offset>(
+        begin: const Offset(0.28, 0),
+        end: Offset.zero,
+      ).animate(curved);
+
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(
+          position: slide,
+          child: child,
+        ),
+      );
+    },
   );
 }
