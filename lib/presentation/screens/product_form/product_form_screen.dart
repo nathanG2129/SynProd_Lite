@@ -354,23 +354,33 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               },
             ),
             const SizedBox(height: 12),
-            DropdownButtonFormField<ProductType>(
-              initialValue: _selectedType,
-              decoration: const InputDecoration(
-                labelText: 'Product Type *',
-              ),
-              items: ProductType.values.map((type) {
-                return DropdownMenuItem(
-                  value: type,
-                  child: Text(
-                    '${type.displayName} (${type.baseWeightGrams.toInt()}g base)',
+            Builder(
+              builder: (context) {
+                final productTypes = ref.watch(productTypesProvider);
+                final dropdownValue = productTypes.contains(_selectedType)
+                    ? _selectedType
+                    : (productTypes.isNotEmpty
+                        ? productTypes.first
+                        : _selectedType);
+                return DropdownButtonFormField<ProductType>(
+                  initialValue: dropdownValue,
+                  decoration: const InputDecoration(
+                    labelText: 'Product Type *',
                   ),
+                  items: productTypes.map((type) {
+                    return DropdownMenuItem(
+                      value: type,
+                      child: Text(
+                        '${type.displayName} (${type.baseWeightGrams.toInt()}g base)',
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _selectedType = value);
+                    }
+                  },
                 );
-              }).toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _selectedType = value);
-                }
               },
             ),
             const SizedBox(height: 12),

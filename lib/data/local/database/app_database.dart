@@ -13,13 +13,14 @@ part 'app_database.g.dart';
   WorkspacesTable,
   PairingTokensTable,
   SyncConflictsTable,
+  ProductTypesTable,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'synprod_lite'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -34,6 +35,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(productsTable, productsTable.updatedByDeviceId);
             await m.addColumn(productsTable, productsTable.updatedByDisplayName);
             await m.createTable(syncConflictsTable);
+          }
+          if (from < 4) {
+            await m.createTable(productTypesTable);
           }
         },
         beforeOpen: (details) async {

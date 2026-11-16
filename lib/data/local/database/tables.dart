@@ -123,3 +123,18 @@ class SyncConflictsTable extends Table {
   @override
   Set<Column> get primaryKey => {id};
 }
+
+@DataClassName('ProductTypeEntry')
+class ProductTypesTable extends Table {
+  @override
+  String get tableName => 'product_types';
+
+  TextColumn get code => text()();
+  TextColumn get displayName => text()();
+  RealColumn get baseWeightGrams => real()();
+  TextColumn get packagingJson => text()();
+  IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column> get primaryKey => {code};
+}

@@ -1,4 +1,5 @@
 import '../models/product.dart';
+import '../models/product_type.dart';
 import '../models/sync_models.dart';
 
 abstract class ProductRepository {
@@ -16,6 +17,11 @@ abstract class ProductRepository {
   Future<List<String>> getDistinctComponents();
   Future<List<String>> getDistinctIngredients();
   Future<void> seedInitialDataIfEmpty();
+
+  Stream<List<ProductType>> watchProductTypes();
+  Future<List<ProductType>> getProductTypes();
+  Future<void> saveProductType(ProductType productType);
+  Future<void> deleteProductType(String code);
 
   Stream<List<SyncConflictRecord>> watchConflictHistory();
   Future<List<SyncConflictRecord>> getConflictHistory();

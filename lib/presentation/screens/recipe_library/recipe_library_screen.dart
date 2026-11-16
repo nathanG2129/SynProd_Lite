@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/product.dart';
-import '../../../domain/models/product_type.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
 import '../../providers/sync_providers.dart';
@@ -55,6 +54,7 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
     final currentDevice = ref.watch(currentDeviceProvider);
     final syncState = ref.watch(syncControllerProvider);
     final filteredProductsAsync = ref.watch(filteredProductsProvider);
+    final productTypes = ref.watch(productTypesProvider);
     final selectedType = ref.watch(selectedTypeFilterProvider);
     final selectedComp = ref.watch(selectedComponentFilterProvider);
     final selectedIng = ref.watch(selectedIngredientFilterProvider);
@@ -280,7 +280,7 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                         },
                       ),
                       const SizedBox(width: 8),
-                      ...ProductType.values.map((type) {
+                      ...productTypes.map((type) {
                         return Padding(
                           padding: const EdgeInsets.only(right: 8.0),
                           child: FilterChip(

@@ -31,6 +31,16 @@ final activeProductsStreamProvider = StreamProvider<List<Product>>((ref) {
   return repo.watchActiveProducts();
 });
 
+final productTypesStreamProvider = StreamProvider<List<ProductType>>((ref) {
+  final repo = ref.watch(productRepositoryProvider);
+  return repo.watchProductTypes();
+});
+
+final productTypesProvider = Provider<List<ProductType>>((ref) {
+  return ref.watch(productTypesStreamProvider).valueOrNull ??
+      ProductType.defaults;
+});
+
 final distinctComponentsProvider = FutureProvider<List<String>>((ref) async {
   final products = await ref.watch(activeProductsStreamProvider.future);
   final set = <String>{};

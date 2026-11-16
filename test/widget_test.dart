@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:synprod_lite/core/theme/app_theme.dart';
 import 'package:synprod_lite/domain/models/device.dart';
 import 'package:synprod_lite/domain/models/product.dart';
+import 'package:synprod_lite/domain/models/product_type.dart';
 import 'package:synprod_lite/domain/models/sync_models.dart';
 import 'package:synprod_lite/domain/models/workspace.dart';
 import 'package:synprod_lite/domain/repositories/device_repository.dart';
@@ -113,6 +114,15 @@ class _SmokeProductRepository implements ProductRepository {
   Future<List<String>> getDistinctIngredients() async => const [];
   @override
   Future<void> seedInitialDataIfEmpty() async {}
+  @override
+  Stream<List<ProductType>> watchProductTypes() =>
+      Stream.value(ProductType.defaults);
+  @override
+  Future<List<ProductType>> getProductTypes() async => ProductType.defaults;
+  @override
+  Future<void> saveProductType(ProductType productType) async {}
+  @override
+  Future<void> deleteProductType(String code) async {}
   @override
   Stream<List<SyncConflictRecord>> watchConflictHistory() =>
       Stream.value(const []);

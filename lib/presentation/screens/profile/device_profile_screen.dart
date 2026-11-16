@@ -13,6 +13,7 @@ import '../../providers/product_providers.dart';
 import '../../providers/theme_providers.dart';
 import '../../widgets/synprod_pin_pad.dart';
 import '../../widgets/synprod_ui.dart';
+import '../product_types/product_types_screen.dart';
 
 class DeviceProfileScreen extends ConsumerStatefulWidget {
   const DeviceProfileScreen({super.key});
@@ -459,14 +460,32 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Admin Recovery',
+                      'Admin Controls',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: headingColor,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: 8),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.category_outlined),
+                      title: const Text('Product Types'),
+                      subtitle: const Text(
+                        'Add or edit recipe types, base weights, and packaging units',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ProductTypesScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(),
+                    const SizedBox(height: 8),
                     Text(
                       'Export an encrypted workspace backup to restore Admin access on a replacement device.',
                       style: TextStyle(

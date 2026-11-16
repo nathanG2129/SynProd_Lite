@@ -21,6 +21,7 @@ class ProductRepositoryImpl implements ProductRepository {
       ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]);
 
     return query.watch().asyncMap((rows) async {
+      final catalog = await getProductTypes();
       final products = <Product>[];
       for (final row in rows) {
         final compRows = await (db.select(db.compositionsTable)
@@ -33,7 +34,7 @@ class ProductRepositoryImpl implements ProductRepository {
               ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
             .get();
 
-        products.add(_mapToProduct(row, compRows, ingRows));
+        products.add(_mapToProduct(row, compRows, ingRows, catalog));
       }
       return products;
     });
@@ -56,6 +57,7 @@ class ProductRepositoryImpl implements ProductRepository {
       query.where((tbl) => tbl.isDeleted.equals(false));
     }
     final rows = await query.get();
+    final catalog = await getProductTypes();
 
     final products = <Product>[];
     for (final row in rows) {
@@ -69,7 +71,7 @@ class ProductRepositoryImpl implements ProductRepository {
             ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
           .get();
 
-      products.add(_mapToProduct(row, compRows, ingRows));
+      products.add(_mapToProduct(row, compRows, ingRows, catalog));
     }
     return products;
   }
@@ -82,6 +84,8 @@ class ProductRepositoryImpl implements ProductRepository {
 
     if (row == null) return null;
 
+    final catalog = await getProductTypes();
+
     final compRows = await (db.select(db.compositionsTable)
           ..where((tbl) => tbl.productId.equals(row.id))
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
@@ -92,7 +96,7 @@ class ProductRepositoryImpl implements ProductRepository {
           ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
         .get();
 
-    return _mapToProduct(row, compRows, ingRows);
+    return _mapToProduct(row, compRows, ingRows, catalog);
   }
 
   @override
@@ -212,6 +216,8 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<void> seedInitialDataIfEmpty() async {
+    await _seedProductTypesIfEmpty();
+
     final countExp = db.productsTable.id.count();
     final query = db.selectOnly(db.productsTable)..addColumns([countExp]);
     final result = await query.getSingle();
@@ -288,6 +294,85 @@ class ProductRepositoryImpl implements ProductRepository {
     }
   }
 
+  Future<void> _seedProductTypesIfEmpty() async {
+    final countExp = db.productTypesTable.code.count();
+    final query = db.selectOnly(db.productTypesTable)..addColumns([countExp]);
+    final result = await query.getSingle();
+    final count = result.read(countExp) ?? 0;
+    if (count > 0) return;
+
+    await db.transaction(() async {
+      for (final type in ProductType.defaults) {
+        await db.into(db.productTypesTable).insertOnConflictUpdate(
+              ProductTypesTableCompanion.insert(
+                code: type.code,
+                displayName: type.displayName,
+                baseWeightGrams: type.baseWeightGrams,
+                packagingJson:
+                    ProductType.encodePackagingList(type.packagingOptions),
+                sortOrder: Value(type.sortOrder),
+              ),
+            );
+      }
+    });
+  }
+
+  @override
+  Stream<List<ProductType>> watchProductTypes() {
+    final query = db.select(db.productTypesTable)
+      ..orderBy([
+        (tbl) => OrderingTerm.asc(tbl.sortOrder),
+        (tbl) => OrderingTerm.asc(tbl.displayName),
+      ]);
+    return query.watch().map((rows) {
+      if (rows.isEmpty) return ProductType.defaults;
+      return rows.map(_mapToProductType).toList();
+    });
+  }
+
+  @override
+  Future<List<ProductType>> getProductTypes() async {
+    final query = db.select(db.productTypesTable)
+      ..orderBy([
+        (tbl) => OrderingTerm.asc(tbl.sortOrder),
+        (tbl) => OrderingTerm.asc(tbl.displayName),
+      ]);
+    final rows = await query.get();
+    if (rows.isEmpty) return ProductType.defaults;
+    return rows.map(_mapToProductType).toList();
+  }
+
+  @override
+  Future<void> saveProductType(ProductType productType) async {
+    await db.into(db.productTypesTable).insertOnConflictUpdate(
+          ProductTypesTableCompanion.insert(
+            code: productType.code,
+            displayName: productType.displayName,
+            baseWeightGrams: productType.baseWeightGrams,
+            packagingJson:
+                ProductType.encodePackagingList(productType.packagingOptions),
+            sortOrder: Value(productType.sortOrder),
+          ),
+        );
+  }
+
+  @override
+  Future<void> deleteProductType(String code) async {
+    await (db.delete(db.productTypesTable)
+          ..where((tbl) => tbl.code.equals(code)))
+        .go();
+  }
+
+  ProductType _mapToProductType(ProductTypeEntry row) {
+    return ProductType(
+      code: row.code,
+      displayName: row.displayName,
+      baseWeightGrams: row.baseWeightGrams,
+      packagingOptions: ProductType.decodePackagingList(row.packagingJson),
+      sortOrder: row.sortOrder,
+    );
+  }
+
   @override
   Stream<List<SyncConflictRecord>> watchConflictHistory() {
     final query = db.select(db.syncConflictsTable)
@@ -356,12 +441,13 @@ class ProductRepositoryImpl implements ProductRepository {
     ProductEntry row,
     List<CompositionEntry> compRows,
     List<AdditionalIngredientEntry> ingRows,
+    List<ProductType> catalog,
   ) {
     return Product(
       id: row.id,
       name: row.name,
       description: row.description,
-      productType: ProductType.fromCode(row.productTypeCode),
+      productType: ProductType.fromCode(row.productTypeCode, catalog: catalog),
       createdByDeviceId: row.createdByDeviceId,
       createdByDisplayName: row.createdByDisplayName,
       updatedByDeviceId: row.updatedByDeviceId ?? row.createdByDeviceId,

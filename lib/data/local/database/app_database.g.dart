@@ -3596,6 +3596,386 @@ class SyncConflictsTableCompanion extends UpdateCompanion<SyncConflictEntry> {
   }
 }
 
+class $ProductTypesTableTable extends ProductTypesTable
+    with TableInfo<$ProductTypesTableTable, ProductTypeEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProductTypesTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _codeMeta = const VerificationMeta('code');
+  @override
+  late final GeneratedColumn<String> code = GeneratedColumn<String>(
+    'code',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _baseWeightGramsMeta = const VerificationMeta(
+    'baseWeightGrams',
+  );
+  @override
+  late final GeneratedColumn<double> baseWeightGrams = GeneratedColumn<double>(
+    'base_weight_grams',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _packagingJsonMeta = const VerificationMeta(
+    'packagingJson',
+  );
+  @override
+  late final GeneratedColumn<String> packagingJson = GeneratedColumn<String>(
+    'packaging_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    code,
+    displayName,
+    baseWeightGrams,
+    packagingJson,
+    sortOrder,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'product_types';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ProductTypeEntry> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('code')) {
+      context.handle(
+        _codeMeta,
+        code.isAcceptableOrUnknown(data['code']!, _codeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_codeMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('base_weight_grams')) {
+      context.handle(
+        _baseWeightGramsMeta,
+        baseWeightGrams.isAcceptableOrUnknown(
+          data['base_weight_grams']!,
+          _baseWeightGramsMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_baseWeightGramsMeta);
+    }
+    if (data.containsKey('packaging_json')) {
+      context.handle(
+        _packagingJsonMeta,
+        packagingJson.isAcceptableOrUnknown(
+          data['packaging_json']!,
+          _packagingJsonMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_packagingJsonMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {code};
+  @override
+  ProductTypeEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProductTypeEntry(
+      code: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}code'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      baseWeightGrams: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}base_weight_grams'],
+      )!,
+      packagingJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}packaging_json'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+    );
+  }
+
+  @override
+  $ProductTypesTableTable createAlias(String alias) {
+    return $ProductTypesTableTable(attachedDatabase, alias);
+  }
+}
+
+class ProductTypeEntry extends DataClass
+    implements Insertable<ProductTypeEntry> {
+  final String code;
+  final String displayName;
+  final double baseWeightGrams;
+  final String packagingJson;
+  final int sortOrder;
+  const ProductTypeEntry({
+    required this.code,
+    required this.displayName,
+    required this.baseWeightGrams,
+    required this.packagingJson,
+    required this.sortOrder,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['code'] = Variable<String>(code);
+    map['display_name'] = Variable<String>(displayName);
+    map['base_weight_grams'] = Variable<double>(baseWeightGrams);
+    map['packaging_json'] = Variable<String>(packagingJson);
+    map['sort_order'] = Variable<int>(sortOrder);
+    return map;
+  }
+
+  ProductTypesTableCompanion toCompanion(bool nullToAbsent) {
+    return ProductTypesTableCompanion(
+      code: Value(code),
+      displayName: Value(displayName),
+      baseWeightGrams: Value(baseWeightGrams),
+      packagingJson: Value(packagingJson),
+      sortOrder: Value(sortOrder),
+    );
+  }
+
+  factory ProductTypeEntry.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProductTypeEntry(
+      code: serializer.fromJson<String>(json['code']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      baseWeightGrams: serializer.fromJson<double>(json['baseWeightGrams']),
+      packagingJson: serializer.fromJson<String>(json['packagingJson']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'code': serializer.toJson<String>(code),
+      'displayName': serializer.toJson<String>(displayName),
+      'baseWeightGrams': serializer.toJson<double>(baseWeightGrams),
+      'packagingJson': serializer.toJson<String>(packagingJson),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+    };
+  }
+
+  ProductTypeEntry copyWith({
+    String? code,
+    String? displayName,
+    double? baseWeightGrams,
+    String? packagingJson,
+    int? sortOrder,
+  }) => ProductTypeEntry(
+    code: code ?? this.code,
+    displayName: displayName ?? this.displayName,
+    baseWeightGrams: baseWeightGrams ?? this.baseWeightGrams,
+    packagingJson: packagingJson ?? this.packagingJson,
+    sortOrder: sortOrder ?? this.sortOrder,
+  );
+  ProductTypeEntry copyWithCompanion(ProductTypesTableCompanion data) {
+    return ProductTypeEntry(
+      code: data.code.present ? data.code.value : this.code,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      baseWeightGrams: data.baseWeightGrams.present
+          ? data.baseWeightGrams.value
+          : this.baseWeightGrams,
+      packagingJson: data.packagingJson.present
+          ? data.packagingJson.value
+          : this.packagingJson,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductTypeEntry(')
+          ..write('code: $code, ')
+          ..write('displayName: $displayName, ')
+          ..write('baseWeightGrams: $baseWeightGrams, ')
+          ..write('packagingJson: $packagingJson, ')
+          ..write('sortOrder: $sortOrder')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(code, displayName, baseWeightGrams, packagingJson, sortOrder);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProductTypeEntry &&
+          other.code == this.code &&
+          other.displayName == this.displayName &&
+          other.baseWeightGrams == this.baseWeightGrams &&
+          other.packagingJson == this.packagingJson &&
+          other.sortOrder == this.sortOrder);
+}
+
+class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
+  final Value<String> code;
+  final Value<String> displayName;
+  final Value<double> baseWeightGrams;
+  final Value<String> packagingJson;
+  final Value<int> sortOrder;
+  final Value<int> rowid;
+  const ProductTypesTableCompanion({
+    this.code = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.baseWeightGrams = const Value.absent(),
+    this.packagingJson = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProductTypesTableCompanion.insert({
+    required String code,
+    required String displayName,
+    required double baseWeightGrams,
+    required String packagingJson,
+    this.sortOrder = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : code = Value(code),
+       displayName = Value(displayName),
+       baseWeightGrams = Value(baseWeightGrams),
+       packagingJson = Value(packagingJson);
+  static Insertable<ProductTypeEntry> custom({
+    Expression<String>? code,
+    Expression<String>? displayName,
+    Expression<double>? baseWeightGrams,
+    Expression<String>? packagingJson,
+    Expression<int>? sortOrder,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (code != null) 'code': code,
+      if (displayName != null) 'display_name': displayName,
+      if (baseWeightGrams != null) 'base_weight_grams': baseWeightGrams,
+      if (packagingJson != null) 'packaging_json': packagingJson,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProductTypesTableCompanion copyWith({
+    Value<String>? code,
+    Value<String>? displayName,
+    Value<double>? baseWeightGrams,
+    Value<String>? packagingJson,
+    Value<int>? sortOrder,
+    Value<int>? rowid,
+  }) {
+    return ProductTypesTableCompanion(
+      code: code ?? this.code,
+      displayName: displayName ?? this.displayName,
+      baseWeightGrams: baseWeightGrams ?? this.baseWeightGrams,
+      packagingJson: packagingJson ?? this.packagingJson,
+      sortOrder: sortOrder ?? this.sortOrder,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (code.present) {
+      map['code'] = Variable<String>(code.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (baseWeightGrams.present) {
+      map['base_weight_grams'] = Variable<double>(baseWeightGrams.value);
+    }
+    if (packagingJson.present) {
+      map['packaging_json'] = Variable<String>(packagingJson.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductTypesTableCompanion(')
+          ..write('code: $code, ')
+          ..write('displayName: $displayName, ')
+          ..write('baseWeightGrams: $baseWeightGrams, ')
+          ..write('packagingJson: $packagingJson, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3612,6 +3992,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $PairingTokensTableTable(this);
   late final $SyncConflictsTableTable syncConflictsTable =
       $SyncConflictsTableTable(this);
+  late final $ProductTypesTableTable productTypesTable =
+      $ProductTypesTableTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3624,6 +4006,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     workspacesTable,
     pairingTokensTable,
     syncConflictsTable,
+    productTypesTable,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -5999,6 +6382,225 @@ typedef $$SyncConflictsTableTableProcessedTableManager =
       SyncConflictEntry,
       PrefetchHooks Function()
     >;
+typedef $$ProductTypesTableTableCreateCompanionBuilder =
+    ProductTypesTableCompanion Function({
+      required String code,
+      required String displayName,
+      required double baseWeightGrams,
+      required String packagingJson,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+typedef $$ProductTypesTableTableUpdateCompanionBuilder =
+    ProductTypesTableCompanion Function({
+      Value<String> code,
+      Value<String> displayName,
+      Value<double> baseWeightGrams,
+      Value<String> packagingJson,
+      Value<int> sortOrder,
+      Value<int> rowid,
+    });
+
+class $$ProductTypesTableTableFilterComposer
+    extends Composer<_$AppDatabase, $ProductTypesTableTable> {
+  $$ProductTypesTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get baseWeightGrams => $composableBuilder(
+    column: $table.baseWeightGrams,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get packagingJson => $composableBuilder(
+    column: $table.packagingJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ProductTypesTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProductTypesTableTable> {
+  $$ProductTypesTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get code => $composableBuilder(
+    column: $table.code,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get baseWeightGrams => $composableBuilder(
+    column: $table.baseWeightGrams,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get packagingJson => $composableBuilder(
+    column: $table.packagingJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ProductTypesTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProductTypesTableTable> {
+  $$ProductTypesTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get code =>
+      $composableBuilder(column: $table.code, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get baseWeightGrams => $composableBuilder(
+    column: $table.baseWeightGrams,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get packagingJson => $composableBuilder(
+    column: $table.packagingJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+}
+
+class $$ProductTypesTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ProductTypesTableTable,
+          ProductTypeEntry,
+          $$ProductTypesTableTableFilterComposer,
+          $$ProductTypesTableTableOrderingComposer,
+          $$ProductTypesTableTableAnnotationComposer,
+          $$ProductTypesTableTableCreateCompanionBuilder,
+          $$ProductTypesTableTableUpdateCompanionBuilder,
+          (
+            ProductTypeEntry,
+            BaseReferences<
+              _$AppDatabase,
+              $ProductTypesTableTable,
+              ProductTypeEntry
+            >,
+          ),
+          ProductTypeEntry,
+          PrefetchHooks Function()
+        > {
+  $$ProductTypesTableTableTableManager(
+    _$AppDatabase db,
+    $ProductTypesTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProductTypesTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProductTypesTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProductTypesTableTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> code = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<double> baseWeightGrams = const Value.absent(),
+                Value<String> packagingJson = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProductTypesTableCompanion(
+                code: code,
+                displayName: displayName,
+                baseWeightGrams: baseWeightGrams,
+                packagingJson: packagingJson,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String code,
+                required String displayName,
+                required double baseWeightGrams,
+                required String packagingJson,
+                Value<int> sortOrder = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ProductTypesTableCompanion.insert(
+                code: code,
+                displayName: displayName,
+                baseWeightGrams: baseWeightGrams,
+                packagingJson: packagingJson,
+                sortOrder: sortOrder,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ProductTypesTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ProductTypesTableTable,
+      ProductTypeEntry,
+      $$ProductTypesTableTableFilterComposer,
+      $$ProductTypesTableTableOrderingComposer,
+      $$ProductTypesTableTableAnnotationComposer,
+      $$ProductTypesTableTableCreateCompanionBuilder,
+      $$ProductTypesTableTableUpdateCompanionBuilder,
+      (
+        ProductTypeEntry,
+        BaseReferences<
+          _$AppDatabase,
+          $ProductTypesTableTable,
+          ProductTypeEntry
+        >,
+      ),
+      ProductTypeEntry,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6021,4 +6623,6 @@ class $AppDatabaseManager {
       $$PairingTokensTableTableTableManager(_db, _db.pairingTokensTable);
   $$SyncConflictsTableTableTableManager get syncConflictsTable =>
       $$SyncConflictsTableTableTableManager(_db, _db.syncConflictsTable);
+  $$ProductTypesTableTableTableManager get productTypesTable =>
+      $$ProductTypesTableTableTableManager(_db, _db.productTypesTable);
 }
