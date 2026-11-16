@@ -125,12 +125,14 @@ class P2pSyncServer {
       final updatedDevices = await deviceRepository.getAllDevices();
       final updatedProducts =
           await productRepository.getAllProductsIncludingDeleted();
+      final updatedProductTypes = await productRepository.getProductTypes();
       final responseSnapshot = SyncSnapshot(
         workspaceId: workspace.id,
         senderDeviceId: localDevice.id,
         generatedAt: DateTime.now(),
         devices: updatedDevices,
         products: updatedProducts,
+        productTypes: updatedProductTypes,
       );
 
       final encryptedResponse = cryptoService.encryptEnvelope(
@@ -181,12 +183,14 @@ class P2pSyncServer {
 
     final localProducts =
         await productRepository.getAllProductsIncludingDeleted();
+    final localProductTypes = await productRepository.getProductTypes();
     final outgoing = SyncSnapshot(
       workspaceId: workspace.id,
       senderDeviceId: localDevice.id,
       generatedAt: DateTime.now(),
       devices: localDevices,
       products: localProducts,
+      productTypes: localProductTypes,
     );
 
     final encryptedPayload = cryptoService.encryptEnvelope(
@@ -245,6 +249,11 @@ class P2pSyncServer {
 
     for (final device in result.updatedDevices) {
       await deviceRepository.upsertDevice(device);
+    }
+
+    if (result.replaceProductTypes) {
+      await productRepository
+          .applySyncedProductTypesAtomically(result.productTypesToSave);
     }
 
     await productRepository.applySyncedProductsAtomically(result.productsToSave);

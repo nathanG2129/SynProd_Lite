@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'device.dart';
 import 'product.dart';
+import 'product_type.dart';
 
 enum SyncConflictType {
   lwwOverwritten('LWW_OVERWRITTEN', 'Overwritten by Newer Version'),
@@ -90,6 +91,7 @@ class SyncSnapshot {
   final DateTime generatedAt;
   final List<Device> devices;
   final List<Product> products;
+  final List<ProductType> productTypes;
 
   const SyncSnapshot({
     required this.workspaceId,
@@ -97,6 +99,7 @@ class SyncSnapshot {
     required this.generatedAt,
     required this.devices,
     required this.products,
+    this.productTypes = const [],
   });
 
   Map<String, dynamic> toMap() {
@@ -107,12 +110,14 @@ class SyncSnapshot {
       'generatedAt': generatedAt.toUtc().toIso8601String(),
       'devices': devices.map((d) => d.toMap()).toList(),
       'products': products.map((p) => p.toMap()).toList(),
+      'productTypes': productTypes.map((t) => t.toMap()).toList(),
     };
   }
 
   factory SyncSnapshot.fromMap(Map<String, dynamic> map) {
     final devicesRaw = map['devices'] as List<dynamic>? ?? const [];
     final productsRaw = map['products'] as List<dynamic>? ?? const [];
+    final productTypesRaw = map['productTypes'] as List<dynamic>? ?? const [];
     return SyncSnapshot(
       workspaceId: map['workspaceId'] as String,
       senderDeviceId: map['senderDeviceId'] as String,
@@ -123,6 +128,9 @@ class SyncSnapshot {
       products: productsRaw
           .map((e) => Product.fromMap(e as Map<String, dynamic>))
           .toList(),
+      productTypes: productTypesRaw
+          .map((e) => ProductType.fromMap(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 }
@@ -130,6 +138,8 @@ class SyncSnapshot {
 class SyncMergeResult {
   final List<Device> updatedDevices;
   final List<Product> productsToSave;
+  final List<ProductType> productTypesToSave;
+  final bool replaceProductTypes;
   final List<SyncConflictRecord> newConflicts;
   final bool localDeviceRevoked;
 
@@ -137,6 +147,8 @@ class SyncMergeResult {
     required this.updatedDevices,
     required this.productsToSave,
     required this.newConflicts,
+    this.productTypesToSave = const [],
+    this.replaceProductTypes = false,
     this.localDeviceRevoked = false,
   });
 }

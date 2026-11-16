@@ -724,20 +724,9 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               ),
             ],
           ),
-          TextFormField(
-            controller: row.nameController,
-            maxLength: AppConstants.maxIngredientNameLength,
-            decoration: const InputDecoration(
-              labelText: 'Ingredient Name *',
-              hintText: 'e.g. Natural Vanilla Extract',
-              counterText: '',
-            ),
-            validator: (value) {
-              if (value == null || value.trim().isEmpty) {
-                return 'Ingredient name is required';
-              }
-              return null;
-            },
+          _buildIngredientNameField(
+            row: row,
+            suggestions: ref.watch(existingIngredientSuggestionsProvider),
           ),
           const SizedBox(height: 10),
           Row(
@@ -824,6 +813,156 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       ),
     );
   }
+
+  Widget _buildIngredientNameField({
+    required _IngredientRowState row,
+    required List<ExistingIngredientSuggestion> suggestions,
+  }) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return RawAutocomplete<ExistingIngredientSuggestion>(
+          textEditingController: row.nameController,
+          focusNode: row.nameFocusNode,
+          displayStringForOption: (option) => option.name,
+          optionsBuilder: (textEditingValue) {
+            if (suggestions.isEmpty) {
+              return const Iterable<ExistingIngredientSuggestion>.empty();
+            }
+            final query = textEditingValue.text.trim().toLowerCase();
+            if (query.isEmpty) return suggestions;
+            return suggestions.where(
+              (option) => option.name.toLowerCase().contains(query),
+            );
+          },
+          onSelected: (option) {
+            setState(() => row.applySuggestion(option));
+          },
+          fieldViewBuilder: (
+            context,
+            controller,
+            focusNode,
+            onFieldSubmitted,
+          ) {
+            return TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              maxLength: AppConstants.maxIngredientNameLength,
+              onFieldSubmitted: (_) => onFieldSubmitted(),
+              decoration: InputDecoration(
+                labelText: 'Ingredient Name *',
+                hintText: 'e.g. Natural Vanilla Extract',
+                counterText: '',
+                suffixIcon: suggestions.isEmpty
+                    ? null
+                    : PopupMenuButton<ExistingIngredientSuggestion>(
+                        tooltip: 'Select existing ingredient',
+                        icon: Icon(
+                          Icons.arrow_drop_down,
+                          color: AppTheme.headingColorFor(context),
+                        ),
+                        onSelected: (option) {
+                          setState(() => row.applySuggestion(option));
+                          focusNode.unfocus();
+                        },
+                        itemBuilder: (context) {
+                          return suggestions.map((option) {
+                            return PopupMenuItem<ExistingIngredientSuggestion>(
+                              value: option,
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      option.name,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    option.defaultUnit,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppTheme.mutedTextFor(context),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList();
+                        },
+                      ),
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Ingredient name is required';
+                }
+                return null;
+              },
+            );
+          },
+          optionsViewBuilder: (context, onSelected, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 6,
+                borderRadius: BorderRadius.circular(10),
+                color: AppTheme.cardColorFor(context),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: 220,
+                    maxWidth: constraints.maxWidth,
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppTheme.cardBorderFor(context)),
+                    ),
+                    child: ListView.separated(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      shrinkWrap: true,
+                      itemCount: options.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1),
+                      itemBuilder: (context, idx) {
+                        final option = options.elementAt(idx);
+                        return InkWell(
+                          onTap: () => onSelected(option),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    option.name,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppTheme.primaryTextFor(context),
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  option.defaultUnit,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.mutedTextFor(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 class _CompositionRowState {
@@ -859,6 +998,7 @@ class _CompositionRowState {
 
 class _IngredientRowState {
   final TextEditingController nameController;
+  final FocusNode nameFocusNode = FocusNode();
   final TextEditingController quantityController;
   final TextEditingController customUnitController;
   final TextEditingController notesController;
@@ -881,6 +1021,25 @@ class _IngredientRowState {
           text: AppConstants.standardIngredientUnits.contains(unit) ? '' : unit,
         );
 
+  void applySuggestion(ExistingIngredientSuggestion suggestion) {
+    nameController.value = TextEditingValue(
+      text: suggestion.name,
+      selection: TextSelection.collapsed(offset: suggestion.name.length),
+    );
+    if (quantityController.text.trim().isEmpty) {
+      final isStd =
+          AppConstants.standardIngredientUnits.contains(suggestion.defaultUnit);
+      isCustomUnit = !isStd;
+      if (isStd) {
+        selectedUnit = suggestion.defaultUnit;
+        customUnitController.clear();
+      } else {
+        selectedUnit = AppConstants.standardIngredientUnits.first;
+        customUnitController.text = suggestion.defaultUnit;
+      }
+    }
+  }
+
   factory _IngredientRowState.fromDomain(AdditionalIngredient ing) {
     final qtyText = ing.quantity == ing.quantity.roundToDouble()
         ? ing.quantity.toInt().toString()
@@ -895,6 +1054,7 @@ class _IngredientRowState {
 
   void dispose() {
     nameController.dispose();
+    nameFocusNode.dispose();
     quantityController.dispose();
     customUnitController.dispose();
     notesController.dispose();

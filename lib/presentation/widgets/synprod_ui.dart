@@ -169,15 +169,15 @@ class SynProdCard extends StatelessWidget {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
-        child: onTap != null
-            ? Material(
-                color: Colors.transparent,
-                child: InkWell(
+        child: Material(
+          type: MaterialType.transparency,
+          child: onTap != null
+              ? InkWell(
                   onTap: onTap,
                   child: content,
-                ),
-              )
-            : content,
+                )
+              : content,
+        ),
       ),
     );
   }

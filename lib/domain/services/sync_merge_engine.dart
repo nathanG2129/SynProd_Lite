@@ -160,26 +160,32 @@ class SyncMergeEngine {
       }
 
       final comparison = _compareLww(remote, existing);
+      final isTrueConcurrentConflict = localDevice.role.canCreateProduct &&
+          (remote.version == existing.version ||
+              (existing.effectiveUpdatedByDeviceId == localDevice.id &&
+                  remote.effectiveUpdatedByDeviceId != localDevice.id));
       if (comparison > 0) {
         mergedProductMap[remote.id] = remote;
         productsToSave.add(remote);
-        newConflicts.add(
-          SyncConflictRecord(
-            id: UuidGenerator.v4(),
-            productId: remote.id,
-            productName: remote.name,
-            conflictType: SyncConflictType.lwwOverwritten,
-            winningDeviceId: remote.effectiveUpdatedByDeviceId,
-            winningDeviceName: remote.effectiveUpdatedByDisplayName,
-            losingDeviceId: existing.effectiveUpdatedByDeviceId,
-            losingDeviceName: existing.effectiveUpdatedByDisplayName,
-            losingProductJson: jsonEncode(existing.toMap()),
-            reason:
-                'Local version v${existing.version} overwritten by v${remote.version} from ${remote.effectiveUpdatedByDisplayName}.',
-            occurredAt: now,
-          ),
-        );
-      } else {
+        if (isTrueConcurrentConflict) {
+          newConflicts.add(
+            SyncConflictRecord(
+              id: UuidGenerator.v4(),
+              productId: remote.id,
+              productName: remote.name,
+              conflictType: SyncConflictType.lwwOverwritten,
+              winningDeviceId: remote.effectiveUpdatedByDeviceId,
+              winningDeviceName: remote.effectiveUpdatedByDisplayName,
+              losingDeviceId: existing.effectiveUpdatedByDeviceId,
+              losingDeviceName: existing.effectiveUpdatedByDisplayName,
+              losingProductJson: jsonEncode(existing.toMap()),
+              reason:
+                  'Local version v${existing.version} overwritten by v${remote.version} from ${remote.effectiveUpdatedByDisplayName}.',
+              occurredAt: now,
+            ),
+          );
+        }
+      } else if (isTrueConcurrentConflict) {
         newConflicts.add(
           SyncConflictRecord(
             id: UuidGenerator.v4(),
@@ -238,9 +244,15 @@ class SyncMergeEngine {
       }
     }
 
+    final replaceProductTypes =
+        senderIsAdmin && incoming.productTypes.isNotEmpty;
+
     return SyncMergeResult(
       updatedDevices: updatedDevicesMap.values.toList(),
       productsToSave: productsToSave,
+      productTypesToSave:
+          replaceProductTypes ? incoming.productTypes : const [],
+      replaceProductTypes: replaceProductTypes,
       newConflicts: newConflicts,
       localDeviceRevoked: localDeviceRevoked,
     );

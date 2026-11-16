@@ -116,9 +116,9 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
             final filled = index < _pin.length;
             return AnimatedContainer(
               duration: const Duration(milliseconds: 140),
-              margin: const EdgeInsets.symmetric(horizontal: 5),
-              width: 12,
-              height: 12,
+              margin: const EdgeInsets.symmetric(horizontal: 6),
+              width: 14,
+              height: 14,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: filled ? headingColor : Colors.transparent,
@@ -152,38 +152,48 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
             ),
           ),
         ],
-        const SizedBox(height: 14),
-        _buildKeypadRow([
-          _buildDigitKey('1'),
-          _buildDigitKey('2'),
-          _buildDigitKey('3'),
-        ]),
-        const SizedBox(height: 6),
-        _buildKeypadRow([
-          _buildDigitKey('4'),
-          _buildDigitKey('5'),
-          _buildDigitKey('6'),
-        ]),
-        const SizedBox(height: 6),
-        _buildKeypadRow([
-          _buildDigitKey('7'),
-          _buildDigitKey('8'),
-          _buildDigitKey('9'),
-        ]),
-        const SizedBox(height: 6),
-        _buildKeypadRow([
-          _buildActionKey(
-            label: 'Clear',
-            onTap: _pin.isEmpty || !_isInteractive ? null : _clear,
+        const SizedBox(height: 16),
+        Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildKeypadRow([
+                  _buildDigitKey('1'),
+                  _buildDigitKey('2'),
+                  _buildDigitKey('3'),
+                ]),
+                const SizedBox(height: 10),
+                _buildKeypadRow([
+                  _buildDigitKey('4'),
+                  _buildDigitKey('5'),
+                  _buildDigitKey('6'),
+                ]),
+                const SizedBox(height: 10),
+                _buildKeypadRow([
+                  _buildDigitKey('7'),
+                  _buildDigitKey('8'),
+                  _buildDigitKey('9'),
+                ]),
+                const SizedBox(height: 10),
+                _buildKeypadRow([
+                  _buildActionKey(
+                    label: 'Clear',
+                    onTap: _pin.isEmpty || !_isInteractive ? null : _clear,
+                  ),
+                  _buildDigitKey('0'),
+                  _buildIconKey(
+                    icon: Icons.backspace_outlined,
+                    tooltip: 'Delete',
+                    onTap: _pin.isEmpty || !_isInteractive ? null : _backspace,
+                  ),
+                ]),
+              ],
+            ),
           ),
-          _buildDigitKey('0'),
-          _buildIconKey(
-            icon: Icons.backspace_outlined,
-            tooltip: 'Delete',
-            onTap: _pin.isEmpty || !_isInteractive ? null : _backspace,
-          ),
-        ]),
-        const SizedBox(height: 14),
+        ),
+        const SizedBox(height: 16),
         SynProdGradientButton(
           onPressed: !_isInteractive || _pin.length < PinAuthService.minPinLength
               ? null
@@ -207,9 +217,9 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         keys[0],
-        const SizedBox(width: 6),
+        const SizedBox(width: 10),
         keys[1],
-        const SizedBox(width: 6),
+        const SizedBox(width: 10),
         keys[2],
       ],
     );
@@ -221,7 +231,7 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
       child: Text(
         digit,
         style: TextStyle(
-          fontSize: 20,
+          fontSize: 24,
           fontWeight: FontWeight.w600,
           color: AppTheme.headingColorFor(context),
         ),
@@ -242,7 +252,7 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
         onTap: onTap,
         child: Icon(
           icon,
-          size: 18,
+          size: 22,
           color: onTap == null ? disabledColor : AppTheme.headingColorFor(context),
         ),
       ),
@@ -261,7 +271,7 @@ class _SynProdPinPadState extends State<SynProdPinPad> {
       child: Text(
         label,
         style: TextStyle(
-          fontSize: 12.5,
+          fontSize: 14,
           fontWeight: FontWeight.w600,
           color: onTap == null ? disabledColor : enabledColor,
         ),
@@ -286,17 +296,17 @@ class _KeypadButton extends StatelessWidget {
     final borderColor = isDark ? AppTheme.darkBorder : AppTheme.slate300;
 
     return SizedBox(
-      width: 58,
-      height: 44,
+      width: 78,
+      height: 58,
       child: Material(
         color: keyBg,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           side: BorderSide(color: borderColor),
         ),
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           child: Center(child: child),
         ),
       ),

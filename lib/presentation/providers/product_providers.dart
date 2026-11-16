@@ -27,6 +27,7 @@ final databaseInitProvider = FutureProvider<void>((ref) async {
 });
 
 final activeProductsStreamProvider = StreamProvider<List<Product>>((ref) {
+  ref.watch(productTypesStreamProvider);
   final repo = ref.watch(productRepositoryProvider);
   return repo.watchActiveProducts();
 });
@@ -51,6 +52,41 @@ final distinctComponentsProvider = FutureProvider<List<String>>((ref) async {
   }
   final list = set.toList()
     ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+  return list;
+});
+
+class ExistingIngredientSuggestion {
+  final String name;
+  final String defaultUnit;
+
+  const ExistingIngredientSuggestion({
+    required this.name,
+    required this.defaultUnit,
+  });
+}
+
+final existingIngredientSuggestionsProvider =
+    Provider<List<ExistingIngredientSuggestion>>((ref) {
+  final products = ref.watch(activeProductsStreamProvider).valueOrNull ?? const [];
+  final sortedProducts = List<Product>.from(products)
+    ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  final byLowerName = <String, ExistingIngredientSuggestion>{};
+  for (final product in sortedProducts) {
+    for (final ing in product.additionalIngredients) {
+      final trimmed = ing.ingredientName.trim();
+      if (trimmed.isEmpty) continue;
+      final key = trimmed.toLowerCase();
+      byLowerName.putIfAbsent(
+        key,
+        () => ExistingIngredientSuggestion(
+          name: trimmed,
+          defaultUnit: ing.unit,
+        ),
+      );
+    }
+  }
+  final list = byLowerName.values.toList()
+    ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
   return list;
 });
 

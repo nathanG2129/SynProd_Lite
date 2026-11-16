@@ -72,6 +72,7 @@ class _InMemoryDeviceRepository implements DeviceRepository {
 
 class _InMemoryProductRepository implements ProductRepository {
   final List<Product> _products = [];
+  List<ProductType> _productTypes = List<ProductType>.from(ProductType.defaults);
 
   @override
   Stream<List<Product>> watchActiveProducts() => Stream.value(_products);
@@ -101,14 +102,31 @@ class _InMemoryProductRepository implements ProductRepository {
   @override
   Future<void> seedInitialDataIfEmpty() async {}
   @override
-  Stream<List<ProductType>> watchProductTypes() =>
-      Stream.value(ProductType.defaults);
+  Stream<List<ProductType>> watchProductTypes() => Stream.value(_productTypes);
   @override
-  Future<List<ProductType>> getProductTypes() async => ProductType.defaults;
+  Future<List<ProductType>> getProductTypes() async => _productTypes;
   @override
-  Future<void> saveProductType(ProductType productType) async {}
+  Future<void> saveProductType(ProductType productType) async {
+    _productTypes = [
+      for (final t in _productTypes)
+        if (t.code == productType.code) productType else t,
+      if (!_productTypes.any((t) => t.code == productType.code)) productType,
+    ];
+  }
+
   @override
-  Future<void> deleteProductType(String code) async {}
+  Future<void> applySyncedProductTypesAtomically(
+    List<ProductType> productTypes,
+  ) async {
+    if (productTypes.isNotEmpty) {
+      _productTypes = List<ProductType>.from(productTypes);
+    }
+  }
+
+  @override
+  Future<void> deleteProductType(String code) async {
+    _productTypes.removeWhere((t) => t.code == code);
+  }
   @override
   Stream<List<SyncConflictRecord>> watchConflictHistory() =>
       Stream.value(const []);
@@ -291,5 +309,117 @@ void main() {
       SyncConflictType.permissionRejected,
     );
     expect(result.newConflicts.first.losingDeviceId, 'unknown_device_999');
+  });
+
+  test(
+      'Admin product type changes sync to users and sequential v1->v2 updates do not log false LWW conflicts',
+      () async {
+    final adminDevRepo = _InMemoryDeviceRepository();
+    final peerDevRepo = _InMemoryDeviceRepository();
+    final adminProdRepo = _InMemoryProductRepository();
+    final peerProdRepo = _InMemoryProductRepository();
+
+    final now = DateTime.now();
+    const workspaceId = 'ws-1';
+    const workspaceKey = '0123456789abcdef0123456789abcdef';
+    final workspace = Workspace(
+      id: workspaceId,
+      name: 'Test Workspace',
+      workspaceKey: workspaceKey,
+      createdAt: now,
+    );
+    final adminDevice = Device(
+      id: 'admin-1',
+      displayName: 'Admin',
+      role: DeviceRole.admin,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+    final peerDevice = Device(
+      id: 'peer-1',
+      displayName: 'Production',
+      role: DeviceRole.production,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+
+    await adminDevRepo.saveWorkspaceAndLocalDevice(
+      workspace: workspace,
+      localDevice: adminDevice,
+      additionalDevices: [peerDevice],
+    );
+    await peerDevRepo.saveWorkspaceAndLocalDevice(
+      workspace: workspace,
+      localDevice: peerDevice,
+      additionalDevices: [adminDevice],
+    );
+
+    // Admin customizes Greek Yogurt base weight and adds a new type
+    final updatedYogurt = ProductType.greekYogurt.copyWith(
+      baseWeightGrams: 420.0,
+      displayName: 'Greek Yogurt Pro',
+    );
+    await adminProdRepo.saveProductType(updatedYogurt);
+
+    final v1 = Product(
+      id: '00000000-0000-4000-8000-000000000010',
+      name: 'Pro Yogurt',
+      productType: updatedYogurt,
+      createdByDeviceId: adminDevice.id,
+      createdByDisplayName: adminDevice.displayName,
+      updatedByDeviceId: adminDevice.id,
+      updatedByDisplayName: adminDevice.displayName,
+      createdAt: now,
+      updatedAt: now,
+      version: 1,
+      compositions: const [
+        Composition(componentName: 'Milk', percentage: 100.0, sortOrder: 0),
+      ],
+    );
+    final v2 = v1.copyWith(
+      version: 2,
+      updatedAt: now.add(const Duration(minutes: 1)),
+      updatedByDeviceId: adminDevice.id,
+      updatedByDisplayName: adminDevice.displayName,
+    );
+
+    await peerProdRepo.applySyncedProductsAtomically([v1]);
+    await adminProdRepo.applySyncedProductsAtomically([v2]);
+
+    final adminServer = P2pSyncServer(
+      deviceRepository: adminDevRepo,
+      productRepository: adminProdRepo,
+      getLocalDeviceId: () => adminDevice.id,
+    );
+    final peerServer = P2pSyncServer(
+      deviceRepository: peerDevRepo,
+      productRepository: peerProdRepo,
+      getLocalDeviceId: () => peerDevice.id,
+    );
+
+    try {
+      final peerPort =
+          await peerServer.start(bindAddress: InternetAddress.loopbackIPv4);
+      final discoveredPeer = DiscoveredPeer(
+        deviceId: peerDevice.id,
+        displayName: peerDevice.displayName,
+        workspaceId: workspaceId,
+        host: InternetAddress.loopbackIPv4.address,
+        port: peerPort,
+        discoveredAt: now,
+      );
+
+      final result = await adminServer.syncWithPeer(discoveredPeer);
+      expect(result.newConflicts, isEmpty);
+
+      final peerTypes = await peerProdRepo.getProductTypes();
+      final syncedYogurt =
+          peerTypes.firstWhere((t) => t.code == ProductType.greekYogurt.code);
+      expect(syncedYogurt.baseWeightGrams, 420.0);
+      expect(syncedYogurt.displayName, 'Greek Yogurt Pro');
+    } finally {
+      await adminServer.stop();
+      await peerServer.stop();
+    }
   });
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:synprod_lite/core/theme/app_theme.dart';
 import 'package:synprod_lite/domain/models/device.dart';
+import 'package:synprod_lite/domain/models/ingredient.dart';
 import 'package:synprod_lite/domain/models/product.dart';
 import 'package:synprod_lite/domain/models/product_type.dart';
 import 'package:synprod_lite/domain/models/sync_models.dart';
@@ -19,8 +21,10 @@ import 'package:synprod_lite/presentation/providers/device_providers.dart';
 import 'package:synprod_lite/presentation/providers/product_providers.dart';
 import 'package:synprod_lite/presentation/providers/theme_providers.dart';
 import 'package:synprod_lite/presentation/screens/device_management/device_management_screen.dart';
+import 'package:synprod_lite/presentation/screens/product_form/product_form_screen.dart';
 import 'package:synprod_lite/presentation/screens/profile/device_profile_screen.dart';
 import 'package:synprod_lite/presentation/screens/recipe_library/recipe_library_screen.dart';
+import 'package:synprod_lite/presentation/widgets/synprod_pin_pad.dart';
 import 'package:synprod_lite/presentation/widgets/synprod_ui.dart';
 
 class _SmokeDeviceRepository implements DeviceRepository {
@@ -121,6 +125,10 @@ class _SmokeProductRepository implements ProductRepository {
   Future<List<ProductType>> getProductTypes() async => ProductType.defaults;
   @override
   Future<void> saveProductType(ProductType productType) async {}
+  @override
+  Future<void> applySyncedProductTypesAtomically(
+    List<ProductType> productTypes,
+  ) async {}
   @override
   Future<void> deleteProductType(String code) async {}
   @override
@@ -410,5 +418,95 @@ void main() {
     expect(lightSnackBar.behavior, SnackBarBehavior.floating);
     expect(darkSnackBar.backgroundColor, AppTheme.darkSoftTintEnd);
     expect(darkSnackBar.behavior, SnackBarBehavior.floating);
+  });
+
+  testWidgets('SynProdPinPad renders larger tap targets for digits',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: AppTheme.lightTheme,
+        home: Scaffold(
+          body: SynProdPinPad(
+            title: 'Enter PIN',
+            subtitle: 'Enter 6-digit PIN',
+            submitLabel: 'Unlock',
+            onSubmit: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final digitOneInkWell = find.ancestor(
+      of: find.text('1'),
+      matching: find.byType(InkWell),
+    );
+    expect(digitOneInkWell, findsOneWidget);
+    final size = tester.getSize(digitOneInkWell);
+    expect(size.width, greaterThanOrEqualTo(76));
+    expect(size.height, greaterThanOrEqualTo(56));
+  });
+
+  testWidgets('ProductFormScreen allows selecting existing ingredients',
+      (WidgetTester tester) async {
+    final existingProduct = Product(
+      id: 'prod-1',
+      name: 'Vanilla Yogurt',
+      productType: ProductType.greekYogurt,
+      createdByDeviceId: 'admin-1',
+      createdByDisplayName: 'Admin',
+      createdAt: DateTime(2026, 11, 16),
+      updatedAt: DateTime(2026, 11, 16),
+      additionalIngredients: const [
+        AdditionalIngredient(
+          ingredientName: 'Natural Vanilla Extract',
+          quantity: 5,
+          unit: 'ml',
+          sortOrder: 0,
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          activeProductsStreamProvider.overrideWith(
+            (ref) => Stream.value([existingProduct]),
+          ),
+          productTypesStreamProvider.overrideWith(
+            (ref) => Stream.value(ProductType.defaults),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const ProductFormScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pumpAndSettle();
+
+    final addRowButton = find.text('Add Row').last;
+    await tester.ensureVisible(addRowButton);
+    await tester.pumpAndSettle();
+    await tester.tap(addRowButton);
+    await tester.pumpAndSettle();
+
+    await tester.drag(find.byType(ListView), const Offset(0, -300));
+    await tester.pumpAndSettle();
+
+    final pickerButton = find.byTooltip('Select existing ingredient');
+    expect(pickerButton, findsOneWidget);
+    await tester.ensureVisible(pickerButton);
+    await tester.tap(pickerButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Natural Vanilla Extract'), findsOneWidget);
+    await tester.tap(find.text('Natural Vanilla Extract'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Natural Vanilla Extract'), findsOneWidget);
+    expect(find.text('ml'), findsWidgets);
   });
 }

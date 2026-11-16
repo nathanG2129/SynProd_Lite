@@ -281,6 +281,29 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
+  Future<void> applySyncedProductTypesAtomically(
+    List<ProductType> productTypes,
+  ) async {
+    if (productTypes.isEmpty) return;
+    await db.transaction(() async {
+      await db.delete(db.productTypesTable).go();
+      for (var i = 0; i < productTypes.length; i++) {
+        final type = productTypes[i];
+        await db.into(db.productTypesTable).insertOnConflictUpdate(
+              ProductTypesTableCompanion.insert(
+                code: type.code,
+                displayName: type.displayName,
+                baseWeightGrams: type.baseWeightGrams,
+                packagingJson:
+                    ProductType.encodePackagingList(type.packagingOptions),
+                sortOrder: Value(type.sortOrder),
+              ),
+            );
+      }
+    });
+  }
+
+  @override
   Future<void> deleteProductType(String code) async {
     await (db.delete(db.productTypesTable)
           ..where((tbl) => tbl.code.equals(code)))

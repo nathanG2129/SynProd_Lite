@@ -21,6 +21,7 @@ abstract class ProductRepository {
   Stream<List<ProductType>> watchProductTypes();
   Future<List<ProductType>> getProductTypes();
   Future<void> saveProductType(ProductType productType);
+  Future<void> applySyncedProductTypesAtomically(List<ProductType> productTypes);
   Future<void> deleteProductType(String code);
 
   Stream<List<SyncConflictRecord>> watchConflictHistory();
