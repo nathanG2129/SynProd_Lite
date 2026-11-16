@@ -165,6 +165,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.byType(AnimatedSize), findsOneWidget);
     await tester.tap(find.text('Create New Workspace (Admin)'));
     await tester.pumpAndSettle();
 

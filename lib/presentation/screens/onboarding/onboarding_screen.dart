@@ -399,28 +399,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ),
                         const SizedBox(height: 16),
                       ],
-                      AnimatedSwitcher(
+                      AnimatedSize(
                         duration: const Duration(milliseconds: 260),
-                        switchInCurve: Curves.easeOutCubic,
-                        switchOutCurve: Curves.easeInCubic,
-                        transitionBuilder: (child, animation) {
-                          final beginOffset = _navigatingForward
-                              ? const Offset(0.18, 0)
-                              : const Offset(-0.18, 0);
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: beginOffset,
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: KeyedSubtree(
-                          key: ValueKey('$_mode-${_pendingAdminPin != null}'),
-                          child: _buildActiveStep(),
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment.topCenter,
+                        child: Builder(
+                          builder: (context) {
+                            final activeKey =
+                                ValueKey('$_mode-${_pendingAdminPin != null}');
+                            return AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 260),
+                              switchInCurve: Curves.easeOutCubic,
+                              switchOutCurve: Curves.easeInCubic,
+                              layoutBuilder: (currentChild, previousChildren) {
+                                return Stack(
+                                  alignment: Alignment.topCenter,
+                                  children: [
+                                    ...previousChildren,
+                                    ?currentChild,
+                                  ],
+                                );
+                              },
+                              transitionBuilder: (child, animation) {
+                                final isIncoming = child.key == activeKey;
+                                final beginOffset = isIncoming
+                                    ? (_navigatingForward
+                                        ? const Offset(0.25, 0)
+                                        : const Offset(-0.25, 0))
+                                    : (_navigatingForward
+                                        ? const Offset(-0.25, 0)
+                                        : const Offset(0.25, 0));
+                                return FadeTransition(
+                                  opacity: animation,
+                                  child: SlideTransition(
+                                    position: Tween<Offset>(
+                                      begin: beginOffset,
+                                      end: Offset.zero,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: KeyedSubtree(
+                                key: activeKey,
+                                child: _buildActiveStep(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
