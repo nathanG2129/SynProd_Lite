@@ -521,31 +521,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         const SizedBox(height: 20),
         const Divider(height: 1),
         const SizedBox(height: 12),
-        Center(
-          child: TextButton(
-            onPressed: () => _switchMode(_OnboardingMode.createAdmin),
-            style: TextButton.styleFrom(
-              foregroundColor:
-                  isDark ? AppTheme.slate300 : AppTheme.oliveMuted,
-              textStyle: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                decoration: TextDecoration.underline,
+        Row(
+          children: [
+            Expanded(
+              child: TextButton(
+                onPressed: () => _switchMode(_OnboardingMode.createAdmin),
+                style: TextButton.styleFrom(
+                  foregroundColor:
+                      isDark ? AppTheme.slate300 : AppTheme.oliveMuted,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 10,
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+                child: const Text(
+                  'Setup New Workspace',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
-            child: const Text('Create New Workspace (Admin)'),
-          ),
-        ),
-        Center(
-          child: TextButton.icon(
-            onPressed: () => _switchMode(_OnboardingMode.restoreBackup),
-            icon: const Icon(Icons.restore_outlined, size: 16),
-            label: const Text('Restore Admin Workspace from Backup'),
-            style: TextButton.styleFrom(
-              foregroundColor: AppTheme.headingColorFor(context),
-              textStyle: const TextStyle(fontSize: 13),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextButton.icon(
+                onPressed: () => _switchMode(_OnboardingMode.restoreBackup),
+                icon: const Icon(Icons.restore_outlined, size: 16),
+                label: const Text(
+                  'Restore Workspace',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.headingColorFor(context),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 10,
+                  ),
+                  textStyle: const TextStyle(fontSize: 13),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ],
     );
