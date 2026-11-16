@@ -14,7 +14,10 @@ class SynProdCanvas extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: AppTheme.canvasGradientFor(context),
       ),
-      child: child,
+      child: SafeArea(
+        top: false,
+        child: child,
+      ),
     );
   }
 }
