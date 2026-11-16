@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -192,85 +193,102 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _openQrScanner() async {
-    final scanned = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.black,
-      clipBehavior: Clip.antiAlias,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (ctx) => SizedBox(
-        height: MediaQuery.of(ctx).size.height * 0.72,
-        child: Column(
-          children: [
-            Container(
-              height: 4,
-              decoration: const BoxDecoration(
-                gradient: AppTheme.brandHeadingGradient,
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppTheme.cardColorFor(ctx),
-                border: Border(
-                  bottom: BorderSide(
-                    color: AppTheme.isDark(ctx)
-                        ? AppTheme.darkOliveAccent
-                        : AppTheme.forestGreen,
-                    width: 3,
-                  ),
+    final scannerController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.noDuplicates,
+    );
+    var hasPopped = false;
+    try {
+      final scanned = await showModalBottomSheet<String>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.black,
+        clipBehavior: Clip.antiAlias,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        builder: (ctx) => SizedBox(
+          height: MediaQuery.of(ctx).size.height * 0.72,
+          child: Column(
+            children: [
+              Container(
+                height: 4,
+                decoration: const BoxDecoration(
+                  gradient: AppTheme.brandHeadingGradient,
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.qr_code_scanner,
-                    color: AppTheme.headingColorFor(ctx),
-                    size: 22,
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppTheme.cardColorFor(ctx),
+                  border: Border(
+                    bottom: BorderSide(
+                      color: AppTheme.isDark(ctx)
+                          ? AppTheme.darkOliveAccent
+                          : AppTheme.forestGreen,
+                      width: 3,
+                    ),
                   ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Scan Pairing QR Code',
-                      style: TextStyle(
-                        color: AppTheme.headingColorFor(ctx),
-                        fontSize: 17,
-                        fontWeight: FontWeight.w700,
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.qr_code_scanner,
+                      color: AppTheme.headingColorFor(ctx),
+                      size: 22,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Scan Pairing QR Code',
+                        style: TextStyle(
+                          color: AppTheme.headingColorFor(ctx),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(
-                      Icons.close,
-                      color: AppTheme.headingColorFor(ctx),
+                    IconButton(
+                      icon: Icon(
+                        Icons.close,
+                        color: AppTheme.headingColorFor(ctx),
+                      ),
+                      onPressed: () {
+                        if (hasPopped || !ctx.mounted) return;
+                        hasPopped = true;
+                        Navigator.of(ctx).pop();
+                      },
                     ),
-                    onPressed: () => Navigator.of(ctx).pop(),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: MobileScanner(
-                onDetect: (capture) {
-                  for (final barcode in capture.barcodes) {
-                    final raw = barcode.rawValue;
-                    if (raw != null && raw.isNotEmpty) {
-                      Navigator.of(ctx).pop(raw);
-                      break;
+              Expanded(
+                child: MobileScanner(
+                  controller: scannerController,
+                  onDetect: (capture) {
+                    if (hasPopped || !ctx.mounted) return;
+                    for (final barcode in capture.barcodes) {
+                      final raw = barcode.rawValue;
+                      if (raw != null && raw.isNotEmpty) {
+                        hasPopped = true;
+                        unawaited(scannerController.stop());
+                        Navigator.of(ctx).pop(raw);
+                        break;
+                      }
                     }
-                  }
-                },
+                  },
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-    if (scanned != null && mounted) {
-      _qrRawCtrl.text = scanned;
-      _validateQrString(scanned);
+      );
+      if (scanned != null && mounted) {
+        _qrRawCtrl.text = scanned;
+        _validateQrString(scanned);
+      }
+    } finally {
+      await scannerController.dispose();
     }
   }
 
