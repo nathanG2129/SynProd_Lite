@@ -394,11 +394,12 @@ class _DeviceManagementScreenState
     DeviceRole selectedRole = DeviceRole.production;
     String? error;
 
-    await showDialog<void>(
+    await showSynProdDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Add Paired Device'),
+        builder: (ctx, setDialogState) => SynProdDialog(
+          icon: Icons.devices_outlined,
+          title: 'Add Paired Device',
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -512,38 +513,38 @@ class _DeviceManagementScreenState
     final rawJson = payload.toJsonString();
     if (!context.mounted) return;
 
-    await showDialog<void>(
+    await showSynProdDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Pair $displayName (${role.displayName})'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.slate200),
-                ),
-                child: SizedBox(
-                  width: 220,
-                  height: 220,
-                  child: QrImageView(
-                    data: rawJson,
-                    version: QrVersions.auto,
-                  ),
+      builder: (ctx) => SynProdDialog(
+        icon: Icons.qr_code_2,
+        title: 'Pair $displayName',
+        subtitle: '${role.displayName} Device',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.slate200),
+              ),
+              child: SizedBox(
+                width: 220,
+                height: 220,
+                child: QrImageView(
+                  data: rawJson,
+                  version: QrVersions.auto,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
-                'Single-use code • Expires in 10 minutes.\nScan this code on the new device.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: AppTheme.slate500),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Single-use code • Expires in 10 minutes.\nScan this code on the new device.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: AppTheme.slate500),
+            ),
+          ],
         ),
         actions: [
           TextButton.icon(
@@ -556,7 +557,7 @@ class _DeviceManagementScreenState
             icon: const Icon(Icons.copy, size: 18),
             label: const Text('Copy Payload'),
           ),
-          TextButton(
+          SynProdGradientButton(
             onPressed: () => Navigator.of(ctx).pop(),
             child: const Text('Done'),
           ),

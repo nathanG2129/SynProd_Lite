@@ -113,11 +113,12 @@ class _AuthGateState extends ConsumerState<_AuthGate>
     _warningDialogOpen = true;
     final mins = remaining?.inMinutes ?? 15;
 
-    await showDialog<void>(
+    await showSynProdDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Session Expiring Soon'),
+      builder: (ctx) => SynProdDialog(
+        icon: Icons.timer_outlined,
+        title: 'Session Expiring Soon',
         content: Text(
           'Your session will auto-lock in $mins minute${mins == 1 ? '' : 's'} due to inactivity.',
         ),

@@ -364,3 +364,106 @@ class SynProdAvatar extends StatelessWidget {
     );
   }
 }
+
+/// Cohesive modal dialog matching `SynProdCard` (`12px` radius, `2px` green-tinted
+/// border, `4px` top gradient bar, and green-tinted shadow).
+class SynProdDialog extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final IconData? icon;
+  final Widget content;
+  final List<Widget> actions;
+  final double maxWidth;
+
+  const SynProdDialog({
+    super.key,
+    required this.title,
+    required this.content,
+    this.subtitle,
+    this.icon,
+    this.actions = const [],
+    this.maxWidth = 440,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: SynProdCard(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (icon != null) ...[
+                    Icon(icon, color: AppTheme.forestGreen, size: 22),
+                    const SizedBox(width: 10),
+                  ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.forestGreen,
+                          ),
+                        ),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.oliveMuted,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: SingleChildScrollView(child: content),
+              ),
+              if (actions.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Wrap(
+                  alignment: WrapAlignment.end,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: actions,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shows a `SynProdDialog` using the standard modal dialog entry point.
+Future<T?> showSynProdDialog<T>({
+  required BuildContext context,
+  required WidgetBuilder builder,
+  bool barrierDismissible = true,
+}) {
+  return showDialog<T>(
+    context: context,
+    barrierDismissible: barrierDismissible,
+    builder: builder,
+  );
+}

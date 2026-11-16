@@ -179,10 +179,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
   }
 
   Future<void> _confirmSoftDelete() async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showSynProdDialog<bool>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Product'),
+      builder: (dialogContext) => SynProdDialog(
+        icon: Icons.delete_outline,
+        title: 'Delete Product',
         content: Text(
           'Are you sure you want to delete "${_product.name}"? '
           'It will be removed from all recipe lists and searches.',

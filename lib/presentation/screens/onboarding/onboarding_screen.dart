@@ -129,17 +129,51 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.black,
+      clipBehavior: Clip.antiAlias,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
       builder: (ctx) => SizedBox(
-        height: MediaQuery.of(ctx).size.height * 0.7,
+        height: MediaQuery.of(ctx).size.height * 0.72,
         child: Column(
           children: [
-            AppBar(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              title: const Text('Scan Pairing QR Code'),
-              leading: IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: () => Navigator.of(ctx).pop(),
+            Container(
+              height: 4,
+              decoration: const BoxDecoration(
+                gradient: AppTheme.brandHeadingGradient,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  bottom: BorderSide(color: AppTheme.forestGreen, width: 3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.qr_code_scanner,
+                    color: AppTheme.forestGreen,
+                    size: 22,
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      'Scan Pairing QR Code',
+                      style: TextStyle(
+                        color: AppTheme.forestGreen,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: AppTheme.forestGreen),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                  ),
+                ],
               ),
             ),
             Expanded(

@@ -55,11 +55,12 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
     final confirmCtrl = TextEditingController();
     String? error;
 
-    await showDialog<void>(
+    await showSynProdDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Change Device PIN'),
+        builder: (ctx, setDialogState) => SynProdDialog(
+          icon: Icons.pin_outlined,
+          title: 'Change Device PIN',
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -152,11 +153,12 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
     final confirmCtrl = TextEditingController();
     String? error;
 
-    await showDialog<void>(
+    await showSynProdDialog<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Export Encrypted Workspace'),
+        builder: (ctx, setDialogState) => SynProdDialog(
+          icon: Icons.backup_outlined,
+          title: 'Export Encrypted Workspace',
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
