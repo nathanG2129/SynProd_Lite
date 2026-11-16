@@ -400,4 +400,15 @@ void main() {
       findsWidgets,
     );
   });
+
+  testWidgets('AppTheme configures green SnackBarTheme for light and dark modes',
+      (WidgetTester tester) async {
+    final lightSnackBar = AppTheme.lightTheme.snackBarTheme;
+    final darkSnackBar = AppTheme.darkTheme.snackBarTheme;
+
+    expect(lightSnackBar.backgroundColor, AppTheme.forestGreen);
+    expect(lightSnackBar.behavior, SnackBarBehavior.floating);
+    expect(darkSnackBar.backgroundColor, AppTheme.darkSoftTintEnd);
+    expect(darkSnackBar.behavior, SnackBarBehavior.floating);
+  });
 }

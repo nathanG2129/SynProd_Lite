@@ -324,6 +324,20 @@ class AppTheme {
           side: const BorderSide(color: slate200),
         ),
       ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: forestGreen,
+        contentTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w500,
+        ),
+        actionTextColor: softTintEnd,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: primaryOlive.withValues(alpha: 0.45)),
+        ),
+      ),
       dividerTheme: const DividerThemeData(
         color: slate200,
         thickness: 1,
@@ -467,6 +481,20 @@ class AppTheme {
           selectedForegroundColor: darkHeadingAccent,
           foregroundColor: slate300,
           side: const BorderSide(color: darkBorder),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: darkSoftTintEnd,
+        contentTextStyle: const TextStyle(
+          color: slate100,
+          fontSize: 13.5,
+          fontWeight: FontWeight.w500,
+        ),
+        actionTextColor: darkHeadingAccent,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+          side: BorderSide(color: darkOliveAccent.withValues(alpha: 0.45)),
         ),
       ),
       dividerTheme: const DividerThemeData(
