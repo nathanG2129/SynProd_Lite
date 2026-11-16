@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -15,6 +16,8 @@ import 'package:synprod_lite/presentation/providers/auth_providers.dart';
 import 'package:synprod_lite/presentation/providers/product_providers.dart';
 
 class _SmokeDeviceRepository implements DeviceRepository {
+  bool createdWorkspace = false;
+
   @override
   Future<Workspace?> getActiveWorkspace() async => null;
   @override
@@ -31,8 +34,25 @@ class _SmokeDeviceRepository implements DeviceRepository {
   Future<({Workspace workspace, Device adminDevice})> createWorkspaceAndAdmin({
     required String workspaceName,
     required String adminDisplayName,
-  }) =>
-      throw UnimplementedError();
+  }) async {
+    createdWorkspace = true;
+    final now = DateTime.now();
+    return (
+      workspace: Workspace(
+        id: 'ws-1',
+        name: workspaceName,
+        workspaceKey: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=',
+        createdAt: now,
+      ),
+      adminDevice: Device(
+        id: 'dev-1',
+        displayName: adminDisplayName,
+        role: DeviceRole.admin,
+        pairedAt: now,
+        lastSeenAt: now,
+      ),
+    );
+  }
   @override
   Future<void> saveWorkspaceAndLocalDevice({
     required Workspace workspace,
@@ -117,5 +137,92 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('SynProd Lite'), findsOneWidget);
+  });
+
+  testWidgets('Create Workspace uses 2-step lock-screen PIN setup',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final deviceRepo = _SmokeDeviceRepository();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          deviceRepositoryProvider.overrideWithValue(deviceRepo),
+          productRepositoryProvider
+              .overrideWithValue(_SmokeProductRepository()),
+        ],
+        child: const SynProdLiteApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Create New Workspace (Admin)'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    expect(find.text('Workspace name is required.'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Workspace Name *'),
+      'Main Plant',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'This Device Name *'),
+      'Admin Tablet',
+    );
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Create Device PIN'), findsOneWidget);
+
+    for (final digit in ['1', '2', '3', '4']) {
+      await tester.tap(find.text(digit));
+    }
+    await tester.pump();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Confirm Device PIN'), findsOneWidget);
+
+    // Mismatching PIN shows error and stays on confirm step
+    for (final digit in ['9', '9', '9', '9']) {
+      await tester.tap(find.text(digit));
+    }
+    await tester.pump();
+    await tester.tap(find.text('Create Workspace'));
+    await tester.pump();
+    expect(find.text('PINs do not match. Try again.'), findsOneWidget);
+    expect(deviceRepo.createdWorkspace, isFalse);
+
+    // Back button returns to Step 1, then to Create Workspace form preserving inputs
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.text('Create Device PIN'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.arrow_back));
+    await tester.pumpAndSettle();
+    expect(find.text('Main Plant'), findsOneWidget);
+    expect(find.text('Admin Tablet'), findsOneWidget);
+
+    // Complete matching 2-step PIN flow
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    for (final digit in ['1', '2', '3', '4']) {
+      await tester.tap(find.text(digit));
+    }
+    await tester.pump();
+    await tester.tap(find.text('Next'));
+    await tester.pumpAndSettle();
+    for (final digit in ['1', '2', '3', '4']) {
+      await tester.tap(find.text(digit));
+    }
+    await tester.pump();
+    await tester.tap(find.text('Create Workspace'));
+    await tester.pumpAndSettle();
+
+    expect(deviceRepo.createdWorkspace, isTrue);
   });
 }

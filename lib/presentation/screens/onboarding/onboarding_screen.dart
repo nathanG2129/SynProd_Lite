@@ -10,9 +10,10 @@ import '../../../core/services/qr_pairing_service.dart';
 import '../../../core/services/workspace_backup_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../providers/auth_providers.dart';
+import '../../widgets/synprod_pin_pad.dart';
 import '../../widgets/synprod_ui.dart';
 
-enum _OnboardingMode { choose, createAdmin, joinQr, restoreBackup }
+enum _OnboardingMode { choose, createAdmin, createAdminPin, joinQr, restoreBackup }
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -29,6 +30,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   // Create Admin controllers
   final _workspaceNameCtrl = TextEditingController();
   final _deviceNameCtrl = TextEditingController();
+  String? _pendingAdminPin;
+  int _pinMismatchCount = 0;
 
   // PIN controllers (shared across flows)
   final _pinCtrl = TextEditingController();
@@ -58,9 +61,28 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     setState(() {
       _mode = mode;
       _error = null;
+      _pendingAdminPin = null;
       _pinCtrl.clear();
       _confirmPinCtrl.clear();
     });
+  }
+
+  void _handleBack() {
+    if (_mode == _OnboardingMode.createAdminPin) {
+      if (_pendingAdminPin != null) {
+        setState(() {
+          _pendingAdminPin = null;
+          _error = null;
+        });
+      } else {
+        setState(() {
+          _mode = _OnboardingMode.createAdmin;
+          _error = null;
+        });
+      }
+      return;
+    }
+    _switchMode(_OnboardingMode.choose);
   }
 
   String? _validatePinFields() {
@@ -75,7 +97,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return null;
   }
 
-  Future<void> _submitCreateAdmin() async {
+  void _continueToAdminPin() {
     final workspaceName = _workspaceNameCtrl.text.trim();
     final deviceName = _deviceNameCtrl.text.trim();
     if (workspaceName.isEmpty) {
@@ -86,21 +108,23 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       setState(() => _error = 'Device display name is required.');
       return;
     }
-    final pinErr = _validatePinFields();
-    if (pinErr != null) {
-      setState(() => _error = pinErr);
-      return;
-    }
+    setState(() {
+      _mode = _OnboardingMode.createAdminPin;
+      _pendingAdminPin = null;
+      _error = null;
+    });
+  }
 
+  Future<void> _submitCreateAdminWithPin(String pin) async {
     setState(() {
       _isBusy = true;
       _error = null;
     });
     try {
       await ref.read(authControllerProvider.notifier).createWorkspaceAndAdmin(
-            workspaceName: workspaceName,
-            displayName: deviceName,
-            pin: _pinCtrl.text.trim(),
+            workspaceName: _workspaceNameCtrl.text.trim(),
+            displayName: _deviceNameCtrl.text.trim(),
+            pin: pin,
           );
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
@@ -311,9 +335,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         children: [
                           if (_mode != _OnboardingMode.choose)
                             IconButton(
-                              onPressed: _isBusy
-                                  ? null
-                                  : () => _switchMode(_OnboardingMode.choose),
+                              onPressed: _isBusy ? null : _handleBack,
                               icon: const Icon(Icons.arrow_back),
                               color: AppTheme.forestGreen,
                             ),
@@ -342,7 +364,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      if (_error != null) ...[
+                      if (_error != null &&
+                          _mode != _OnboardingMode.createAdminPin) ...[
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
@@ -364,6 +387,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       if (_mode == _OnboardingMode.choose) _buildChooseMode(),
                       if (_mode == _OnboardingMode.createAdmin)
                         _buildCreateAdminForm(),
+                      if (_mode == _OnboardingMode.createAdminPin)
+                        _buildCreateAdminPinStep(),
                       if (_mode == _OnboardingMode.joinQr) _buildJoinQrForm(),
                       if (_mode == _OnboardingMode.restoreBackup)
                         _buildRestoreBackupForm(),
@@ -384,6 +409,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         return 'Offline Device Setup';
       case _OnboardingMode.createAdmin:
         return 'Create Workspace (Admin Device)';
+      case _OnboardingMode.createAdminPin:
+        return 'Set Device PIN';
       case _OnboardingMode.joinQr:
         return 'Join Workspace via QR Pairing';
       case _OnboardingMode.restoreBackup:
@@ -467,21 +494,55 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             hintText: 'e.g. Admin Tablet',
           ),
         ),
-        const SizedBox(height: 14),
-        _buildPinInputs(),
         const SizedBox(height: 20),
         SynProdGradientButton(
-          onPressed: _isBusy ? null : _submitCreateAdmin,
-          child: Row(
+          onPressed: _isBusy ? null : _continueToAdminPin,
+          child: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.check_circle_outline, size: 18),
-              const SizedBox(width: 8),
-              Text(_isBusy ? 'Creating...' : 'Create Workspace'),
+              Icon(Icons.arrow_forward, size: 18),
+              SizedBox(width: 8),
+              Text('Continue'),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildCreateAdminPinStep() {
+    final isConfirmStep = _pendingAdminPin != null;
+    return SynProdPinPad(
+      key: ValueKey('admin-pin-$isConfirmStep-$_pinMismatchCount'),
+      title: isConfirmStep ? 'Confirm Device PIN' : 'Create Device PIN',
+      subtitle: isConfirmStep
+          ? 'Re-enter your PIN to confirm.'
+          : 'Enter a 4–6 digit PIN to lock this device.',
+      submitLabel: isConfirmStep
+          ? (_isBusy ? 'Creating...' : 'Create Workspace')
+          : 'Next',
+      submitIcon:
+          isConfirmStep ? Icons.check_circle_outline : Icons.arrow_forward,
+      isBusy: _isBusy,
+      errorText: _error,
+      onSubmit: (pin) {
+        if (!isConfirmStep) {
+          setState(() {
+            _pendingAdminPin = pin;
+            _pinMismatchCount = 0;
+            _error = null;
+          });
+          return;
+        }
+        if (pin != _pendingAdminPin) {
+          setState(() {
+            _pinMismatchCount++;
+            _error = 'PINs do not match. Try again.';
+          });
+          return;
+        }
+        _submitCreateAdminWithPin(pin);
+      },
     );
   }
 
