@@ -362,28 +362,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Set up this device to start managing synbiotic recipes offline.',
+          "Scan a pairing QR code from an Admin device to join your team's offline workspace.",
           style: TextStyle(color: AppTheme.slate500, fontSize: 14),
         ),
         const SizedBox(height: 20),
         SynProdGradientButton(
-          onPressed: () => _switchMode(_OnboardingMode.createAdmin),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.admin_panel_settings_outlined, size: 18),
-              SizedBox(width: 8),
-              Flexible(
-                child: Text(
-                  'Create New Workspace (Admin)',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        SynProdSecondaryButton(
           onPressed: () => _switchMode(_OnboardingMode.joinQr),
           child: const Row(
             mainAxisSize: MainAxisSize.min,
@@ -399,12 +382,33 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             ],
           ),
         ),
+        const SizedBox(height: 20),
+        const Divider(height: 1),
         const SizedBox(height: 12),
-        TextButton.icon(
-          onPressed: () => _switchMode(_OnboardingMode.restoreBackup),
-          icon: const Icon(Icons.restore_outlined, size: 18),
-          label: const Text('Restore Admin Workspace from Backup'),
-          style: TextButton.styleFrom(foregroundColor: AppTheme.forestGreen),
+        Center(
+          child: TextButton(
+            onPressed: () => _switchMode(_OnboardingMode.createAdmin),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.oliveMuted,
+              textStyle: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+            child: const Text('Create New Workspace (Admin)'),
+          ),
+        ),
+        Center(
+          child: TextButton.icon(
+            onPressed: () => _switchMode(_OnboardingMode.restoreBackup),
+            icon: const Icon(Icons.restore_outlined, size: 16),
+            label: const Text('Restore Admin Workspace from Backup'),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.forestGreen,
+              textStyle: const TextStyle(fontSize: 13),
+            ),
+          ),
         ),
       ],
     );
