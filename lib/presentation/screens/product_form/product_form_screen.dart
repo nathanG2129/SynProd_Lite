@@ -277,7 +277,8 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
         ],
       ),
       body: SynProdCanvas(
-        child: Form(
+        child: SynProdCenteredBody(
+          child: Form(
           key: _formKey,
           child: ListView(
             controller: _scrollController,
@@ -319,6 +320,7 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               const SizedBox(height: 32),
             ],
           ),
+        ),
         ),
       ),
     );

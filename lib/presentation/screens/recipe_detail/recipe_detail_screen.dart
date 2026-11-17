@@ -15,8 +15,15 @@ import 'services/recipe_pdf_generator.dart';
 
 class RecipeDetailScreen extends ConsumerStatefulWidget {
   final Product product;
+  final bool embedded;
+  final VoidCallback? onDeleted;
 
-  const RecipeDetailScreen({super.key, required this.product});
+  const RecipeDetailScreen({
+    super.key,
+    required this.product,
+    this.embedded = false,
+    this.onDeleted,
+  });
 
   @override
   ConsumerState<RecipeDetailScreen> createState() => _RecipeDetailScreenState();
@@ -61,6 +68,32 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         _handleTotalWeightBlur();
       }
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant RecipeDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.product.id != widget.product.id ||
+        oldWidget.product.version != widget.product.version ||
+        oldWidget.product.updatedAt != widget.product.updatedAt) {
+      final isNewProduct = oldWidget.product.id != widget.product.id;
+      final typeChanged =
+          oldWidget.product.productType != widget.product.productType;
+      _product = widget.product;
+      if (isNewProduct || typeChanged) {
+        _selectedPackaging = _product.productType.packagingOptions.first;
+      }
+      if (isNewProduct) {
+        _currentQuantity = 1.0;
+        _quantityController.text = '1';
+      }
+      final total = OrderCalculatorService.calculateTotalWeight(
+        baseWeightGrams: _product.productType.baseWeightGrams,
+        orderQuantity: _currentQuantity,
+        unitMultiplier: _selectedPackaging.multiplier,
+      );
+      _totalWeightController.text = total.toStringAsFixed(1);
+    }
   }
 
   @override
@@ -214,7 +247,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
           content: Text('Deleted "${_product.name}"'),
         ),
       );
-      Navigator.of(context).pop();
+      if (widget.embedded) {
+        widget.onDeleted?.call();
+      } else {
+        Navigator.of(context).pop();
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -235,6 +272,95 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final isCompositionValid =
         (result.totalPercentage - 100.0).abs() <= AppConstants.compositionTolerance;
 
+    final actions = <Widget>[
+      if (canEdit)
+        IconButton(
+          tooltip: 'Edit Product',
+          icon: Icon(
+            Icons.edit_outlined,
+            color: AppTheme.headingColorFor(context),
+          ),
+          onPressed: _editProduct,
+        ),
+      if (canDelete)
+        IconButton(
+          tooltip: 'Delete Product',
+          icon: const Icon(Icons.delete_outline, color: AppTheme.redError),
+          onPressed: _confirmSoftDelete,
+        ),
+      IconButton(
+        tooltip: 'Export / Print PDF (F3)',
+        icon: _isExportingPdf
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(
+                Icons.picture_as_pdf_outlined,
+                color: AppTheme.headingColorFor(context),
+              ),
+        onPressed: _isExportingPdf ? null : _exportPdf,
+      ),
+    ];
+
+    final scrollContent = SynProdCenteredBody(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildProductInfoCard(),
+            const SizedBox(height: 16),
+            _buildCalculatorControlsCard(),
+            const SizedBox(height: 16),
+            _buildCompositionCard(result, isCompositionValid),
+            const SizedBox(height: 16),
+            _buildIngredientsCard(result),
+            const SizedBox(height: 24),
+          ],
+        ),
+      ),
+    );
+
+    if (widget.embedded) {
+      return Column(
+        children: [
+          Container(
+            height: 60,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: BoxDecoration(
+              color: AppTheme.cardColorFor(context),
+              border: Border(
+                bottom: BorderSide(
+                  color: AppTheme.cardBorderFor(context),
+                  width: 1.5,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _product.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: AppTheme.headingColorFor(context),
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                ...actions,
+              ],
+            ),
+          ),
+          Expanded(child: scrollContent),
+        ],
+      );
+    }
+
     return Scaffold(
       appBar: SynProdAppBar(
         title: Text(
@@ -244,63 +370,9 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
             fontWeight: FontWeight.w700,
           ),
         ),
-        actions: [
-          if (canEdit)
-            IconButton(
-              tooltip: 'Edit Product',
-              icon: Icon(
-                Icons.edit_outlined,
-                color: AppTheme.headingColorFor(context),
-              ),
-              onPressed: _editProduct,
-            ),
-          if (canDelete)
-            IconButton(
-              tooltip: 'Delete Product',
-              icon: const Icon(Icons.delete_outline, color: AppTheme.redError),
-              onPressed: _confirmSoftDelete,
-            ),
-          IconButton(
-            tooltip: 'Export / Print PDF (F3)',
-            icon: _isExportingPdf
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : Icon(
-                    Icons.picture_as_pdf_outlined,
-                    color: AppTheme.headingColorFor(context),
-                  ),
-            onPressed: _isExportingPdf ? null : _exportPdf,
-          ),
-        ],
+        actions: actions,
       ),
-      body: SynProdCanvas(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Product Info Card
-              _buildProductInfoCard(),
-              const SizedBox(height: 16),
-
-              // Calculator Controls Card (F2)
-              _buildCalculatorControlsCard(),
-              const SizedBox(height: 16),
-
-              // Composition Section
-              _buildCompositionCard(result, isCompositionValid),
-              const SizedBox(height: 16),
-
-              // Additional Ingredients Section
-              _buildIngredientsCard(result),
-              const SizedBox(height: 24),
-            ],
-          ),
-        ),
-      ),
+      body: SynProdCanvas(child: scrollContent),
     );
   }
 
@@ -371,15 +443,18 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               const Icon(Icons.calculate_outlined,
                   size: 20, color: AppTheme.primaryOlive),
               const SizedBox(width: 8),
-              Text(
-                'Order Capacity Calculator',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.headingColorFor(context),
+              Expanded(
+                child: Text(
+                  'Order Capacity Calculator',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.headingColorFor(context),
+                  ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
                 // Packaging Unit Selector
                 if (_product.productType.packagingOptions.length > 1)
                   DropdownButton<PackagingOption>(

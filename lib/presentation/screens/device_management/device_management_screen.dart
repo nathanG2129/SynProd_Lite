@@ -16,7 +16,9 @@ import '../../widgets/synprod_ui.dart';
 enum _DeviceSortField { name, role, pairedAt, lastSeenAt }
 
 class DeviceManagementScreen extends ConsumerStatefulWidget {
-  const DeviceManagementScreen({super.key});
+  final bool embedded;
+
+  const DeviceManagementScreen({super.key, this.embedded = false});
 
   @override
   ConsumerState<DeviceManagementScreen> createState() =>
@@ -34,8 +36,9 @@ class _DeviceManagementScreenState
 
     if (!currentDevice.role.canManageDevices) {
       return Scaffold(
-        appBar: const SynProdAppBar(
-          title: SynProdGradientText('Device Management'),
+        appBar: SynProdAppBar(
+          automaticallyImplyLeading: !widget.embedded,
+          title: const SynProdGradientText('Device Management'),
         ),
         body: SynProdCanvas(
           child: Center(
@@ -81,6 +84,7 @@ class _DeviceManagementScreenState
 
     return Scaffold(
       appBar: SynProdAppBar(
+        automaticallyImplyLeading: !widget.embedded,
         title: const FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
@@ -110,7 +114,8 @@ class _DeviceManagementScreenState
         ],
       ),
       body: SynProdCanvas(
-        child: devicesAsync.when(
+        child: SynProdCenteredBody(
+          child: devicesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('Error loading devices: $e')),
           data: (devices) {
@@ -199,6 +204,7 @@ class _DeviceManagementScreenState
               ],
             );
           },
+        ),
         ),
       ),
     );

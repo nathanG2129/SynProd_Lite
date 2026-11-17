@@ -10,7 +10,9 @@ import '../../widgets/synprod_ui.dart';
 import '../product_form/product_form_screen.dart';
 
 class SyncStatusScreen extends ConsumerWidget {
-  const SyncStatusScreen({super.key});
+  final bool embedded;
+
+  const SyncStatusScreen({super.key, this.embedded = false});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -21,6 +23,7 @@ class SyncStatusScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: SynProdAppBar(
+        automaticallyImplyLeading: !embedded,
         title: const SynProdGradientText('Local Wi-Fi Sync'),
         actions: [
           Padding(
@@ -42,20 +45,22 @@ class SyncStatusScreen extends ConsumerWidget {
         ],
       ),
       body: SynProdCanvas(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            _buildStatusCard(context, ref, syncState),
-            const SizedBox(height: 16),
-            _buildPeersCard(context, syncState),
-            const SizedBox(height: 16),
-            _buildConflictsSection(
-              context,
-              ref,
-              conflictsAsync,
-              canRecoverOrEdit,
-            ),
-          ],
+        child: SynProdCenteredBody(
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              _buildStatusCard(context, ref, syncState),
+              const SizedBox(height: 16),
+              _buildPeersCard(context, syncState),
+              const SizedBox(height: 16),
+              _buildConflictsSection(
+                context,
+                ref,
+                conflictsAsync,
+                canRecoverOrEdit,
+              ),
+            ],
+          ),
         ),
       ),
     );

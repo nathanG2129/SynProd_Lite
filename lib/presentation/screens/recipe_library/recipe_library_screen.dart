@@ -14,7 +14,9 @@ import '../recipe_detail/recipe_detail_screen.dart';
 import '../sync/sync_status_screen.dart';
 
 class RecipeLibraryScreen extends ConsumerStatefulWidget {
-  const RecipeLibraryScreen({super.key});
+  final bool embedded;
+
+  const RecipeLibraryScreen({super.key, this.embedded = false});
 
   @override
   ConsumerState<RecipeLibraryScreen> createState() => _RecipeLibraryScreenState();
@@ -22,7 +24,7 @@ class RecipeLibraryScreen extends ConsumerStatefulWidget {
 
 class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
-  bool _filtersExpanded = true;
+  String? _selectedProductId;
 
   @override
   void dispose() {
@@ -61,526 +63,639 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
     final selectedIng = ref.watch(selectedIngredientFilterProvider);
     final myProductsOnly = ref.watch(myProductsOnlyProvider);
 
-    final distinctCompsAsync = ref.watch(distinctComponentsProvider);
-    final distinctIngsAsync = ref.watch(distinctIngredientsProvider);
-
     final hasFilters = _hasActiveFilters(ref);
+    final secondaryFilterCount = (selectedComp != null ? 1 : 0) +
+        (selectedIng != null ? 1 : 0) +
+        (myProductsOnly ? 1 : 0);
 
-    return Scaffold(
-      floatingActionButton: currentDevice.role.canCreateProduct
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const ProductFormScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('New Recipe'),
-            )
-          : null,
-      appBar: SynProdAppBar(
-        title: const SynProdGradientText('SynProd Lite'),
-        actions: [
-          IconButton(
-            tooltip: syncState.peers.isNotEmpty
-                ? 'Local Sync (${syncState.peers.length} peer${syncState.peers.length == 1 ? '' : 's'})'
-                : 'Local Sync & Conflict History',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const SyncStatusScreen(),
-                ),
-              );
-            },
-            icon: Badge(
-              isLabelVisible: syncState.unresolvedConflictsCount > 0 ||
-                  syncState.peers.isNotEmpty,
-              backgroundColor: syncState.unresolvedConflictsCount > 0
-                  ? Colors.amber.shade700
-                  : AppTheme.primaryOlive,
-              label: Text(
-                syncState.unresolvedConflictsCount > 0
-                    ? '${syncState.unresolvedConflictsCount}'
-                    : '${syncState.peers.length}',
-                style: const TextStyle(fontSize: 10),
-              ),
-              child: Icon(
-                syncState.isSyncing
-                    ? Icons.sync
-                    : (syncState.isRunning
-                        ? Icons.wifi_tethering
-                        : Icons.sync_disabled),
-                color: AppTheme.headingColorFor(context),
-              ),
-            ),
-          ),
-          if (currentDevice.role.canManageDevices)
-            IconButton(
-              tooltip: 'Device Management',
-              icon: Icon(
-                Icons.devices_outlined,
-                color: AppTheme.headingColorFor(context),
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const DeviceManagementScreen(),
-                  ),
-                );
-              },
-            ),
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Center(
-              child: Material(
-                color: Colors.transparent,
-                shape: const StadiumBorder(),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  customBorder: const StadiumBorder(),
-                  onTap: () {
+    return LayoutBuilder(
+      builder: (context, outerConstraints) {
+        final isMasterDetail = outerConstraints.maxWidth >= 900;
+        final showFab = currentDevice.role.canCreateProduct &&
+            !(widget.embedded && isMasterDetail);
+
+        return Scaffold(
+          floatingActionButton: showFab
+              ? FloatingActionButton.extended(
+                  onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const DeviceProfileScreen(),
+                        builder: (_) => const ProductFormScreen(),
                       ),
                     );
                   },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 5,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SynProdAvatar(displayName: currentDevice.displayName),
-                        const SizedBox(width: 8),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              currentDevice.displayName,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.primaryTextFor(context),
-                              ),
-                            ),
-                            Text(
-                              currentDevice.role.displayName.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.isDark(context)
-                                    ? AppTheme.darkOliveAccent
-                                    : AppTheme.oliveMuted,
-                                letterSpacing: 0.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(64),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search by recipe, component, or ingredient...',
-                prefixIcon: Icon(
-                  Icons.search,
-                  color: AppTheme.headingColorFor(context),
-                ),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () {
-                          _searchController.clear();
-                          ref.read(searchQueryProvider.notifier).state = '';
-                        },
-                      )
-                    : null,
-                filled: true,
-                fillColor: AppTheme.isDark(context)
-                    ? AppTheme.darkInputFill
-                    : AppTheme.slate50,
-                contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: AppTheme.isDark(context)
-                        ? AppTheme.darkBorder
-                        : AppTheme.borderInput,
-                    width: 1.5,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: AppTheme.isDark(context)
-                        ? AppTheme.darkBorder
-                        : AppTheme.borderInput,
-                    width: 1.5,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(
-                    color: AppTheme.headingColorFor(context),
-                    width: 2,
-                  ),
-                ),
-              ),
-              onChanged: (value) {
-                ref.read(searchQueryProvider.notifier).state = value;
-              },
-            ),
-          ),
-        ),
-      ),
-      body: SynProdCanvas(
-        child: Column(
-        children: [
-          // Filter Chips Section (Collapsible)
-          Container(
-            color: AppTheme.cardColorFor(context),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                InkWell(
-                  onTap: () => setState(() => _filtersExpanded = !_filtersExpanded),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.tune,
-                          size: 16,
-                          color: AppTheme.headingColorFor(context),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Filters',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.headingColorFor(context),
-                          ),
-                        ),
-                        if (selectedType != null ||
-                            selectedComp != null ||
-                            selectedIng != null ||
-                            myProductsOnly) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.softTintColorFor(context),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Text(
-                              '${(selectedType != null ? 1 : 0) + (selectedComp != null ? 1 : 0) + (selectedIng != null ? 1 : 0) + (myProductsOnly ? 1 : 0)} active',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.headingColorFor(context),
-                              ),
-                            ),
-                          ),
-                        ],
-                        const Spacer(),
-                        Icon(
-                          _filtersExpanded
-                              ? Icons.expand_less
-                              : Icons.expand_more,
-                          size: 20,
-                          color: AppTheme.mutedTextFor(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                AnimatedCrossFade(
-                  duration: const Duration(milliseconds: 220),
-                  sizeCurve: Curves.easeOutCubic,
-                  crossFadeState: _filtersExpanded
-                      ? CrossFadeState.showFirst
-                      : CrossFadeState.showSecond,
-                  firstChild: Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Product Type Filter Chips
-                        SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: [
-                              FilterChip(
-                                label: const Text('All Types'),
-                                selected: selectedType == null,
-                                onSelected: (selected) {
-                                  if (selected) {
-                                    ref
-                                        .read(selectedTypeFilterProvider.notifier)
-                                        .state = null;
-                                  }
-                                },
-                              ),
-                              const SizedBox(width: 8),
-                              ...productTypes.map((type) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 8.0),
-                                  child: FilterChip(
-                                    label: Text(type.displayName),
-                                    selected: selectedType == type,
-                                    onSelected: (selected) {
-                                      ref
-                                          .read(selectedTypeFilterProvider
-                                              .notifier)
-                                          .state = selected ? type : null;
-                                    },
-                                  ),
-                                );
-                              }),
-                              if (currentDevice.role.canCreateProduct)
-                                FilterChip(
-                                  avatar:
-                                      const Icon(Icons.person_outline, size: 16),
-                                  label: const Text('My Products'),
-                                  selected: myProductsOnly,
-                                  onSelected: (selected) {
-                                    ref
-                                        .read(myProductsOnlyProvider.notifier)
-                                        .state = selected;
-                                  },
-                                ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-
-                        // Component & Ingredient Filter Dropdowns
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: distinctCompsAsync.when(
-                                  data: (components) => _buildDropdownFilter(
-                                    label: 'Component',
-                                    value: selectedComp,
-                                    items: components,
-                                    onChanged: (val) {
-                                      ref
-                                          .read(selectedComponentFilterProvider
-                                              .notifier)
-                                          .state = val;
-                                    },
-                                  ),
-                                  loading: () => const SizedBox.shrink(),
-                                  error: (_, _) => const SizedBox.shrink(),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: distinctIngsAsync.when(
-                                  data: (ingredients) => _buildDropdownFilter(
-                                    label: 'Ingredient',
-                                    value: selectedIng,
-                                    items: ingredients,
-                                    onChanged: (val) {
-                                      ref
-                                          .read(selectedIngredientFilterProvider
-                                              .notifier)
-                                          .state = val;
-                                    },
-                                  ),
-                                  loading: () => const SizedBox.shrink(),
-                                  error: (_, _) => const SizedBox.shrink(),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  secondChild: const SizedBox(width: double.infinity),
-                ),
-              ],
-            ),
-          ),
-
-          const Divider(),
-
-          // Results Count & Clear Filters
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-            child: Row(
-              children: [
-                filteredProductsAsync.when(
-                  data: (products) => Text(
-                    'All Recipes (${products.length})',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.secondaryTextFor(context),
-                    ),
-                  ),
-                  loading: () => const Text('Loading recipes...'),
-                  error: (_, _) => const Text('Error loading recipes'),
-                ),
-                const Spacer(),
-                if (hasFilters)
-                  TextButton.icon(
-                    style: TextButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    icon: const Icon(Icons.filter_alt_off, size: 16),
-                    label: const Text('Clear Filters'),
-                    onPressed: _clearFilters,
-                  ),
-              ],
-            ),
-          ),
-
-          // Recipe List
-          Expanded(
-            child: filteredProductsAsync.when(
-              data: (products) {
-                if (products.isEmpty) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.search_off,
-                              size: 48, color: AppTheme.mutedTextFor(context)),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No recipes found',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.primaryTextFor(context),
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Try adjusting your search query or removing active filters.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.secondaryTextFor(context),
-                            ),
-                          ),
-                          if (hasFilters) ...[
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: _clearFilters,
-                              child: const Text('Clear Filters'),
-                            ),
-                          ],
-                        ],
+                  icon: const Icon(Icons.add),
+                  label: const Text('New Recipe'),
+                )
+              : null,
+          appBar: SynProdAppBar(
+            automaticallyImplyLeading: !widget.embedded,
+            title: const SynProdGradientText('SynProd Lite'),
+            actions: [
+              if (!widget.embedded) ...[
+                IconButton(
+                  tooltip: syncState.peers.isNotEmpty
+                      ? 'Local Sync (${syncState.peers.length} peer${syncState.peers.length == 1 ? '' : 's'})'
+                      : 'Local Sync & Conflict History',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SyncStatusScreen(),
                       ),
+                    );
+                  },
+                  icon: Badge(
+                    isLabelVisible: syncState.unresolvedConflictsCount > 0 ||
+                        syncState.peers.isNotEmpty,
+                    backgroundColor: syncState.unresolvedConflictsCount > 0
+                        ? Colors.amber.shade700
+                        : AppTheme.primaryOlive,
+                    label: Text(
+                      syncState.unresolvedConflictsCount > 0
+                          ? '${syncState.unresolvedConflictsCount}'
+                          : '${syncState.peers.length}',
+                      style: const TextStyle(fontSize: 10),
                     ),
-                  );
-                }
-
-                return LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isTwoColumn = constraints.maxWidth >= 640;
-                    if (!isTwoColumn) {
-                      return ListView.separated(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 8.0),
-                        itemCount: products.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
-                        itemBuilder: (context, index) =>
-                            _buildRecipeCard(context, products[index]),
+                    child: Icon(
+                      syncState.isSyncing
+                          ? Icons.sync
+                          : (syncState.isRunning
+                              ? Icons.wifi_tethering
+                              : Icons.sync_disabled),
+                      color: AppTheme.headingColorFor(context),
+                    ),
+                  ),
+                ),
+                if (currentDevice.role.canManageDevices)
+                  IconButton(
+                    tooltip: 'Device Management',
+                    icon: Icon(
+                      Icons.devices_outlined,
+                      color: AppTheme.headingColorFor(context),
+                    ),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const DeviceManagementScreen(),
+                        ),
                       );
-                    }
-
-                    final rowCount = (products.length / 2).ceil();
-                    return ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 8.0),
-                      itemCount: rowCount,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, rowIndex) {
-                        final leftIndex = rowIndex * 2;
-                        final rightIndex = leftIndex + 1;
-                        final hasRight = rightIndex < products.length;
-                        return IntrinsicHeight(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Expanded(
-                                child: _buildRecipeCard(
-                                    context, products[leftIndex]),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: hasRight
-                                    ? _buildRecipeCard(
-                                        context, products[rightIndex])
-                                    : const SizedBox.shrink(),
-                              ),
-                            ],
+                    },
+                  ),
+              ],
+              Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Center(
+                  child: Material(
+                    color: Colors.transparent,
+                    shape: const StadiumBorder(),
+                    clipBehavior: Clip.antiAlias,
+                    child: InkWell(
+                      customBorder: const StadiumBorder(),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const DeviceProfileScreen(),
                           ),
                         );
                       },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SynProdAvatar(
+                                displayName: currentDevice.displayName),
+                            const SizedBox(width: 8),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  currentDevice.displayName,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.primaryTextFor(context),
+                                  ),
+                                ),
+                                Text(
+                                  currentDevice.role.displayName.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.isDark(context)
+                                        ? AppTheme.darkOliveAccent
+                                        : AppTheme.oliveMuted,
+                                    letterSpacing: 0.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          body: SynProdCanvas(
+            child: isMasterDetail
+                ? Row(
+                    children: [
+                      Container(
+                        width: 390,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            right: BorderSide(
+                              color: AppTheme.cardBorderFor(context),
+                              width: 1.5,
+                            ),
+                          ),
+                        ),
+                        child: _buildLibraryColumn(
+                          context: context,
+                          filteredProductsAsync: filteredProductsAsync,
+                          productTypes: productTypes,
+                          selectedType: selectedType,
+                          hasFilters: hasFilters,
+                          secondaryFilterCount: secondaryFilterCount,
+                          isMasterDetail: true,
+                        ),
+                      ),
+                      Expanded(
+                        child: filteredProductsAsync.when(
+                          data: (products) {
+                            if (products.isEmpty) {
+                              return Center(
+                                child: Text(
+                                  'Select or create a recipe to view details.',
+                                  style: TextStyle(
+                                    color: AppTheme.mutedTextFor(context),
+                                  ),
+                                ),
+                              );
+                            }
+                            final selectedProduct = products
+                                    .where((p) => p.id == _selectedProductId)
+                                    .firstOrNull ??
+                                products.first;
+                            return RecipeDetailScreen(
+                              product: selectedProduct,
+                              embedded: true,
+                              onDeleted: () =>
+                                  setState(() => _selectedProductId = null),
+                            );
+                          },
+                          loading: () => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                          error: (_, _) => const SizedBox.shrink(),
+                        ),
+                      ),
+                    ],
+                  )
+                : _buildLibraryColumn(
+                    context: context,
+                    filteredProductsAsync: filteredProductsAsync,
+                    productTypes: productTypes,
+                    selectedType: selectedType,
+                    hasFilters: hasFilters,
+                    secondaryFilterCount: secondaryFilterCount,
+                    isMasterDetail: false,
+                  ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildLibraryColumn({
+    required BuildContext context,
+    required AsyncValue<List<Product>> filteredProductsAsync,
+    required List<dynamic> productTypes,
+    required dynamic selectedType,
+    required bool hasFilters,
+    required int secondaryFilterCount,
+    required bool isMasterDetail,
+  }) {
+    return Column(
+      children: [
+        // Slim Search + Filters Row
+        Container(
+          color: AppTheme.cardColorFor(context),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      decoration: InputDecoration(
+                        hintText: 'Search recipes, components...',
+                        prefixIcon: Icon(
+                          Icons.search,
+                          color: AppTheme.headingColorFor(context),
+                        ),
+                        suffixIcon: _searchController.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  ref.read(searchQueryProvider.notifier).state =
+                                      '';
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: AppTheme.isDark(context)
+                            ? AppTheme.darkInputFill
+                            : AppTheme.slate50,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 12,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: AppTheme.isDark(context)
+                                ? AppTheme.darkBorder
+                                : AppTheme.borderInput,
+                            width: 1.5,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: AppTheme.isDark(context)
+                                ? AppTheme.darkBorder
+                                : AppTheme.borderInput,
+                            width: 1.5,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide(
+                            color: AppTheme.headingColorFor(context),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      onChanged: (value) {
+                        ref.read(searchQueryProvider.notifier).state = value;
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Badge(
+                    isLabelVisible: secondaryFilterCount > 0,
+                    backgroundColor: AppTheme.primaryOlive,
+                    label: Text(
+                      '$secondaryFilterCount',
+                      style: const TextStyle(fontSize: 10),
+                    ),
+                    child: IconButton.outlined(
+                      tooltip: 'More Filters',
+                      onPressed: () => _showFiltersSheet(context),
+                      icon: Icon(
+                        Icons.tune,
+                        color: secondaryFilterCount > 0
+                            ? AppTheme.headingColorFor(context)
+                            : AppTheme.secondaryTextFor(context),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    FilterChip(
+                      label: const Text('All Types'),
+                      selected: selectedType == null,
+                      onSelected: (selected) {
+                        if (selected) {
+                          ref.read(selectedTypeFilterProvider.notifier).state =
+                              null;
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 8),
+                    ...productTypes.map((type) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: FilterChip(
+                          label: Text(type.displayName),
+                          selected: selectedType == type,
+                          onSelected: (selected) {
+                            ref
+                                .read(selectedTypeFilterProvider.notifier)
+                                .state = selected ? type : null;
+                          },
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Divider(height: 1),
+        // Results Count & Clear Filters
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          child: Row(
+            children: [
+              filteredProductsAsync.when(
+                data: (products) => Text(
+                  'All Recipes (${products.length})',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.secondaryTextFor(context),
+                  ),
+                ),
+                loading: () => const Text('Loading recipes...'),
+                error: (_, _) => const Text('Error loading recipes'),
+              ),
+              const Spacer(),
+              if (hasFilters)
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  icon: const Icon(Icons.filter_alt_off, size: 16),
+                  label: const Text('Clear Filters'),
+                  onPressed: _clearFilters,
+                ),
+            ],
+          ),
+        ),
+        // Recipe List
+        Expanded(
+          child: filteredProductsAsync.when(
+            data: (products) {
+              if (products.isEmpty) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 48,
+                          color: AppTheme.mutedTextFor(context),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No recipes found',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.primaryTextFor(context),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Try adjusting your search query or removing active filters.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.secondaryTextFor(context),
+                          ),
+                        ),
+                        if (hasFilters) ...[
+                          const SizedBox(height: 16),
+                          ElevatedButton(
+                            onPressed: _clearFilters,
+                            child: const Text('Clear Filters'),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              final activeId = _selectedProductId ?? products.first.id;
+
+              if (isMasterDetail) {
+                return ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                  itemCount: products.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final product = products[index];
+                    return _buildRecipeCard(
+                      context,
+                      product,
+                      isMasterDetail: true,
+                      isSelected: product.id == activeId,
                     );
                   },
                 );
-              },
-              loading: () => const Center(
-                child: CircularProgressIndicator(),
-              ),
-              error: (err, stack) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Text('Failed to load recipes: $err'),
-                ),
+              }
+
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  final isTwoColumn = constraints.maxWidth >= 640;
+                  if (!isTwoColumn) {
+                    return ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
+                      itemCount: products.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) => _buildRecipeCard(
+                        context,
+                        products[index],
+                      ),
+                    );
+                  }
+
+                  final rowCount = (products.length / 2).ceil();
+                  return ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
+                    itemCount: rowCount,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, rowIndex) {
+                      final leftIndex = rowIndex * 2;
+                      final rightIndex = leftIndex + 1;
+                      final hasRight = rightIndex < products.length;
+                      return IntrinsicHeight(
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: _buildRecipeCard(
+                                context,
+                                products[leftIndex],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: hasRight
+                                  ? _buildRecipeCard(
+                                      context,
+                                      products[rightIndex],
+                                    )
+                                  : const SizedBox.shrink(),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  );
+                },
+              );
+            },
+            loading: () => const Center(
+              child: CircularProgressIndicator(),
+            ),
+            error: (err, stack) => Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Text('Failed to load recipes: $err'),
               ),
             ),
           ),
-        ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _showFiltersSheet(BuildContext context) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.cardColorFor(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      builder: (ctx) => Consumer(
+        builder: (ctx, sheetRef, _) {
+          final currentDevice = sheetRef.watch(currentDeviceProvider);
+          final selectedComp = sheetRef.watch(selectedComponentFilterProvider);
+          final selectedIng = sheetRef.watch(selectedIngredientFilterProvider);
+          final myProductsOnly = sheetRef.watch(myProductsOnlyProvider);
+          final distinctCompsAsync = sheetRef.watch(distinctComponentsProvider);
+          final distinctIngsAsync = sheetRef.watch(distinctIngredientsProvider);
+
+          return SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.tune, color: AppTheme.headingColorFor(ctx)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Filter Recipes',
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.headingColorFor(ctx),
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton(
+                        onPressed: () {
+                          _clearFilters();
+                          Navigator.of(ctx).pop();
+                        },
+                        child: const Text('Reset All'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  distinctCompsAsync.when(
+                    data: (components) => _buildDropdownFilter(
+                      label: 'Component',
+                      value: selectedComp,
+                      items: components,
+                      onChanged: (val) {
+                        sheetRef
+                            .read(selectedComponentFilterProvider.notifier)
+                            .state = val;
+                      },
+                    ),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
+                  ),
+                  const SizedBox(height: 12),
+                  distinctIngsAsync.when(
+                    data: (ingredients) => _buildDropdownFilter(
+                      label: 'Ingredient',
+                      value: selectedIng,
+                      items: ingredients,
+                      onChanged: (val) {
+                        sheetRef
+                            .read(selectedIngredientFilterProvider.notifier)
+                            .state = val;
+                      },
+                    ),
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, _) => const SizedBox.shrink(),
+                  ),
+                  if (currentDevice.role.canCreateProduct) ...[
+                    const SizedBox(height: 12),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('My Products Only'),
+                      value: myProductsOnly,
+                      onChanged: (val) {
+                        sheetRef.read(myProductsOnlyProvider.notifier).state =
+                            val;
+                      },
+                    ),
+                  ],
+                  const SizedBox(height: 16),
+                  SynProdGradientButton(
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Apply Filters'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildRecipeCard(BuildContext context, Product product) {
+  Widget _buildRecipeCard(
+    BuildContext context,
+    Product product, {
+    bool isMasterDetail = false,
+    bool isSelected = false,
+  }) {
     return _RecipeCard(
       product: product,
+      isSelected: isSelected,
       onTap: () {
+        if (isMasterDetail) {
+          setState(() => _selectedProductId = product.id);
+          return;
+        }
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -654,17 +769,19 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
 class _RecipeCard extends StatelessWidget {
   final Product product;
   final VoidCallback onTap;
+  final bool isSelected;
 
   const _RecipeCard({
     required this.product,
     required this.onTap,
+    this.isSelected = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return SynProdCard(
+    final card = SynProdCard(
       onTap: onTap,
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(14.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -751,6 +868,14 @@ class _RecipeCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+    if (!isSelected) return card;
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppTheme.primaryOlive, width: 2),
+      ),
+      child: card,
     );
   }
 

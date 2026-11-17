@@ -59,6 +59,7 @@ class SynProdAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Widget? leading;
   final PreferredSizeWidget? bottom;
   final double toolbarHeight;
+  final bool automaticallyImplyLeading;
 
   const SynProdAppBar({
     super.key,
@@ -67,6 +68,7 @@ class SynProdAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.leading,
     this.bottom,
     this.toolbarHeight = 64,
+    this.automaticallyImplyLeading = true,
   });
 
   @override
@@ -99,6 +101,7 @@ class SynProdAppBar extends StatelessWidget implements PreferredSizeWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
+        automaticallyImplyLeading: automaticallyImplyLeading,
         leading: leading,
         title: title,
         actions: actions,
@@ -539,4 +542,28 @@ Future<T?> showSynProdDialog<T>({
       );
     },
   );
+}
+
+/// Centers content within a readable [maxWidth] on wide desktop screens while
+/// staying full-width on compact mobile viewports.
+class SynProdCenteredBody extends StatelessWidget {
+  final Widget child;
+  final double maxWidth;
+
+  const SynProdCenteredBody({
+    super.key,
+    required this.child,
+    this.maxWidth = 880,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: child,
+      ),
+    );
+  }
 }

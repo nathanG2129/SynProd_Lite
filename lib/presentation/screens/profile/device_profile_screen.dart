@@ -16,7 +16,9 @@ import '../../widgets/synprod_ui.dart';
 import '../product_types/product_types_screen.dart';
 
 class DeviceProfileScreen extends ConsumerStatefulWidget {
-  const DeviceProfileScreen({super.key});
+  final bool embedded;
+
+  const DeviceProfileScreen({super.key, this.embedded = false});
 
   @override
   ConsumerState<DeviceProfileScreen> createState() =>
@@ -402,11 +404,14 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
     final mutedColor = AppTheme.mutedTextFor(context);
 
     return Scaffold(
-      appBar: const SynProdAppBar(
-        title: SynProdGradientText('Device Profile'),
+      appBar: SynProdAppBar(
+        automaticallyImplyLeading: !widget.embedded,
+        title: const SynProdGradientText('Device Profile'),
       ),
       body: SynProdCanvas(
-        child: ListView(
+        child: SynProdCenteredBody(
+          maxWidth: 760,
+          child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             SynProdCard(
@@ -652,6 +657,7 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
               ),
             ),
           ],
+        ),
         ),
       ),
     );

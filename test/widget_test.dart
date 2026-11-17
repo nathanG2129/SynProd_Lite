@@ -22,7 +22,9 @@ import 'package:synprod_lite/presentation/providers/theme_providers.dart';
 import 'package:synprod_lite/presentation/screens/device_management/device_management_screen.dart';
 import 'package:synprod_lite/presentation/screens/product_form/product_form_screen.dart';
 import 'package:synprod_lite/presentation/screens/profile/device_profile_screen.dart';
+import 'package:synprod_lite/presentation/screens/recipe_detail/recipe_detail_screen.dart';
 import 'package:synprod_lite/presentation/screens/recipe_library/recipe_library_screen.dart';
+import 'package:synprod_lite/presentation/screens/shell/synprod_shell.dart';
 import 'package:synprod_lite/presentation/widgets/synprod_pin_pad.dart';
 import 'package:synprod_lite/presentation/widgets/synprod_ui.dart';
 
@@ -507,5 +509,71 @@ void main() {
 
     expect(find.text('Natural Vanilla Extract'), findsOneWidget);
     expect(find.text('ml'), findsWidgets);
+  });
+
+  testWidgets('SynProdShell adapts between compact NavigationBar and expanded NavigationRail',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final adminDevice = Device(
+      id: 'admin-1',
+      displayName: 'Admin Tablet',
+      role: DeviceRole.admin,
+      pairedAt: DateTime(2026, 11, 16),
+      lastSeenAt: DateTime(2026, 11, 16),
+    );
+    final sampleProduct = Product(
+      id: 'prod-1',
+      name: 'Greek Yogurt Classic',
+      productType: ProductType.greekYogurt,
+      createdByDeviceId: 'admin-1',
+      createdByDisplayName: 'Admin Tablet',
+      createdAt: DateTime(2026, 11, 16),
+      updatedAt: DateTime(2026, 11, 16),
+    );
+
+    Widget buildShell(Size size) {
+      return ProviderScope(
+        key: UniqueKey(),
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentDeviceProvider.overrideWithValue(adminDevice),
+          deviceRepositoryProvider.overrideWithValue(_SmokeDeviceRepository()),
+          productRepositoryProvider.overrideWithValue(_SmokeProductRepository()),
+          activeProductsStreamProvider.overrideWith(
+            (ref) => Stream.value([sampleProduct]),
+          ),
+          productTypesStreamProvider.overrideWith(
+            (ref) => Stream.value(ProductType.defaults),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: MediaQuery(
+            data: MediaQueryData(size: size),
+            child: const SynProdShell(),
+          ),
+        ),
+      );
+    }
+
+    // Compact (Android phone)
+    await tester.binding.setSurfaceSize(const Size(400, 800));
+    await tester.pumpWidget(buildShell(const Size(400, 800)));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byType(NavigationRail), findsNothing);
+
+    // Expanded (Windows desktop)
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    await tester.pumpWidget(buildShell(const Size(1280, 800)));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(NavigationRail), findsOneWidget);
+    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(RecipeDetailScreen), findsOneWidget);
+
+    await tester.binding.setSurfaceSize(null);
   });
 }

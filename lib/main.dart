@@ -9,7 +9,7 @@ import 'presentation/providers/sync_providers.dart';
 import 'presentation/providers/theme_providers.dart';
 import 'presentation/screens/auth/pin_lock_screen.dart';
 import 'presentation/screens/onboarding/onboarding_screen.dart';
-import 'presentation/screens/recipe_library/recipe_library_screen.dart';
+import 'presentation/screens/shell/synprod_shell.dart';
 import 'presentation/widgets/synprod_ui.dart';
 
 Future<void> main() async {
@@ -128,7 +128,7 @@ class _AuthGateState extends ConsumerState<_AuthGate>
       case AuthStatus.revoked:
         return const PinLockScreen();
       case AuthStatus.unlocked:
-        return const RecipeLibraryScreen();
+        return const SynProdShell();
     }
   }
 
