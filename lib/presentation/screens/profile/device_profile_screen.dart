@@ -477,13 +477,9 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                   ? _buildAdminControlsContent(
                       context,
                       headingColor: headingColor,
-                      mutedColor: mutedColor,
                     )
                   : null;
-              final dangerContent = _buildDangerZoneContent(
-                context,
-                mutedColor: mutedColor,
-              );
+              final dangerContent = _buildDangerZoneContent(context);
 
               if (!isDesktop) {
                 return ListView(
@@ -739,6 +735,26 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
     );
   }
 
+  Widget _buildActionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon, color: color),
+      title: Text(
+        title,
+        style: TextStyle(color: color, fontWeight: FontWeight.w600),
+      ),
+      subtitle: Text(subtitle),
+      trailing: Icon(Icons.chevron_right, color: color),
+      onTap: onTap,
+    );
+  }
+
   Widget _buildSecurityContent(
     BuildContext context, {
     required Color headingColor,
@@ -746,57 +762,51 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-          Text(
-            'Security & Session',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: headingColor,
-            ),
+        Text(
+          'Security & Session',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: headingColor,
           ),
-          const SizedBox(height: 12),
-          ListTile(
+        ),
+        const SizedBox(height: 12),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.pin_outlined),
+          title: const Text('Change Device PIN'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: _showChangePinDialog,
+        ),
+        if (_biometricAvailable)
+          SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.pin_outlined),
-            title: const Text('Change Device PIN'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: _showChangePinDialog,
-          ),
-          if (_biometricAvailable)
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              secondary: const Icon(Icons.fingerprint),
-              title: const Text('Biometric Unlock'),
-              subtitle: const Text(
-                'Use fingerprint or face unlock with PIN fallback',
-              ),
-              value: _biometricEnabled,
-              onChanged: _toggleBiometric,
+            secondary: const Icon(Icons.fingerprint),
+            title: const Text('Biometric Unlock'),
+            subtitle: const Text(
+              'Use fingerprint or face unlock with PIN fallback',
             ),
-          const Divider(),
-          const SizedBox(height: 8),
-          SynProdSecondaryButton(
-            onPressed: () {
-              ref.read(authControllerProvider.notifier).lockNow();
-              Navigator.of(context).popUntil((r) => r.isFirst);
-            },
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.logout, size: 18),
-                SizedBox(width: 8),
-                Text('Log Out'),
-              ],
-            ),
+            value: _biometricEnabled,
+            onChanged: _toggleBiometric,
           ),
-        ],
-      );
+        const Divider(),
+        _buildActionTile(
+          icon: Icons.logout,
+          title: 'Log Out',
+          subtitle: 'Lock this device and return to the unlock screen',
+          color: AppTheme.warningTextFor(context),
+          onTap: () {
+            ref.read(authControllerProvider.notifier).lockNow();
+            Navigator.of(context).popUntil((r) => r.isFirst);
+          },
+        ),
+      ],
+    );
   }
 
   Widget _buildAdminControlsContent(
     BuildContext context, {
     required Color headingColor,
-    required Color mutedColor,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -844,34 +854,20 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
           },
         ),
         const Divider(),
-        const SizedBox(height: 8),
-        Text(
-          'Export an encrypted workspace backup to restore Admin access on a replacement device.',
-          style: TextStyle(
-            fontSize: 13,
-            color: mutedColor,
-          ),
-        ),
-        const SizedBox(height: 14),
-        SynProdGradientButton(
-          onPressed: _showExportBackupDialog,
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.download_outlined, size: 18),
-              SizedBox(width: 8),
-              Text('Export Encrypted Backup'),
-            ],
-          ),
+        _buildActionTile(
+          icon: Icons.save_alt,
+          title: 'Export Encrypted Backup',
+          subtitle:
+              'Export an encrypted workspace backup to restore Admin access on a replacement device',
+          color: AppTheme.successTextFor(context),
+          onTap: _showExportBackupDialog,
         ),
       ],
     );
   }
 
-  Widget _buildDangerZoneContent(
-    BuildContext context, {
-    required Color mutedColor,
-  }) {
+  Widget _buildDangerZoneContent(BuildContext context) {
+    final errorColor = AppTheme.errorTextFor(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -880,30 +876,17 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w700,
-            color: AppTheme.errorTextFor(context),
+            color: errorColor,
           ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Clean all workspace data, recipes, paired devices, and PIN settings from this device.',
-          style: TextStyle(
-            fontSize: 13,
-            color: mutedColor,
-          ),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: _showFactoryResetDialog,
-          icon: const Icon(Icons.delete_forever_outlined, size: 18),
-          label: const Text('Factory Reset App'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppTheme.errorTextFor(context),
-            side: BorderSide(color: AppTheme.errorTextFor(context)),
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
+        const SizedBox(height: 8),
+        _buildActionTile(
+          icon: Icons.delete_forever_outlined,
+          title: 'Factory Reset App',
+          subtitle:
+              'Clean all workspace data, recipes, paired devices, and PIN settings from this device',
+          color: errorColor,
+          onTap: _showFactoryResetDialog,
         ),
       ],
     );
