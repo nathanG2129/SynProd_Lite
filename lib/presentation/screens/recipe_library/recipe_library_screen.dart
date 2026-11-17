@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -24,12 +25,28 @@ class RecipeLibraryScreen extends ConsumerStatefulWidget {
 
 class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _typeScrollController = ScrollController();
+  final ValueNotifier<({bool left, bool right})> _typeScrollArrows =
+      ValueNotifier((left: false, right: false));
   String? _selectedProductId;
 
   @override
   void dispose() {
     _searchController.dispose();
+    _typeScrollController.dispose();
+    _typeScrollArrows.dispose();
     super.dispose();
+  }
+
+  void _updateTypeScrollArrows(ScrollMetrics metrics) {
+    final next = (
+      left: metrics.pixels > 2,
+      right: metrics.maxScrollExtent > 0 &&
+          metrics.pixels < metrics.maxScrollExtent - 2,
+    );
+    if (_typeScrollArrows.value != next) {
+      _typeScrollArrows.value = next;
+    }
   }
 
   void _clearFilters() {
@@ -212,54 +229,58 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
             child: isMasterDetail
                 ? Row(
                     children: [
-                      Container(
-                        width: 390,
-                        decoration: BoxDecoration(
-                          border: Border(
-                            right: BorderSide(
-                              color: AppTheme.cardBorderFor(context),
-                              width: 1.5,
+                      RepaintBoundary(
+                        child: Container(
+                          width: 390,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              right: BorderSide(
+                                color: AppTheme.cardBorderFor(context),
+                                width: 1.5,
+                              ),
                             ),
                           ),
-                        ),
-                        child: _buildLibraryColumn(
-                          context: context,
-                          filteredProductsAsync: filteredProductsAsync,
-                          productTypes: productTypes,
-                          selectedType: selectedType,
-                          hasFilters: hasFilters,
-                          secondaryFilterCount: secondaryFilterCount,
-                          isMasterDetail: true,
+                          child: _buildLibraryColumn(
+                            context: context,
+                            filteredProductsAsync: filteredProductsAsync,
+                            productTypes: productTypes,
+                            selectedType: selectedType,
+                            hasFilters: hasFilters,
+                            secondaryFilterCount: secondaryFilterCount,
+                            isMasterDetail: true,
+                          ),
                         ),
                       ),
                       Expanded(
-                        child: filteredProductsAsync.when(
-                          data: (products) {
-                            if (products.isEmpty) {
-                              return Center(
-                                child: Text(
-                                  'Select or create a recipe to view details.',
-                                  style: TextStyle(
-                                    color: AppTheme.mutedTextFor(context),
+                        child: RepaintBoundary(
+                          child: filteredProductsAsync.when(
+                            data: (products) {
+                              if (products.isEmpty) {
+                                return Center(
+                                  child: Text(
+                                    'Select or create a recipe to view details.',
+                                    style: TextStyle(
+                                      color: AppTheme.mutedTextFor(context),
+                                    ),
                                   ),
-                                ),
+                                );
+                              }
+                              final selectedProduct = products
+                                      .where((p) => p.id == _selectedProductId)
+                                      .firstOrNull ??
+                                  products.first;
+                              return RecipeDetailScreen(
+                                product: selectedProduct,
+                                embedded: true,
+                                onDeleted: () =>
+                                    setState(() => _selectedProductId = null),
                               );
-                            }
-                            final selectedProduct = products
-                                    .where((p) => p.id == _selectedProductId)
-                                    .firstOrNull ??
-                                products.first;
-                            return RecipeDetailScreen(
-                              product: selectedProduct,
-                              embedded: true,
-                              onDeleted: () =>
-                                  setState(() => _selectedProductId = null),
-                            );
-                          },
-                          loading: () => const Center(
-                            child: CircularProgressIndicator(),
+                            },
+                            loading: () => const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                            error: (_, _) => const SizedBox.shrink(),
                           ),
-                          error: (_, _) => const SizedBox.shrink(),
                         ),
                       ),
                     ],
@@ -380,38 +401,7 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    FilterChip(
-                      label: const Text('All Types'),
-                      selected: selectedType == null,
-                      onSelected: (selected) {
-                        if (selected) {
-                          ref.read(selectedTypeFilterProvider.notifier).state =
-                              null;
-                        }
-                      },
-                    ),
-                    const SizedBox(width: 8),
-                    ...productTypes.map((type) {
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 8.0),
-                        child: FilterChip(
-                          label: Text(type.displayName),
-                          selected: selectedType == type,
-                          onSelected: (selected) {
-                            ref
-                                .read(selectedTypeFilterProvider.notifier)
-                                .state = selected ? type : null;
-                          },
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
+              _buildTypeFilterStrip(context, productTypes, selectedType),
             ],
           ),
         ),
@@ -537,27 +527,25 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
                       final leftIndex = rowIndex * 2;
                       final rightIndex = leftIndex + 1;
                       final hasRight = rightIndex < products.length;
-                      return IntrinsicHeight(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: _buildRecipeCard(
-                                context,
-                                products[leftIndex],
-                              ),
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: _buildRecipeCard(
+                              context,
+                              products[leftIndex],
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: hasRight
-                                  ? _buildRecipeCard(
-                                      context,
-                                      products[rightIndex],
-                                    )
-                                  : const SizedBox.shrink(),
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: hasRight
+                                ? _buildRecipeCard(
+                                    context,
+                                    products[rightIndex],
+                                  )
+                                : const SizedBox.shrink(),
+                          ),
+                        ],
                       );
                     },
                   );
@@ -762,6 +750,130 @@ class _RecipeLibraryScreenState extends ConsumerState<RecipeLibraryScreen> {
           onChanged: onChanged,
         ),
       ),
+    );
+  }
+
+  Widget _buildTypeFilterStrip(
+    BuildContext context,
+    List<dynamic> productTypes,
+    dynamic selectedType,
+  ) {
+    void scrollBy(double delta) {
+      if (!_typeScrollController.hasClients) return;
+      final pos = _typeScrollController.position;
+      final target = (pos.pixels + delta).clamp(0.0, pos.maxScrollExtent);
+      _typeScrollController.animateTo(
+        target,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+      );
+    }
+
+    return Row(
+      children: [
+        ValueListenableBuilder<({bool left, bool right})>(
+          valueListenable: _typeScrollArrows,
+          builder: (context, arrows, _) {
+            if (!arrows.left) return const SizedBox.shrink();
+            return IconButton(
+              tooltip: 'Scroll types left',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 32),
+              icon: const Icon(Icons.chevron_left, size: 20),
+              onPressed: () => scrollBy(-140),
+            );
+          },
+        ),
+        Expanded(
+          child: Listener(
+            onPointerSignal: (event) {
+              if (event is PointerScrollEvent &&
+                  _typeScrollController.hasClients) {
+                final pos = _typeScrollController.position;
+                if (pos.maxScrollExtent > 0) {
+                  final delta = event.scrollDelta.dy != 0
+                      ? event.scrollDelta.dy
+                      : event.scrollDelta.dx;
+                  final target =
+                      (pos.pixels + delta).clamp(0.0, pos.maxScrollExtent);
+                  _typeScrollController.jumpTo(target);
+                }
+              }
+            },
+            child: NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                _updateTypeScrollArrows(notification.metrics);
+                return false;
+              },
+              child: NotificationListener<ScrollMetricsNotification>(
+                onNotification: (notification) {
+                  _updateTypeScrollArrows(notification.metrics);
+                  return false;
+                },
+                child: ScrollConfiguration(
+                  behavior: ScrollConfiguration.of(context).copyWith(
+                    dragDevices: const {
+                      PointerDeviceKind.touch,
+                      PointerDeviceKind.mouse,
+                      PointerDeviceKind.trackpad,
+                      PointerDeviceKind.stylus,
+                    },
+                  ),
+                  child: SingleChildScrollView(
+                    controller: _typeScrollController,
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        FilterChip(
+                          label: const Text('All Types'),
+                          selected: selectedType == null,
+                          onSelected: (selected) {
+                            if (selected) {
+                              ref
+                                  .read(selectedTypeFilterProvider.notifier)
+                                  .state = null;
+                            }
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        ...productTypes.map((type) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: FilterChip(
+                              label: Text(type.displayName),
+                              selected: selectedType == type,
+                              onSelected: (selected) {
+                                ref
+                                    .read(selectedTypeFilterProvider.notifier)
+                                    .state = selected ? type : null;
+                              },
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        ValueListenableBuilder<({bool left, bool right})>(
+          valueListenable: _typeScrollArrows,
+          builder: (context, arrows, _) {
+            if (!arrows.right) return const SizedBox.shrink();
+            return IconButton(
+              tooltip: 'Scroll types right',
+              visualDensity: VisualDensity.compact,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 28, minHeight: 32),
+              icon: const Icon(Icons.chevron_right, size: 20),
+              onPressed: () => scrollBy(140),
+            );
+          },
+        ),
+      ],
     );
   }
 }
