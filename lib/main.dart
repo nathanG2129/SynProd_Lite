@@ -115,21 +115,27 @@ class _AuthGateState extends ConsumerState<_AuthGate>
 
     final authState = ref.watch(authControllerProvider);
 
-    switch (authState.status) {
-      case AuthStatus.loading:
-        return const Scaffold(
+    final Widget screen = switch (authState.status) {
+      AuthStatus.loading => const Scaffold(
+          key: ValueKey('loading'),
           body: SynProdCanvas(
             child: Center(child: CircularProgressIndicator()),
           ),
-        );
-      case AuthStatus.needsOnboarding:
-        return const OnboardingScreen();
-      case AuthStatus.locked:
-      case AuthStatus.revoked:
-        return const PinLockScreen();
-      case AuthStatus.unlocked:
-        return const SynProdShell();
-    }
+        ),
+      AuthStatus.needsOnboarding =>
+        const OnboardingScreen(key: ValueKey('onboarding')),
+      AuthStatus.locked ||
+      AuthStatus.revoked =>
+        const PinLockScreen(key: ValueKey('locked')),
+      AuthStatus.unlocked => const SynProdShell(key: ValueKey('unlocked')),
+    };
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 240),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      child: screen,
+    );
   }
 
   Future<void> _showSessionWarningDialog(Duration? remaining) async {

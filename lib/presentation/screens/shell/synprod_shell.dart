@@ -53,6 +53,31 @@ class _SynProdShellState extends ConsumerState<SynProdShell> {
     };
   }
 
+  Widget _buildAnimatedSectionBody(_ShellSection activeSection) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 220),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        final slide = Tween<Offset>(
+          begin: const Offset(0, 0.02),
+          end: Offset.zero,
+        ).animate(animation);
+        return FadeTransition(
+          opacity: animation,
+          child: SlideTransition(
+            position: slide,
+            child: child,
+          ),
+        );
+      },
+      child: KeyedSubtree(
+        key: ValueKey(activeSection),
+        child: _pageFor(activeSection),
+      ),
+    );
+  }
+
   void _openNewRecipe() {
     Navigator.push(
       context,
@@ -192,7 +217,7 @@ class _SynProdShellState extends ConsumerState<SynProdShell> {
                 ),
                 Expanded(
                   child: RepaintBoundary(
-                    child: _pageFor(activeSection),
+                    child: _buildAnimatedSectionBody(activeSection),
                   ),
                 ),
               ],
@@ -201,7 +226,7 @@ class _SynProdShellState extends ConsumerState<SynProdShell> {
         }
 
         return Scaffold(
-          body: _pageFor(activeSection),
+          body: _buildAnimatedSectionBody(activeSection),
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
               border: Border(

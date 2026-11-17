@@ -1,4 +1,3 @@
-import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:material_ui/material_ui.dart';
 
 class AppTheme {
@@ -188,11 +187,11 @@ class AppTheme {
 
   static const PageTransitionsTheme _pageTransitionsTheme = PageTransitionsTheme(
     builders: {
-      TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.linux: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
-      TargetPlatform.windows: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.android: _SynProdPageTransitionsBuilder(),
+      TargetPlatform.iOS: _SynProdPageTransitionsBuilder(),
+      TargetPlatform.linux: _SynProdPageTransitionsBuilder(),
+      TargetPlatform.macOS: _SynProdPageTransitionsBuilder(),
+      TargetPlatform.windows: _SynProdPageTransitionsBuilder(),
     },
   );
 
@@ -502,6 +501,37 @@ class AppTheme {
         color: darkBorder,
         thickness: 1,
         space: 1,
+      ),
+    );
+  }
+}
+
+class _SynProdPageTransitionsBuilder extends PageTransitionsBuilder {
+  const _SynProdPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    final curved = CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    final slide = Tween<Offset>(
+      begin: const Offset(0.05, 0),
+      end: Offset.zero,
+    ).animate(curved);
+
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: slide,
+        child: child,
       ),
     );
   }
