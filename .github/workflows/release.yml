@@ -1,0 +1,243 @@
+name: Release (Windows & Android)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Optional version override (e.g. 1.0.0 or 1.0.0+2). Defaults to pubspec.yaml version.'
+        required: false
+        type: string
+      create_release:
+        description: 'Publish a GitHub Release from this manual run'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Analyze & Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Analyze code
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+
+  resolve-version:
+    name: Resolve Version
+    needs: verify
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      build_name: ${{ steps.version.outputs.build_name }}
+      build_number: ${{ steps.version.outputs.build_number }}
+      tag_name: ${{ steps.version.outputs.tag_name }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compute version
+        id: version
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            RAW_VERSION="${GITHUB_REF_NAME#v}"
+            TAG_NAME="${GITHUB_REF_NAME}"
+          elif [[ -n "${{ inputs.version }}" ]]; then
+            RAW_VERSION="${{ inputs.version }}"
+            RAW_VERSION="${RAW_VERSION#v}"
+            TAG_NAME="v${RAW_VERSION%%+*}"
+          else
+            RAW_VERSION=$(grep -E '^version:' pubspec.yaml | awk '{print $2}' | tr -d '\r')
+            TAG_NAME="v${RAW_VERSION%%+*}"
+          fi
+
+          if [[ "$RAW_VERSION" == *"+"* ]]; then
+            BUILD_NAME="${RAW_VERSION%%+*}"
+            BUILD_NUMBER="${RAW_VERSION##*+}"
+          else
+            BUILD_NAME="$RAW_VERSION"
+            BUILD_NUMBER="${{ github.run_number }}"
+          fi
+
+          echo "build_name=$BUILD_NAME" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+  build-android:
+    name: Build Android (APK & AAB)
+    needs: resolve-version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Android signing secrets
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          for var in ANDROID_KEYSTORE_BASE64 ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD ANDROID_STORE_PASSWORD; do
+            if [[ -z "${!var}" ]]; then
+              echo "::error::Missing required GitHub secret: $var"
+              exit 1
+            fi
+          done
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Configure Android signing
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/upload-keystore.jks
+          cat <<EOF > android/key.properties
+          storePassword=$ANDROID_STORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=${{ github.workspace }}/android/upload-keystore.jks
+          EOF
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android APK & App Bundle
+        run: |
+          flutter build apk --release \
+            --build-name=${{ needs.resolve-version.outputs.build_name }} \
+            --build-number=${{ needs.resolve-version.outputs.build_number }}
+          flutter build appbundle --release \
+            --build-name=${{ needs.resolve-version.outputs.build_name }} \
+            --build-number=${{ needs.resolve-version.outputs.build_number }}
+
+      - name: Prepare Android release assets
+        shell: bash
+        run: |
+          mkdir -p dist/android
+          VERSION="${{ needs.resolve-version.outputs.build_name }}"
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/android/synprod_lite-${VERSION}-android.apk"
+          cp build/app/outputs/bundle/release/app-release.aab "dist/android/synprod_lite-${VERSION}-android.aab"
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: dist/android/*
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows (x64)
+    needs: resolve-version
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.50.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        run: |
+          flutter build windows --release `
+            --build-name=${{ needs.resolve-version.outputs.build_name }} `
+            --build-number=${{ needs.resolve-version.outputs.build_number }}
+
+      - name: Package Windows release ZIP
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist/windows | Out-Null
+          $version = "${{ needs.resolve-version.outputs.build_name }}"
+          Compress-Archive `
+            -Path "build\windows\x64\runner\Release\*" `
+            -DestinationPath "dist\windows\synprod_lite-$version-windows-x64.zip" `
+            -Force
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: dist/windows/*
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: [resolve-version, build-android, build-windows]
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.create_release == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: android-release
+          path: release-assets
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-release
+          path: release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.resolve-version.outputs.tag_name }}
+          name: SynProd Lite ${{ needs.resolve-version.outputs.tag_name }}
+          generate_release_notes: true
+          files: |
+            release-assets/*
