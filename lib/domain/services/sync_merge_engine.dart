@@ -103,6 +103,10 @@ class SyncMergeEngine {
 
     for (final remote in incoming.products) {
       final existing = localProductMap[remote.id];
+      if (existing != null && _areEquivalent(existing, remote)) {
+        continue;
+      }
+
       final modifierId = remote.effectiveUpdatedByDeviceId;
       final modifierDevice = updatedDevicesMap[modifierId];
 
@@ -110,6 +114,7 @@ class SyncMergeEngine {
         existing: existing,
         incoming: remote,
         modifierDevice: modifierDevice,
+        senderIsAdmin: senderIsAdmin,
       );
       if (permissionError != null) {
         newConflicts.add(
@@ -158,10 +163,6 @@ class SyncMergeEngine {
       if (existing == null) {
         mergedProductMap[remote.id] = remote;
         productsToSave.add(remote);
-        continue;
-      }
-
-      if (_areEquivalent(existing, remote)) {
         continue;
       }
 
@@ -270,6 +271,7 @@ class SyncMergeEngine {
     required Product? existing,
     required Product incoming,
     required Device? modifierDevice,
+    required bool senderIsAdmin,
   }) {
     if (modifierDevice == null) {
       if (incoming.effectiveUpdatedByDeviceId == seedDeviceId &&
@@ -278,7 +280,8 @@ class SyncMergeEngine {
       }
       return 'Modifying device (${incoming.effectiveUpdatedByDeviceId}) is not in the workspace registry.';
     }
-    if (modifierDevice.isRevoked) {
+    if (modifierDevice.isRevoked &&
+        !(senderIsAdmin && modifierDevice.role != DeviceRole.production)) {
       return 'Modifying device ${modifierDevice.displayName} is revoked.';
     }
     if (modifierDevice.role == DeviceRole.production) {

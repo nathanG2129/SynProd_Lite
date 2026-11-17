@@ -446,4 +446,101 @@ void main() {
       await peerServer.stop();
     }
   });
+
+  test(
+      'Revoked device historical recipes do not spam conflicts on sync and Admin can distribute them to new peers',
+      () {
+    final now = DateTime.now();
+    final adminDevice = Device(
+      id: 'admin-1',
+      displayName: 'Admin',
+      role: DeviceRole.admin,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+    final revokedManager = Device(
+      id: 'mgr-revoked',
+      displayName: 'Former Manager',
+      role: DeviceRole.manager,
+      pairedAt: now,
+      lastSeenAt: now,
+      isRevoked: true,
+    );
+    final productionDevice = Device(
+      id: 'prod-1',
+      displayName: 'Floor Tablet',
+      role: DeviceRole.production,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+
+    final historicalProduct = Product(
+      id: '00000000-0000-4000-8000-000000000050',
+      name: 'Historical Yogurt',
+      productType: ProductType.greekYogurt,
+      createdByDeviceId: revokedManager.id,
+      createdByDisplayName: revokedManager.displayName,
+      updatedByDeviceId: revokedManager.id,
+      updatedByDisplayName: revokedManager.displayName,
+      createdAt: now,
+      updatedAt: now,
+      compositions: const [
+        Composition(componentName: 'Milk', percentage: 100.0, sortOrder: 0),
+      ],
+    );
+
+    final engine = SyncMergeEngine(now: () => now);
+
+    // 1. Production syncs identical historical product back to Admin: no conflict spam.
+    final adminMergeResult = engine.merge(
+      localDevice: adminDevice,
+      localDevices: [adminDevice, revokedManager, productionDevice],
+      localProducts: [historicalProduct],
+      incoming: SyncSnapshot(
+        workspaceId: 'ws-1',
+        senderDeviceId: productionDevice.id,
+        generatedAt: now,
+        devices: [productionDevice],
+        products: [historicalProduct],
+      ),
+    );
+    expect(adminMergeResult.newConflicts, isEmpty);
+    expect(adminMergeResult.productsToSave, isEmpty);
+
+    // 2. Admin distributes historical product to a newly paired Production peer: accepted without conflict.
+    final newPeerResult = engine.merge(
+      localDevice: productionDevice,
+      localDevices: [productionDevice, adminDevice],
+      localProducts: const [],
+      incoming: SyncSnapshot(
+        workspaceId: 'ws-1',
+        senderDeviceId: adminDevice.id,
+        generatedAt: now,
+        devices: [adminDevice, revokedManager, productionDevice],
+        products: [historicalProduct],
+      ),
+    );
+    expect(newPeerResult.newConflicts, isEmpty);
+    expect(newPeerResult.productsToSave.map((p) => p.id), [historicalProduct.id]);
+
+    // 3. Non-admin peer pushing a new/unseen recipe attributed to a revoked device is still rejected.
+    final nonAdminPushResult = engine.merge(
+      localDevice: adminDevice,
+      localDevices: [adminDevice, revokedManager, productionDevice],
+      localProducts: const [],
+      incoming: SyncSnapshot(
+        workspaceId: 'ws-1',
+        senderDeviceId: productionDevice.id,
+        generatedAt: now,
+        devices: [productionDevice],
+        products: [historicalProduct],
+      ),
+    );
+    expect(nonAdminPushResult.productsToSave, isEmpty);
+    expect(nonAdminPushResult.newConflicts.length, 1);
+    expect(
+      nonAdminPushResult.newConflicts.first.conflictType,
+      SyncConflictType.permissionRejected,
+    );
+  });
 }
