@@ -144,43 +144,30 @@ class SynProdCard extends StatelessWidget {
     );
 
     final isDark = AppTheme.isDark(context);
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
-        color: AppTheme.cardColorFor(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.cardBorderFor(context), width: 2),
-        boxShadow: isDark
-            ? const [
-                BoxShadow(
-                  color: AppTheme.darkCardShadow,
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-              ]
-            : const [
-                BoxShadow(
-                  color: AppTheme.cardShadow,
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-                BoxShadow(
-                  color: Color(0x1A445C3C),
-                  blurRadius: 4,
-                  offset: Offset(0, 2),
-                ),
-              ],
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? AppTheme.darkCardShadow : AppTheme.cardShadow,
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Material(
-          type: MaterialType.transparency,
-          child: onTap != null
-              ? InkWell(
-                  onTap: onTap,
-                  child: content,
-                )
-              : content,
+      child: Material(
+        color: AppTheme.cardColorFor(context),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(color: AppTheme.cardBorderFor(context), width: 2),
         ),
+        clipBehavior: Clip.antiAlias,
+        child: onTap != null
+            ? InkWell(
+                onTap: onTap,
+                child: content,
+              )
+            : content,
       ),
     );
   }
@@ -252,7 +239,7 @@ class SynProdSecondaryButton extends StatelessWidget {
     super.key,
     required this.onPressed,
     required this.child,
-    this.padding = const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
   });
 
   @override

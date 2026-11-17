@@ -13,6 +13,7 @@ import '../../providers/product_providers.dart';
 import '../../providers/theme_providers.dart';
 import '../../widgets/synprod_pin_pad.dart';
 import '../../widgets/synprod_ui.dart';
+import '../archive/archive_screen.dart';
 import '../product_types/product_types_screen.dart';
 
 class DeviceProfileScreen extends ConsumerStatefulWidget {
@@ -551,9 +552,9 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                     child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.lock_outline, size: 18),
+                        Icon(Icons.logout, size: 18),
                         SizedBox(width: 8),
-                        Text('Lock App Now'),
+                        Text('Log Out'),
                       ],
                     ),
                   ),
@@ -588,6 +589,23 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) => const ProductTypesScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.archive_outlined),
+                      title: const Text('Archive'),
+                      subtitle: const Text(
+                        'View and restore archived recipes, types, and devices',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const ArchiveScreen(),
                           ),
                         );
                       },

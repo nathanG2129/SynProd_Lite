@@ -151,7 +151,7 @@ class _AuthGateState extends ConsumerState<_AuthGate>
               Navigator.of(ctx).pop();
               ref.read(authControllerProvider.notifier).lockNow();
             },
-            child: const Text('Lock Now'),
+            child: const Text('Log Out'),
           ),
           SynProdGradientButton(
             onPressed: () {
