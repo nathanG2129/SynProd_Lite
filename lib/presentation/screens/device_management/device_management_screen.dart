@@ -127,93 +127,121 @@ class _DeviceManagementScreenState
       ),
       body: SynProdCanvas(
         child: SynProdCenteredBody(
+          maxWidth: 920,
           child: devicesAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (e, _) => Center(child: Text('Error loading devices: $e')),
           data: (devices) {
             final filtered = _filterAndSort(devices);
-            return ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                SynProdCard(
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktopTable = constraints.maxWidth >= 780;
+                return ListView(
                   padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
+                  children: [
+                    SynProdCard(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Expanded(
-                            child: TextField(
-                              decoration: const InputDecoration(
-                                hintText: 'Search by device name or role...',
-                                prefixIcon: Icon(Icons.search),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  decoration: const InputDecoration(
+                                    hintText:
+                                        'Search by device name or role...',
+                                    prefixIcon: Icon(Icons.search),
+                                  ),
+                                  onChanged: (v) => setState(() => _search = v),
+                                ),
                               ),
-                              onChanged: (v) => setState(() => _search = v),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          DropdownButton<_DeviceSortField>(
-                            value: _sortField,
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() => _sortField = val);
-                              }
-                            },
-                            items: const [
-                              DropdownMenuItem(
-                                value: _DeviceSortField.name,
-                                child: Text('Sort: Name'),
-                              ),
-                              DropdownMenuItem(
-                                value: _DeviceSortField.role,
-                                child: Text('Sort: Role'),
-                              ),
-                              DropdownMenuItem(
-                                value: _DeviceSortField.pairedAt,
-                                child: Text('Sort: Paired Date'),
-                              ),
-                              DropdownMenuItem(
-                                value: _DeviceSortField.lastSeenAt,
-                                child: Text('Sort: Last Seen'),
+                              const SizedBox(width: 12),
+                              DropdownButton<_DeviceSortField>(
+                                value: _sortField,
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() => _sortField = val);
+                                  }
+                                },
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: _DeviceSortField.name,
+                                    child: Text('Sort: Name'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: _DeviceSortField.role,
+                                    child: Text('Sort: Role'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: _DeviceSortField.pairedAt,
+                                    child: Text('Sort: Paired Date'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: _DeviceSortField.lastSeenAt,
+                                    child: Text('Sort: Last Seen'),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Paired Devices (${filtered.length})',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.headingColorFor(context),
+                            ),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Paired Devices (${filtered.length})',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.headingColorFor(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (filtered.isEmpty)
-                  SynProdCard(
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          'No matching devices found.',
-                          style: TextStyle(
-                            color: AppTheme.mutedTextFor(context),
+                    ),
+                    const SizedBox(height: 12),
+                    if (filtered.isEmpty)
+                      SynProdCard(
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              'No matching devices found.',
+                              style: TextStyle(
+                                color: AppTheme.mutedTextFor(context),
+                              ),
+                            ),
                           ),
                         ),
+                      )
+                    else if (!isDesktopTable)
+                      ...filtered.map(
+                        (device) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _buildDeviceCard(
+                            context,
+                            device,
+                            currentDevice,
+                          ),
+                        ),
+                      )
+                    else
+                      SynProdCard(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < filtered.length; i++) ...[
+                              _buildDesktopDeviceRow(
+                                context,
+                                filtered[i],
+                                currentDevice,
+                              ),
+                              if (i < filtered.length - 1)
+                                const Divider(height: 1),
+                            ],
+                          ],
+                        ),
                       ),
-                    ),
-                  )
-                else
-                  ...filtered.map(
-                    (device) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildDeviceCard(context, device, currentDevice),
-                    ),
-                  ),
-              ],
+                  ],
+                );
+              },
             );
           },
         ),
@@ -356,6 +384,124 @@ class _DeviceManagementScreenState
               ],
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopDeviceRow(
+    BuildContext context,
+    Device device,
+    Device currentDevice,
+  ) {
+    final isSelf = device.id == currentDevice.id;
+    final dateFormat = DateFormat('MMM d, yyyy HH:mm');
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
+        children: [
+          SynProdAvatar(displayName: device.displayName, size: 38),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        device.displayName,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.primaryTextFor(context),
+                        ),
+                      ),
+                    ),
+                    if (isSelf) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        '(This Device)',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.isDark(context)
+                              ? AppTheme.darkOliveAccent
+                              : AppTheme.oliveMuted,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Paired: ${dateFormat.format(device.pairedAt)} • Last seen: ${dateFormat.format(device.lastSeenAt)}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.mutedTextFor(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          _buildRoleBadge(context, device),
+          const SizedBox(width: 12),
+          if (isSelf)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                'Active session',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.mutedTextFor(context),
+                ),
+              ),
+            )
+          else
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (device.role != DeviceRole.admin) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => _toggleRole(device),
+                    icon: const Icon(Icons.swap_horiz, size: 16),
+                    label: Text(
+                      device.role == DeviceRole.production
+                          ? 'Promote'
+                          : 'Set Production',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    tooltip: 'Re-pair QR',
+                    icon: const Icon(Icons.qr_code, size: 20),
+                    onPressed: () => _showQrCodeDialog(
+                      context: context,
+                      deviceId: device.id,
+                      displayName: device.displayName,
+                      role: device.role,
+                    ),
+                  ),
+                ],
+                OutlinedButton.icon(
+                  onPressed: () => _archiveDevice(device),
+                  icon: Icon(
+                    Icons.archive_outlined,
+                    size: 16,
+                    color: AppTheme.errorTextFor(context),
+                  ),
+                  label: Text(
+                    'Archive',
+                    style: TextStyle(
+                      color: AppTheme.errorTextFor(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );

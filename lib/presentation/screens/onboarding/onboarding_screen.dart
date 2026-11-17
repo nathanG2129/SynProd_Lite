@@ -43,7 +43,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   int _pinMismatchCount = 0;
 
   // QR Join state
-  final _qrRawCtrl = TextEditingController();
   QrPairingPayload? _validatedQr;
 
   // Restore Backup state
@@ -56,7 +55,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void dispose() {
     _workspaceNameCtrl.dispose();
     _deviceNameCtrl.dispose();
-    _qrRawCtrl.dispose();
     _backupPasswordCtrl.dispose();
     super.dispose();
   }
@@ -198,140 +196,229 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
     var hasPopped = false;
     try {
-      final scanned = await showModalBottomSheet<String>(
+      final scanned = await showGeneralDialog<String>(
         context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.black,
-        clipBehavior: Clip.antiAlias,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-        ),
-        builder: (ctx) => SizedBox(
-          height: MediaQuery.of(ctx).size.height * 0.72,
-          child: Column(
-            children: [
-              Container(
-                height: 4,
-                decoration: const BoxDecoration(
-                  gradient: AppTheme.brandHeadingGradient,
-                ),
-              ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppTheme.cardColorFor(ctx),
-                  border: Border(
-                    bottom: BorderSide(
-                      color: AppTheme.isDark(ctx)
-                          ? AppTheme.darkOliveAccent
-                          : AppTheme.forestGreen,
-                      width: 3,
+        barrierDismissible: true,
+        barrierLabel: 'Scan Pairing QR Code',
+        barrierColor: Colors.black54,
+        transitionDuration: const Duration(milliseconds: 260),
+        transitionBuilder: (ctx, animation, secondaryAnimation, child) {
+          final curved = CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeOutCubic,
+            reverseCurve: Curves.easeInCubic,
+          );
+          return SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.28, 0),
+              end: Offset.zero,
+            ).animate(curved),
+            child: FadeTransition(
+              opacity: curved,
+              child: child,
+            ),
+          );
+        },
+        pageBuilder: (ctx, animation, secondaryAnimation) {
+          final isDark = AppTheme.isDark(ctx);
+          final borderColor = isDark
+              ? AppTheme.darkOliveAccent.withValues(alpha: 0.45)
+              : AppTheme.forestGreen.withValues(alpha: 0.25);
+
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 420),
+                child: Material(
+                  color: Colors.transparent,
+                  child: Container(
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: AppTheme.cardColorFor(ctx),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: borderColor, width: 2),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.28),
+                          blurRadius: 24,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          height: 4,
+                          decoration: const BoxDecoration(
+                            gradient: AppTheme.brandHeadingGradient,
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.cardColorFor(ctx),
+                            border: Border(
+                              bottom: BorderSide(
+                                color: isDark
+                                    ? AppTheme.darkOliveAccent
+                                    : AppTheme.forestGreen,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.qr_code_scanner,
+                                color: AppTheme.headingColorFor(ctx),
+                                size: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Scan Pairing QR Code',
+                                  style: TextStyle(
+                                    color: AppTheme.headingColorFor(ctx),
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  Icons.close,
+                                  color: AppTheme.headingColorFor(ctx),
+                                ),
+                                onPressed: () {
+                                  if (hasPopped || !ctx.mounted) return;
+                                  hasPopped = true;
+                                  Navigator.of(ctx).pop();
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        AspectRatio(
+                          aspectRatio: 1,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ColoredBox(
+                                color: Colors.black,
+                                child: MobileScanner(
+                                  controller: scannerController,
+                                  errorBuilder: (ctx, error, child) {
+                                    final message = switch (error.errorCode) {
+                                      MobileScannerErrorCode.permissionDenied =>
+                                        'Camera permission denied. Enable camera access in system settings and try again.',
+                                      MobileScannerErrorCode.unsupported =>
+                                        'Camera scanning is not supported on this device.',
+                                      _ =>
+                                        'Unable to start camera (${error.errorDetails?.message ?? error.errorCode.name}).',
+                                    };
+                                    return Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(24),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(
+                                              Icons.videocam_off_outlined,
+                                              color: Colors.white70,
+                                              size: 44,
+                                            ),
+                                            const SizedBox(height: 12),
+                                            Text(
+                                              message,
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            OutlinedButton(
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor: Colors.white,
+                                                side: const BorderSide(
+                                                  color: Colors.white54,
+                                                ),
+                                              ),
+                                              onPressed: () {
+                                                if (hasPopped || !ctx.mounted) {
+                                                  return;
+                                                }
+                                                hasPopped = true;
+                                                Navigator.of(ctx).pop();
+                                              },
+                                              child: const Text('Close'),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  onDetect: (capture) {
+                                    if (hasPopped || !ctx.mounted) return;
+                                    for (final barcode in capture.barcodes) {
+                                      final raw = barcode.rawValue;
+                                      if (raw != null && raw.isNotEmpty) {
+                                        hasPopped = true;
+                                        unawaited(scannerController.stop());
+                                        Navigator.of(ctx).pop(raw);
+                                        break;
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                              IgnorePointer(
+                                child: CustomPaint(
+                                  painter: _QrScannerOverlayPainter(
+                                    cornerColor: AppTheme.primaryOlive,
+                                  ),
+                                ),
+                              ),
+                              const Positioned(
+                                left: 16,
+                                right: 16,
+                                bottom: 14,
+                                child: IgnorePointer(
+                                  child: Text(
+                                    "Align the Admin's pairing QR code inside the frame",
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black87,
+                                          blurRadius: 6,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.qr_code_scanner,
-                      color: AppTheme.headingColorFor(ctx),
-                      size: 22,
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        'Scan Pairing QR Code',
-                        style: TextStyle(
-                          color: AppTheme.headingColorFor(ctx),
-                          fontSize: 17,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        color: AppTheme.headingColorFor(ctx),
-                      ),
-                      onPressed: () {
-                        if (hasPopped || !ctx.mounted) return;
-                        hasPopped = true;
-                        Navigator.of(ctx).pop();
-                      },
-                    ),
-                  ],
-                ),
               ),
-              Expanded(
-                child: MobileScanner(
-                  controller: scannerController,
-                  errorBuilder: (ctx, error, child) {
-                    final message = switch (error.errorCode) {
-                      MobileScannerErrorCode.permissionDenied =>
-                        'Camera permission denied. Enable camera access in system settings or paste the QR payload manually.',
-                      MobileScannerErrorCode.unsupported =>
-                        'Camera scanning is not supported on this device. Paste the QR payload manually instead.',
-                      _ =>
-                        'Unable to start camera (${error.errorDetails?.message ?? error.errorCode.name}). You can close this sheet and paste the QR payload manually.',
-                    };
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.videocam_off_outlined,
-                              color: Colors.white70,
-                              size: 48,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              message,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            OutlinedButton(
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.white,
-                                side: const BorderSide(color: Colors.white54),
-                              ),
-                              onPressed: () {
-                                if (hasPopped || !ctx.mounted) return;
-                                hasPopped = true;
-                                Navigator.of(ctx).pop();
-                              },
-                              child: const Text('Enter Manually'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                  onDetect: (capture) {
-                    if (hasPopped || !ctx.mounted) return;
-                    for (final barcode in capture.barcodes) {
-                      final raw = barcode.rawValue;
-                      if (raw != null && raw.isNotEmpty) {
-                        hasPopped = true;
-                        unawaited(scannerController.stop());
-                        Navigator.of(ctx).pop(raw);
-                        break;
-                      }
-                    }
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       );
       if (scanned != null && mounted) {
-        _qrRawCtrl.text = scanned;
         _validateQrString(scanned);
       }
     } finally {
@@ -696,36 +783,32 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildJoinQrForm() {
+    final hasValidatedQr = _validatedQr != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SynProdSecondaryButton(
-          onPressed: _isBusy ? null : _openQrScanner,
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.qr_code_scanner, size: 18),
-              SizedBox(width: 8),
-              Text('Scan QR Code with Camera'),
-            ],
+        if (!hasValidatedQr) ...[
+          Text(
+            'Point your camera at the pairing QR code shown on your Admin device.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppTheme.mutedTextFor(context),
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        TextField(
-          controller: _qrRawCtrl,
-          maxLines: 2,
-          decoration: const InputDecoration(
-            labelText: 'Or Paste Pairing Payload',
-            hintText: '{"v":1,"wid":...}',
+          const SizedBox(height: 16),
+          SynProdGradientButton(
+            onPressed: _isBusy ? null : _openQrScanner,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.qr_code_scanner, size: 20),
+                SizedBox(width: 10),
+                Text('Scan QR Code with Camera'),
+              ],
+            ),
           ),
-          onChanged: (val) {
-            if (val.trim().startsWith('{')) {
-              _validateQrString(val);
-            }
-          },
-        ),
-        if (_validatedQr != null) ...[
-          const SizedBox(height: 14),
+        ] else ...[
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -754,7 +837,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           SynProdGradientButton(
             onPressed: _isBusy ? null : _continueToJoinQrPin,
             child: const Row(
@@ -763,6 +846,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                 Icon(Icons.arrow_forward, size: 18),
                 SizedBox(width: 8),
                 Text('Continue'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          SynProdSecondaryButton(
+            onPressed: _isBusy ? null : _openQrScanner,
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.qr_code_scanner, size: 18),
+                SizedBox(width: 8),
+                Text('Scan Different QR'),
               ],
             ),
           ),
@@ -814,4 +909,74 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ],
     );
   }
+}
+
+class _QrScannerOverlayPainter extends CustomPainter {
+  final Color cornerColor;
+
+  const _QrScannerOverlayPainter({required this.cornerColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cutoutSize = size.shortestSide * 0.62;
+    final left = (size.width - cutoutSize) / 2;
+    final top = (size.height - cutoutSize) / 2;
+    final cutoutRect = Rect.fromLTWH(left, top, cutoutSize, cutoutSize);
+
+    final scrimPath = Path()
+      ..addRect(Offset.zero & size)
+      ..addRRect(RRect.fromRectAndRadius(cutoutRect, const Radius.circular(14)))
+      ..fillType = PathFillType.evenOdd;
+
+    canvas.drawPath(
+      scrimPath,
+      Paint()..color = Colors.black.withValues(alpha: 0.54),
+    );
+
+    final cornerPaint = Paint()
+      ..color = cornerColor
+      ..strokeWidth = 4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    const cornerLen = 28.0;
+    final r = cutoutRect;
+
+    // Top-left
+    canvas.drawPath(
+      Path()
+        ..moveTo(r.left, r.top + cornerLen)
+        ..lineTo(r.left, r.top)
+        ..lineTo(r.left + cornerLen, r.top),
+      cornerPaint,
+    );
+    // Top-right
+    canvas.drawPath(
+      Path()
+        ..moveTo(r.right - cornerLen, r.top)
+        ..lineTo(r.right, r.top)
+        ..lineTo(r.right, r.top + cornerLen),
+      cornerPaint,
+    );
+    // Bottom-left
+    canvas.drawPath(
+      Path()
+        ..moveTo(r.left, r.bottom - cornerLen)
+        ..lineTo(r.left, r.bottom)
+        ..lineTo(r.left + cornerLen, r.bottom),
+      cornerPaint,
+    );
+    // Bottom-right
+    canvas.drawPath(
+      Path()
+        ..moveTo(r.right - cornerLen, r.bottom)
+        ..lineTo(r.right, r.bottom)
+        ..lineTo(r.right, r.bottom - cornerLen),
+      cornerPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _QrScannerOverlayPainter oldDelegate) =>
+      oldDelegate.cornerColor != cornerColor;
 }

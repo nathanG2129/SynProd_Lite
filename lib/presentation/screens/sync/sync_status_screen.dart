@@ -9,13 +9,20 @@ import '../../providers/sync_providers.dart';
 import '../../widgets/synprod_ui.dart';
 import '../product_form/product_form_screen.dart';
 
-class SyncStatusScreen extends ConsumerWidget {
+class SyncStatusScreen extends ConsumerStatefulWidget {
   final bool embedded;
 
   const SyncStatusScreen({super.key, this.embedded = false});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SyncStatusScreen> createState() => _SyncStatusScreenState();
+}
+
+class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
+  int _desktopTab = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final syncState = ref.watch(syncControllerProvider);
     final conflictsAsync = ref.watch(conflictHistoryProvider);
     final currentDevice = ref.watch(currentDeviceProvider);
@@ -23,7 +30,7 @@ class SyncStatusScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: SynProdAppBar(
-        automaticallyImplyLeading: !embedded,
+        automaticallyImplyLeading: !widget.embedded,
         title: const SynProdGradientText('Local Wi-Fi Sync'),
         actions: [
           Padding(
@@ -46,20 +53,63 @@ class SyncStatusScreen extends ConsumerWidget {
       ),
       body: SynProdCanvas(
         child: SynProdCenteredBody(
-          child: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              _buildStatusCard(context, ref, syncState),
-              const SizedBox(height: 16),
-              _buildPeersCard(context, syncState),
-              const SizedBox(height: 16),
-              _buildConflictsSection(
+          maxWidth: 920,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth >= 780;
+              final statusCard = _buildStatusCard(context, ref, syncState);
+              final peersCard = _buildPeersCard(context, syncState);
+              final conflictsCard = _buildConflictsSection(
                 context,
                 ref,
                 conflictsAsync,
                 canRecoverOrEdit,
-              ),
-            ],
+              );
+
+              if (!isDesktop) {
+                return ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    statusCard,
+                    const SizedBox(height: 16),
+                    peersCard,
+                    const SizedBox(height: 16),
+                    conflictsCard,
+                  ],
+                );
+              }
+
+              final conflictCount = conflictsAsync.valueOrNull?.length ?? 0;
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  statusCard,
+                  const SizedBox(height: 16),
+                  SegmentedButton<int>(
+                    segments: [
+                      ButtonSegment<int>(
+                        value: 0,
+                        icon: const Icon(Icons.devices_outlined, size: 18),
+                        label: Text(
+                          'Workspace Peers (${syncState.peers.length})',
+                        ),
+                      ),
+                      ButtonSegment<int>(
+                        value: 1,
+                        icon: const Icon(Icons.history_outlined, size: 18),
+                        label: Text('Conflict History ($conflictCount)'),
+                      ),
+                    ],
+                    selected: {_desktopTab},
+                    onSelectionChanged: (selection) {
+                      setState(() => _desktopTab = selection.first);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  if (_desktopTab == 0) peersCard else conflictsCard,
+                ],
+              );
+            },
           ),
         ),
       ),

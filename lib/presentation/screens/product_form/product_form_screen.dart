@@ -27,6 +27,20 @@ class ProductFormScreen extends ConsumerStatefulWidget {
 class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _scrollController = ScrollController();
+  final _detailsKey = GlobalKey();
+  final _compositionKey = GlobalKey();
+  final _ingredientsKey = GlobalKey();
+
+  void _scrollToSection(GlobalKey key) {
+    final ctx = key.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      alignment: 0.05,
+    );
+  }
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
@@ -278,50 +292,309 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
       ),
       body: SynProdCanvas(
         child: SynProdCenteredBody(
+          maxWidth: 1020,
           child: Form(
-          key: _formKey,
-          child: ListView(
-            controller: _scrollController,
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (_errorMessage != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppTheme.errorBgFor(context),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.inputErrorBorder),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+            key: _formKey,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isDesktop = constraints.maxWidth >= 860;
+                final errorBanner = _errorMessage == null
+                    ? null
+                    : Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.errorBgFor(context),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppTheme.inputErrorBorder),
+                        ),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.error_outline,
+                              color: AppTheme.redError,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(
+                                  color: AppTheme.errorTextFor(context),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                final basicInfoCard = _buildBasicInfoCard();
+                final compositionsCard =
+                    _buildCompositionsCard(totalPercentage, isSumValid);
+                final ingredientsCard = _buildIngredientsCard();
+
+                if (!isDesktop) {
+                  return ListView(
+                    controller: _scrollController,
+                    padding: const EdgeInsets.all(16),
                     children: [
-                      const Icon(Icons.error_outline,
-                          color: AppTheme.redError, size: 20),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          _errorMessage!,
-                          style: TextStyle(
-                            color: AppTheme.errorTextFor(context),
-                            fontWeight: FontWeight.w500,
-                          ),
+                      if (errorBanner != null) ...[
+                        errorBanner,
+                        const SizedBox(height: 16),
+                      ],
+                      basicInfoCard,
+                      const SizedBox(height: 16),
+                      compositionsCard,
+                      const SizedBox(height: 16),
+                      ingredientsCard,
+                      const SizedBox(height: 32),
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 280,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 0, 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _buildRecipeSummaryCard(
+                              totalPercentage,
+                              isSumValid,
+                            ),
+                            const SizedBox(height: 12),
+                            SynProdCard(
+                              padding: const EdgeInsets.symmetric(vertical: 6),
+                              child: Column(
+                                children: [
+                                  _buildFormNavTile(
+                                    context,
+                                    icon: Icons.description_outlined,
+                                    label: 'Product Details',
+                                    onTap: () => _scrollToSection(_detailsKey),
+                                  ),
+                                  _buildFormNavTile(
+                                    context,
+                                    icon: Icons.pie_chart_outline,
+                                    label: 'Composition (% of Weight)',
+                                    onTap: () =>
+                                        _scrollToSection(_compositionKey),
+                                  ),
+                                  _buildFormNavTile(
+                                    context,
+                                    icon: Icons.science_outlined,
+                                    label: 'Additional Ingredients',
+                                    onTap: () =>
+                                        _scrollToSection(_ingredientsKey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-              _buildBasicInfoCard(),
-              const SizedBox(height: 16),
-              _buildCompositionsCard(totalPercentage, isSumValid),
-              const SizedBox(height: 16),
-              _buildIngredientsCard(),
-              const SizedBox(height: 32),
-            ],
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(0, 16, 16, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (errorBanner != null) ...[
+                              errorBanner,
+                              const SizedBox(height: 16),
+                            ],
+                            KeyedSubtree(
+                              key: _detailsKey,
+                              child: basicInfoCard,
+                            ),
+                            const SizedBox(height: 16),
+                            KeyedSubtree(
+                              key: _compositionKey,
+                              child: compositionsCard,
+                            ),
+                            const SizedBox(height: 16),
+                            KeyedSubtree(
+                              key: _ingredientsKey,
+                              child: ingredientsCard,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFormNavTile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      dense: true,
+      leading: Icon(icon, size: 19, color: AppTheme.headingColorFor(context)),
+      title: Text(
+        label,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.primaryTextFor(context),
         ),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildRecipeSummaryCard(double totalPercentage, bool isSumValid) {
+    final isReady = _compositionRows.isEmpty || isSumValid;
+    return SynProdCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Recipe Summary',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.headingColorFor(context),
+                  ),
+                ),
+              ),
+              SynProdPercentageBadge(
+                totalPercentage: totalPercentage,
+                isValid: isReady,
+                compact: true,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildSummaryMetric(
+                  label: 'Components',
+                  value: '${_compositionRows.length}',
+                  icon: Icons.pie_chart_outline,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildSummaryMetric(
+                  label: 'Ingredients',
+                  value: '${_ingredientRows.length}',
+                  icon: Icons.science_outlined,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: isReady
+                  ? AppTheme.successBgFor(context)
+                  : AppTheme.warningBgFor(context),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isReady ? AppTheme.primaryOlive : AppTheme.amberWarning,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isReady
+                      ? Icons.check_circle_outline
+                      : Icons.warning_amber_rounded,
+                  size: 18,
+                  color: isReady
+                      ? AppTheme.successTextFor(context)
+                      : AppTheme.warningTextFor(context),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _compositionRows.isEmpty
+                        ? 'Add compositions summing to 100% or save without compositions.'
+                        : isSumValid
+                            ? 'Composition balance is at 100% and ready to save.'
+                            : 'Composition total must equal 100% (currently ${totalPercentage.toStringAsFixed(1)}%).',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: isReady
+                          ? AppTheme.successTextFor(context)
+                          : AppTheme.warningTextFor(context),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryMetric({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppTheme.subtleSurfaceFor(context),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppTheme.borderFor(context)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: AppTheme.headingColorFor(context)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primaryTextFor(context),
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppTheme.mutedTextFor(context),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

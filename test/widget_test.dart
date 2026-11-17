@@ -21,6 +21,7 @@ import 'package:synprod_lite/presentation/providers/device_providers.dart';
 import 'package:synprod_lite/presentation/providers/product_providers.dart';
 import 'package:synprod_lite/presentation/providers/theme_providers.dart';
 import 'package:synprod_lite/presentation/screens/device_management/device_management_screen.dart';
+import 'package:synprod_lite/presentation/screens/onboarding/onboarding_screen.dart';
 import 'package:synprod_lite/presentation/screens/product_form/product_form_screen.dart';
 import 'package:synprod_lite/presentation/screens/profile/device_profile_screen.dart';
 import 'package:synprod_lite/presentation/screens/recipe_detail/recipe_detail_screen.dart';
@@ -592,5 +593,120 @@ void main() {
     expect(find.byType(RecipeDetailScreen), findsOneWidget);
 
     await tester.binding.setSurfaceSize(null);
+  });
+
+  testWidgets('Onboarding Join QR shows camera button and no payload input',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          deviceRepositoryProvider.overrideWithValue(_SmokeDeviceRepository()),
+          productRepositoryProvider.overrideWithValue(_SmokeProductRepository()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const OnboardingScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Join Existing Workspace (Scan QR)'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Scan QR Code with Camera'), findsOneWidget);
+    expect(find.text('Or Paste Pairing Payload'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('Desktop (>= 900px) renders 2-column layouts without overflow',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final adminDevice = Device(
+      id: 'admin-1',
+      displayName: 'Admin Desktop',
+      role: DeviceRole.admin,
+      pairedAt: DateTime(2026, 11, 16),
+      lastSeenAt: DateTime(2026, 11, 16),
+    );
+    final peerDevice = Device(
+      id: 'prod-1',
+      displayName: 'Floor Tablet',
+      role: DeviceRole.production,
+      pairedAt: DateTime(2026, 11, 16),
+      lastSeenAt: DateTime(2026, 11, 16),
+    );
+
+    await tester.binding.setSurfaceSize(const Size(1280, 800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    // 1. DeviceManagementScreen
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentDeviceProvider.overrideWithValue(adminDevice),
+          deviceRepositoryProvider.overrideWithValue(_SmokeDeviceRepository()),
+          allDevicesProvider.overrideWith(
+            (ref) => Stream.value([adminDevice, peerDevice]),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const DeviceManagementScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Admin Desktop'), findsOneWidget);
+    expect(find.text('Floor Tablet'), findsOneWidget);
+
+    // 2. DeviceProfileScreen
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentDeviceProvider.overrideWithValue(adminDevice),
+          deviceRepositoryProvider.overrideWithValue(_SmokeDeviceRepository()),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const DeviceProfileScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Appearance'), findsWidgets);
+    expect(find.text('Security & Session'), findsWidgets);
+
+    // 3. ProductFormScreen
+    await tester.pumpWidget(
+      ProviderScope(
+        key: UniqueKey(),
+        overrides: [
+          sharedPreferencesProvider.overrideWithValue(prefs),
+          currentDeviceProvider.overrideWithValue(adminDevice),
+          productRepositoryProvider.overrideWithValue(_SmokeProductRepository()),
+          productTypesStreamProvider.overrideWith(
+            (ref) => Stream.value(ProductType.defaults),
+          ),
+        ],
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const ProductFormScreen(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Product Details'), findsWidgets);
+    expect(find.text('Recipe Summary'), findsOneWidget);
+    expect(find.text('Composition (% of Weight)'), findsWidgets);
   });
 }
