@@ -10,13 +10,15 @@ class SynProdCanvas extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         gradient: AppTheme.canvasGradientFor(context),
       ),
-      child: SafeArea(
-        top: false,
-        child: child,
+      child: RepaintBoundary(
+        child: SafeArea(
+          top: false,
+          child: child,
+        ),
       ),
     );
   }
@@ -42,12 +44,15 @@ class SynProdGradientText extends StatelessWidget {
           letterSpacing: -0.3,
         );
 
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback: (bounds) => AppTheme.headingGradientFor(context).createShader(
-        Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+    return RepaintBoundary(
+      child: ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (bounds) =>
+            AppTheme.headingGradientFor(context).createShader(
+          Rect.fromLTWH(0, 0, bounds.width, bounds.height),
+        ),
+        child: Text(text, style: effectiveStyle),
       ),
-      child: Text(text, style: effectiveStyle),
     );
   }
 }
@@ -79,33 +84,35 @@ class SynProdAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = AppTheme.isDark(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.cardColorFor(context),
-        border: Border(
-          bottom: BorderSide(
-            color: isDark ? AppTheme.darkOliveAccent : AppTheme.forestGreen,
-            width: 3,
+    return RepaintBoundary(
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.cardColorFor(context),
+          border: Border(
+            bottom: BorderSide(
+              color: isDark ? AppTheme.darkOliveAccent : AppTheme.forestGreen,
+              width: 3,
+            ),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? AppTheme.darkCardShadow : AppTheme.headerShadow,
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? AppTheme.darkCardShadow : AppTheme.headerShadow,
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: AppBar(
-        toolbarHeight: toolbarHeight,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        automaticallyImplyLeading: automaticallyImplyLeading,
-        leading: leading,
-        title: title,
-        actions: actions,
-        bottom: bottom,
+        child: AppBar(
+          toolbarHeight: toolbarHeight,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          automaticallyImplyLeading: automaticallyImplyLeading,
+          leading: leading,
+          title: title,
+          actions: actions,
+          bottom: bottom,
+        ),
       ),
     );
   }
@@ -144,31 +151,21 @@ class SynProdCard extends StatelessWidget {
     );
 
     final isDark = AppTheme.isDark(context);
-    return DecoratedBox(
-      decoration: BoxDecoration(
+    return Material(
+      color: AppTheme.cardColorFor(context),
+      elevation: 1.5,
+      shadowColor: isDark ? AppTheme.darkCardShadow : AppTheme.cardShadow,
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? AppTheme.darkCardShadow : AppTheme.cardShadow,
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        side: BorderSide(color: AppTheme.cardBorderFor(context), width: 2),
       ),
-      child: Material(
-        color: AppTheme.cardColorFor(context),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(color: AppTheme.cardBorderFor(context), width: 2),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: onTap != null
-            ? InkWell(
-                onTap: onTap,
-                child: content,
-              )
-            : content,
-      ),
+      clipBehavior: Clip.antiAlias,
+      child: onTap != null
+          ? InkWell(
+              onTap: onTap,
+              child: content,
+            )
+          : content,
     );
   }
 }

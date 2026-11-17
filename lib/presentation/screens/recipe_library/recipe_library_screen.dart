@@ -981,14 +981,16 @@ class _RecipeCard extends StatelessWidget {
         ],
       ),
     );
-    if (!isSelected) return card;
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.primaryOlive, width: 2),
-      ),
-      child: card,
-    );
+    final result = !isSelected
+        ? card
+        : Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppTheme.primaryOlive, width: 2),
+            ),
+            child: card,
+          );
+    return RepaintBoundary(child: result);
   }
 
   Widget _buildMetaItem(
