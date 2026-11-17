@@ -12,6 +12,7 @@ import '../../providers/auth_providers.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/sync_providers.dart';
 import '../../widgets/synprod_ui.dart';
+import '../archive/archive_screen.dart';
 
 enum _DeviceSortField { name, role, pairedAt, lastSeenAt }
 
@@ -91,6 +92,17 @@ class _DeviceManagementScreenState
           child: SynProdGradientText('Device Management'),
         ),
         actions: [
+          IconButton(
+            tooltip: 'View Archive',
+            icon: const Icon(Icons.archive_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ArchiveScreen(initialTabIndex: 2),
+                ),
+              );
+            },
+          ),
           Padding(
             padding: const EdgeInsets.only(right: 12),
             child: Center(
@@ -213,6 +225,7 @@ class _DeviceManagementScreenState
   List<Device> _filterAndSort(List<Device> devices) {
     final query = _search.trim().toLowerCase();
     final list = devices.where((d) {
+      if (d.isRevoked) return false;
       if (query.isEmpty) return true;
       return d.displayName.toLowerCase().contains(query) ||
           d.role.displayName.toLowerCase().contains(query) ||
@@ -299,49 +312,47 @@ class _DeviceManagementScreenState
               _buildRoleBadge(context, device),
             ],
           ),
-          if (!isSelf && device.role != DeviceRole.admin) ...[
+          if (!isSelf) ...[
             const Divider(height: 24),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                OutlinedButton.icon(
-                  onPressed: () => _toggleRole(device),
-                  icon: const Icon(Icons.swap_horiz, size: 18),
-                  label: Text(
-                    device.role == DeviceRole.production
-                        ? 'Promote to Manager'
-                        : 'Set to Production',
+                if (device.role != DeviceRole.admin)
+                  OutlinedButton.icon(
+                    onPressed: () => _toggleRole(device),
+                    icon: const Icon(Icons.swap_horiz, size: 18),
+                    label: Text(
+                      device.role == DeviceRole.production
+                          ? 'Promote to Manager'
+                          : 'Set to Production',
+                    ),
                   ),
-                ),
                 OutlinedButton.icon(
-                  onPressed: () => _toggleRevoke(device),
+                  onPressed: () => _archiveDevice(device),
                   icon: Icon(
-                    device.isRevoked ? Icons.restore : Icons.block,
+                    Icons.archive_outlined,
                     size: 18,
-                    color: device.isRevoked
-                        ? AppTheme.headingColorFor(context)
-                        : AppTheme.errorTextFor(context),
+                    color: AppTheme.errorTextFor(context),
                   ),
                   label: Text(
-                    device.isRevoked ? 'Restore' : 'Revoke',
+                    'Archive',
                     style: TextStyle(
-                      color: device.isRevoked
-                          ? AppTheme.headingColorFor(context)
-                          : AppTheme.errorTextFor(context),
+                      color: AppTheme.errorTextFor(context),
                     ),
                   ),
                 ),
-                OutlinedButton.icon(
-                  onPressed: () => _showQrCodeDialog(
-                    context: context,
-                    deviceId: device.id,
-                    displayName: device.displayName,
-                    role: device.role,
+                if (device.role != DeviceRole.admin)
+                  OutlinedButton.icon(
+                    onPressed: () => _showQrCodeDialog(
+                      context: context,
+                      deviceId: device.id,
+                      displayName: device.displayName,
+                      role: device.role,
+                    ),
+                    icon: const Icon(Icons.qr_code, size: 18),
+                    label: const Text('Re-pair QR'),
                   ),
-                  icon: const Icon(Icons.qr_code, size: 18),
-                  label: const Text('Re-pair QR'),
-                ),
               ],
             ),
           ],
@@ -405,11 +416,38 @@ class _DeviceManagementScreenState
     ref.read(syncControllerProvider.notifier).scheduleSync();
   }
 
-  Future<void> _toggleRevoke(Device device) async {
+  Future<void> _archiveDevice(Device device) async {
+    final confirmed = await showSynProdDialog<bool>(
+      context: context,
+      builder: (ctx) => SynProdDialog(
+        icon: Icons.archive_outlined,
+        title: 'Archive Device',
+        content: Text(
+          'Archive "${device.displayName}" (${device.role.displayName})? '
+          'Archived devices become inactive and cannot sync or be used until restored.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          SynProdGradientButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Archive'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
     await ref
         .read(deviceRepositoryProvider)
-        .setDeviceRevoked(device.id, !device.isRevoked);
+        .setDeviceRevoked(device.id, true);
     ref.read(syncControllerProvider.notifier).scheduleSync();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Archived "${device.displayName}"')),
+      );
+    }
   }
 
   Future<void> _showAddDeviceDialog(BuildContext context) async {

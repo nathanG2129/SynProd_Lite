@@ -3656,6 +3656,21 @@ class $ProductTypesTableTable extends ProductTypesTable
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _isArchivedMeta = const VerificationMeta(
+    'isArchived',
+  );
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+    'is_archived',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_archived" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     code,
@@ -3663,6 +3678,7 @@ class $ProductTypesTableTable extends ProductTypesTable
     baseWeightGrams,
     packagingJson,
     sortOrder,
+    isArchived,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3723,6 +3739,12 @@ class $ProductTypesTableTable extends ProductTypesTable
         sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
       );
     }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+        _isArchivedMeta,
+        isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
+      );
+    }
     return context;
   }
 
@@ -3752,6 +3774,10 @@ class $ProductTypesTableTable extends ProductTypesTable
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
       )!,
+      isArchived: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_archived'],
+      )!,
     );
   }
 
@@ -3768,12 +3794,14 @@ class ProductTypeEntry extends DataClass
   final double baseWeightGrams;
   final String packagingJson;
   final int sortOrder;
+  final bool isArchived;
   const ProductTypeEntry({
     required this.code,
     required this.displayName,
     required this.baseWeightGrams,
     required this.packagingJson,
     required this.sortOrder,
+    required this.isArchived,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3783,6 +3811,7 @@ class ProductTypeEntry extends DataClass
     map['base_weight_grams'] = Variable<double>(baseWeightGrams);
     map['packaging_json'] = Variable<String>(packagingJson);
     map['sort_order'] = Variable<int>(sortOrder);
+    map['is_archived'] = Variable<bool>(isArchived);
     return map;
   }
 
@@ -3793,6 +3822,7 @@ class ProductTypeEntry extends DataClass
       baseWeightGrams: Value(baseWeightGrams),
       packagingJson: Value(packagingJson),
       sortOrder: Value(sortOrder),
+      isArchived: Value(isArchived),
     );
   }
 
@@ -3807,6 +3837,7 @@ class ProductTypeEntry extends DataClass
       baseWeightGrams: serializer.fromJson<double>(json['baseWeightGrams']),
       packagingJson: serializer.fromJson<String>(json['packagingJson']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
     );
   }
   @override
@@ -3818,6 +3849,7 @@ class ProductTypeEntry extends DataClass
       'baseWeightGrams': serializer.toJson<double>(baseWeightGrams),
       'packagingJson': serializer.toJson<String>(packagingJson),
       'sortOrder': serializer.toJson<int>(sortOrder),
+      'isArchived': serializer.toJson<bool>(isArchived),
     };
   }
 
@@ -3827,12 +3859,14 @@ class ProductTypeEntry extends DataClass
     double? baseWeightGrams,
     String? packagingJson,
     int? sortOrder,
+    bool? isArchived,
   }) => ProductTypeEntry(
     code: code ?? this.code,
     displayName: displayName ?? this.displayName,
     baseWeightGrams: baseWeightGrams ?? this.baseWeightGrams,
     packagingJson: packagingJson ?? this.packagingJson,
     sortOrder: sortOrder ?? this.sortOrder,
+    isArchived: isArchived ?? this.isArchived,
   );
   ProductTypeEntry copyWithCompanion(ProductTypesTableCompanion data) {
     return ProductTypeEntry(
@@ -3847,6 +3881,9 @@ class ProductTypeEntry extends DataClass
           ? data.packagingJson.value
           : this.packagingJson,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isArchived: data.isArchived.present
+          ? data.isArchived.value
+          : this.isArchived,
     );
   }
 
@@ -3857,14 +3894,21 @@ class ProductTypeEntry extends DataClass
           ..write('displayName: $displayName, ')
           ..write('baseWeightGrams: $baseWeightGrams, ')
           ..write('packagingJson: $packagingJson, ')
-          ..write('sortOrder: $sortOrder')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isArchived: $isArchived')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(code, displayName, baseWeightGrams, packagingJson, sortOrder);
+  int get hashCode => Object.hash(
+    code,
+    displayName,
+    baseWeightGrams,
+    packagingJson,
+    sortOrder,
+    isArchived,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -3873,7 +3917,8 @@ class ProductTypeEntry extends DataClass
           other.displayName == this.displayName &&
           other.baseWeightGrams == this.baseWeightGrams &&
           other.packagingJson == this.packagingJson &&
-          other.sortOrder == this.sortOrder);
+          other.sortOrder == this.sortOrder &&
+          other.isArchived == this.isArchived);
 }
 
 class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
@@ -3882,6 +3927,7 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
   final Value<double> baseWeightGrams;
   final Value<String> packagingJson;
   final Value<int> sortOrder;
+  final Value<bool> isArchived;
   final Value<int> rowid;
   const ProductTypesTableCompanion({
     this.code = const Value.absent(),
@@ -3889,6 +3935,7 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
     this.baseWeightGrams = const Value.absent(),
     this.packagingJson = const Value.absent(),
     this.sortOrder = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductTypesTableCompanion.insert({
@@ -3897,6 +3944,7 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
     required double baseWeightGrams,
     required String packagingJson,
     this.sortOrder = const Value.absent(),
+    this.isArchived = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : code = Value(code),
        displayName = Value(displayName),
@@ -3908,6 +3956,7 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
     Expression<double>? baseWeightGrams,
     Expression<String>? packagingJson,
     Expression<int>? sortOrder,
+    Expression<bool>? isArchived,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3916,6 +3965,7 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
       if (baseWeightGrams != null) 'base_weight_grams': baseWeightGrams,
       if (packagingJson != null) 'packaging_json': packagingJson,
       if (sortOrder != null) 'sort_order': sortOrder,
+      if (isArchived != null) 'is_archived': isArchived,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3926,6 +3976,7 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
     Value<double>? baseWeightGrams,
     Value<String>? packagingJson,
     Value<int>? sortOrder,
+    Value<bool>? isArchived,
     Value<int>? rowid,
   }) {
     return ProductTypesTableCompanion(
@@ -3934,6 +3985,7 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
       baseWeightGrams: baseWeightGrams ?? this.baseWeightGrams,
       packagingJson: packagingJson ?? this.packagingJson,
       sortOrder: sortOrder ?? this.sortOrder,
+      isArchived: isArchived ?? this.isArchived,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3956,6 +4008,9 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
     }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3970,6 +4025,7 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
           ..write('baseWeightGrams: $baseWeightGrams, ')
           ..write('packagingJson: $packagingJson, ')
           ..write('sortOrder: $sortOrder, ')
+          ..write('isArchived: $isArchived, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -6389,6 +6445,7 @@ typedef $$ProductTypesTableTableCreateCompanionBuilder =
       required double baseWeightGrams,
       required String packagingJson,
       Value<int> sortOrder,
+      Value<bool> isArchived,
       Value<int> rowid,
     });
 typedef $$ProductTypesTableTableUpdateCompanionBuilder =
@@ -6398,6 +6455,7 @@ typedef $$ProductTypesTableTableUpdateCompanionBuilder =
       Value<double> baseWeightGrams,
       Value<String> packagingJson,
       Value<int> sortOrder,
+      Value<bool> isArchived,
       Value<int> rowid,
     });
 
@@ -6432,6 +6490,11 @@ class $$ProductTypesTableTableFilterComposer
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6469,6 +6532,11 @@ class $$ProductTypesTableTableOrderingComposer
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProductTypesTableTableAnnotationComposer
@@ -6500,6 +6568,11 @@ class $$ProductTypesTableTableAnnotationComposer
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+    column: $table.isArchived,
+    builder: (column) => column,
+  );
 }
 
 class $$ProductTypesTableTableTableManager
@@ -6547,6 +6620,7 @@ class $$ProductTypesTableTableTableManager
                 Value<double> baseWeightGrams = const Value.absent(),
                 Value<String> packagingJson = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductTypesTableCompanion(
                 code: code,
@@ -6554,6 +6628,7 @@ class $$ProductTypesTableTableTableManager
                 baseWeightGrams: baseWeightGrams,
                 packagingJson: packagingJson,
                 sortOrder: sortOrder,
+                isArchived: isArchived,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6563,6 +6638,7 @@ class $$ProductTypesTableTableTableManager
                 required double baseWeightGrams,
                 required String packagingJson,
                 Value<int> sortOrder = const Value.absent(),
+                Value<bool> isArchived = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductTypesTableCompanion.insert(
                 code: code,
@@ -6570,6 +6646,7 @@ class $$ProductTypesTableTableTableManager
                 baseWeightGrams: baseWeightGrams,
                 packagingJson: packagingJson,
                 sortOrder: sortOrder,
+                isArchived: isArchived,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

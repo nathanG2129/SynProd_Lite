@@ -125,7 +125,8 @@ class P2pSyncServer {
       final updatedDevices = await deviceRepository.getAllDevices();
       final updatedProducts =
           await productRepository.getAllProductsIncludingDeleted();
-      final updatedProductTypes = await productRepository.getProductTypes();
+      final updatedProductTypes =
+          await productRepository.getAllProductTypesIncludingArchived();
       final responseSnapshot = SyncSnapshot(
         workspaceId: workspace.id,
         senderDeviceId: localDevice.id,
@@ -183,7 +184,8 @@ class P2pSyncServer {
 
     final localProducts =
         await productRepository.getAllProductsIncludingDeleted();
-    final localProductTypes = await productRepository.getProductTypes();
+    final localProductTypes =
+        await productRepository.getAllProductTypesIncludingArchived();
     final outgoing = SyncSnapshot(
       workspaceId: workspace.id,
       senderDeviceId: localDevice.id,

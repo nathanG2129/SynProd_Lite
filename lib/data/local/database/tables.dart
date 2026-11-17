@@ -134,6 +134,7 @@ class ProductTypesTable extends Table {
   RealColumn get baseWeightGrams => real()();
   TextColumn get packagingJson => text()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
+  BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {code};

@@ -215,11 +215,11 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
     final confirmed = await showSynProdDialog<bool>(
       context: context,
       builder: (dialogContext) => SynProdDialog(
-        icon: Icons.delete_outline,
-        title: 'Delete Product',
+        icon: Icons.archive_outlined,
+        title: 'Archive Recipe',
         content: Text(
-          'Are you sure you want to delete "${_product.name}"? '
-          'It will be removed from all recipe lists and searches.',
+          'Archive "${_product.name}"? '
+          'Archived recipes are inactive and cannot be used until restored from the Archive page.',
         ),
         actions: [
           TextButton(
@@ -231,7 +231,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
               backgroundColor: AppTheme.redError,
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: const Text('Delete'),
+            child: const Text('Archive'),
           ),
         ],
       ),
@@ -244,7 +244,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Deleted "${_product.name}"'),
+          content: Text('Archived "${_product.name}"'),
         ),
       );
       if (widget.embedded) {
@@ -256,7 +256,7 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to delete product: $e'),
+          content: Text('Failed to archive recipe: $e'),
           backgroundColor: AppTheme.redError,
         ),
       );
@@ -284,8 +284,8 @@ class _RecipeDetailScreenState extends ConsumerState<RecipeDetailScreen> {
         ),
       if (canDelete)
         IconButton(
-          tooltip: 'Delete Product',
-          icon: const Icon(Icons.delete_outline, color: AppTheme.redError),
+          tooltip: 'Archive Recipe',
+          icon: const Icon(Icons.archive_outlined, color: AppTheme.redError),
           onPressed: _confirmSoftDelete,
         ),
       IconButton(

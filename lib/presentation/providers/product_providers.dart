@@ -33,9 +33,21 @@ final activeProductsStreamProvider = StreamProvider<List<Product>>((ref) {
   return repo.watchActiveProducts();
 });
 
+final archivedProductsStreamProvider = StreamProvider<List<Product>>((ref) {
+  ref.watch(productTypesStreamProvider);
+  final repo = ref.watch(productRepositoryProvider);
+  return repo.watchArchivedProducts();
+});
+
 final productTypesStreamProvider = StreamProvider<List<ProductType>>((ref) {
   final repo = ref.watch(productRepositoryProvider);
   return repo.watchProductTypes();
+});
+
+final archivedProductTypesStreamProvider =
+    StreamProvider<List<ProductType>>((ref) {
+  final repo = ref.watch(productRepositoryProvider);
+  return repo.watchArchivedProductTypes();
 });
 
 final productTypesProvider = Provider<List<ProductType>>((ref) {
@@ -222,13 +234,33 @@ class ProductMutationService {
   Future<void> softDeleteProduct(Product product) async {
     if (!canDeviceDeleteProduct(_currentDevice)) {
       throw const ValidationFailure(
-        'Only administrators can delete products.',
+        'Only administrators can archive products.',
       );
     }
     await _repository.softDeleteProduct(
       product.id,
       deletedByDeviceId: _currentDevice.id,
       deletedByDisplayName: _currentDevice.displayName,
+    );
+    _onMutated?.call();
+  }
+
+  Future<void> restoreProduct(Product product) async {
+    if (!canDeviceDeleteProduct(_currentDevice)) {
+      throw const ValidationFailure(
+        'Only administrators can restore products.',
+      );
+    }
+    final existingProducts = await _repository.getActiveProducts();
+    ProductValidator.validateUniqueName(
+      candidateName: product.name,
+      currentProductId: product.id,
+      existingProducts: existingProducts,
+    );
+    await _repository.restoreProduct(
+      product.id,
+      restoredByDeviceId: _currentDevice.id,
+      restoredByDisplayName: _currentDevice.displayName,
     );
     _onMutated?.call();
   }

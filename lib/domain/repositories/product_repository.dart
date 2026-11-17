@@ -4,6 +4,7 @@ import '../models/sync_models.dart';
 
 abstract class ProductRepository {
   Stream<List<Product>> watchActiveProducts();
+  Stream<List<Product>> watchArchivedProducts();
   Future<List<Product>> getActiveProducts();
   Future<List<Product>> getAllProductsIncludingDeleted();
   Future<Product?> getProductById(String id);
@@ -14,14 +15,22 @@ abstract class ProductRepository {
     String? deletedByDeviceId,
     String? deletedByDisplayName,
   });
+  Future<void> restoreProduct(
+    String id, {
+    String? restoredByDeviceId,
+    String? restoredByDisplayName,
+  });
   Future<List<String>> getDistinctComponents();
   Future<List<String>> getDistinctIngredients();
   Future<void> seedInitialDataIfEmpty();
 
   Stream<List<ProductType>> watchProductTypes();
+  Stream<List<ProductType>> watchArchivedProductTypes();
   Future<List<ProductType>> getProductTypes();
+  Future<List<ProductType>> getAllProductTypesIncludingArchived();
   Future<void> saveProductType(ProductType productType);
   Future<void> applySyncedProductTypesAtomically(List<ProductType> productTypes);
+  Future<void> setProductTypeArchived(String code, bool isArchived);
   Future<void> deleteProductType(String code);
 
   Stream<List<SyncConflictRecord>> watchConflictHistory();

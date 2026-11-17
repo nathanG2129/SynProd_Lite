@@ -15,27 +15,22 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Stream<List<Product>> watchActiveProducts() {
+    return _watchProducts(isDeleted: false);
+  }
+
+  @override
+  Stream<List<Product>> watchArchivedProducts() {
+    return _watchProducts(isDeleted: true);
+  }
+
+  Stream<List<Product>> _watchProducts({required bool isDeleted}) {
     final query = db.select(db.productsTable)
-      ..where((tbl) => tbl.isDeleted.equals(false))
+      ..where((tbl) => tbl.isDeleted.equals(isDeleted))
       ..orderBy([(tbl) => OrderingTerm.asc(tbl.name)]);
 
     return query.watch().asyncMap((rows) async {
-      final catalog = await getProductTypes();
-      final products = <Product>[];
-      for (final row in rows) {
-        final compRows = await (db.select(db.compositionsTable)
-              ..where((tbl) => tbl.productId.equals(row.id))
-              ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
-            .get();
-
-        final ingRows = await (db.select(db.additionalIngredientsTable)
-              ..where((tbl) => tbl.productId.equals(row.id))
-              ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
-            .get();
-
-        products.add(_mapToProduct(row, compRows, ingRows, catalog));
-      }
-      return products;
+      if (rows.isEmpty) return const <Product>[];
+      return _hydrateProducts(rows);
     });
   }
 
@@ -56,23 +51,42 @@ class ProductRepositoryImpl implements ProductRepository {
       query.where((tbl) => tbl.isDeleted.equals(false));
     }
     final rows = await query.get();
-    final catalog = await getProductTypes();
+    if (rows.isEmpty) return const <Product>[];
+    return _hydrateProducts(rows);
+  }
 
-    final products = <Product>[];
-    for (final row in rows) {
-      final compRows = await (db.select(db.compositionsTable)
-            ..where((tbl) => tbl.productId.equals(row.id))
-            ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
-          .get();
+  Future<List<Product>> _hydrateProducts(List<ProductEntry> rows) async {
+    final catalog = await getAllProductTypesIncludingArchived();
+    final productIds = rows.map((r) => r.id).toList();
 
-      final ingRows = await (db.select(db.additionalIngredientsTable)
-            ..where((tbl) => tbl.productId.equals(row.id))
-            ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
-          .get();
+    final allComps = await (db.select(db.compositionsTable)
+          ..where((tbl) => tbl.productId.isIn(productIds))
+          ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
+        .get();
+    final allIngs = await (db.select(db.additionalIngredientsTable)
+          ..where((tbl) => tbl.productId.isIn(productIds))
+          ..orderBy([(tbl) => OrderingTerm.asc(tbl.sortOrder)]))
+        .get();
 
-      products.add(_mapToProduct(row, compRows, ingRows, catalog));
+    final compsByProduct = <String, List<CompositionEntry>>{};
+    for (final c in allComps) {
+      compsByProduct.putIfAbsent(c.productId, () => []).add(c);
     }
-    return products;
+    final ingsByProduct = <String, List<AdditionalIngredientEntry>>{};
+    for (final i in allIngs) {
+      ingsByProduct.putIfAbsent(i.productId, () => []).add(i);
+    }
+
+    return rows
+        .map(
+          (row) => _mapToProduct(
+            row,
+            compsByProduct[row.id] ?? const [],
+            ingsByProduct[row.id] ?? const [],
+            catalog,
+          ),
+        )
+        .toList();
   }
 
   @override
@@ -83,7 +97,7 @@ class ProductRepositoryImpl implements ProductRepository {
 
     if (row == null) return null;
 
-    final catalog = await getProductTypes();
+    final catalog = await getAllProductTypesIncludingArchived();
 
     final compRows = await (db.select(db.compositionsTable)
           ..where((tbl) => tbl.productId.equals(row.id))
@@ -196,6 +210,32 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
+  Future<void> restoreProduct(
+    String id, {
+    String? restoredByDeviceId,
+    String? restoredByDisplayName,
+  }) async {
+    final existing = await (db.select(db.productsTable)
+          ..where((tbl) => tbl.id.equals(id)))
+        .getSingleOrNull();
+    if (existing == null) return;
+
+    await (db.update(db.productsTable)..where((tbl) => tbl.id.equals(id))).write(
+      ProductsTableCompanion(
+        isDeleted: const Value(false),
+        updatedAt: Value(DateTime.now()),
+        version: Value(existing.version + 1),
+        updatedByDeviceId: restoredByDeviceId != null
+            ? Value(restoredByDeviceId)
+            : const Value.absent(),
+        updatedByDisplayName: restoredByDisplayName != null
+            ? Value(restoredByDisplayName)
+            : const Value.absent(),
+      ),
+    );
+  }
+
+  @override
   Future<List<String>> getDistinctComponents() async {
     final query = db.selectOnly(db.compositionsTable, distinct: true)
       ..addColumns([db.compositionsTable.componentName])
@@ -244,18 +284,49 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Stream<List<ProductType>> watchProductTypes() {
     final query = db.select(db.productTypesTable)
+      ..where((tbl) => tbl.isArchived.equals(false))
       ..orderBy([
         (tbl) => OrderingTerm.asc(tbl.sortOrder),
         (tbl) => OrderingTerm.asc(tbl.displayName),
       ]);
     return query.watch().map((rows) {
-      if (rows.isEmpty) return ProductType.defaults;
+      if (rows.isEmpty) {
+        return const <ProductType>[];
+      }
       return rows.map(_mapToProductType).toList();
     });
   }
 
   @override
+  Stream<List<ProductType>> watchArchivedProductTypes() {
+    final query = db.select(db.productTypesTable)
+      ..where((tbl) => tbl.isArchived.equals(true))
+      ..orderBy([
+        (tbl) => OrderingTerm.asc(tbl.sortOrder),
+        (tbl) => OrderingTerm.asc(tbl.displayName),
+      ]);
+    return query.watch().map((rows) => rows.map(_mapToProductType).toList());
+  }
+
+  @override
   Future<List<ProductType>> getProductTypes() async {
+    final query = db.select(db.productTypesTable)
+      ..where((tbl) => tbl.isArchived.equals(false))
+      ..orderBy([
+        (tbl) => OrderingTerm.asc(tbl.sortOrder),
+        (tbl) => OrderingTerm.asc(tbl.displayName),
+      ]);
+    final rows = await query.get();
+    if (rows.isEmpty) {
+      final allCount = await db.select(db.productTypesTable).get();
+      if (allCount.isEmpty) return ProductType.defaults;
+      return const <ProductType>[];
+    }
+    return rows.map(_mapToProductType).toList();
+  }
+
+  @override
+  Future<List<ProductType>> getAllProductTypesIncludingArchived() async {
     final query = db.select(db.productTypesTable)
       ..orderBy([
         (tbl) => OrderingTerm.asc(tbl.sortOrder),
@@ -276,6 +347,7 @@ class ProductRepositoryImpl implements ProductRepository {
             packagingJson:
                 ProductType.encodePackagingList(productType.packagingOptions),
             sortOrder: Value(productType.sortOrder),
+            isArchived: Value(productType.isArchived),
           ),
         );
   }
@@ -297,6 +369,7 @@ class ProductRepositoryImpl implements ProductRepository {
                 packagingJson:
                     ProductType.encodePackagingList(type.packagingOptions),
                 sortOrder: Value(type.sortOrder),
+                isArchived: Value(type.isArchived),
               ),
             );
       }
@@ -304,10 +377,15 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
-  Future<void> deleteProductType(String code) async {
-    await (db.delete(db.productTypesTable)
+  Future<void> setProductTypeArchived(String code, bool isArchived) async {
+    await (db.update(db.productTypesTable)
           ..where((tbl) => tbl.code.equals(code)))
-        .go();
+        .write(ProductTypesTableCompanion(isArchived: Value(isArchived)));
+  }
+
+  @override
+  Future<void> deleteProductType(String code) async {
+    await setProductTypeArchived(code, true);
   }
 
   ProductType _mapToProductType(ProductTypeEntry row) {
@@ -317,6 +395,7 @@ class ProductRepositoryImpl implements ProductRepository {
       baseWeightGrams: row.baseWeightGrams,
       packagingOptions: ProductType.decodePackagingList(row.packagingJson),
       sortOrder: row.sortOrder,
+      isArchived: row.isArchived,
     );
   }
 

@@ -77,6 +77,8 @@ class _InMemoryProductRepository implements ProductRepository {
   @override
   Stream<List<Product>> watchActiveProducts() => Stream.value(_products);
   @override
+  Stream<List<Product>> watchArchivedProducts() => Stream.value(const []);
+  @override
   Future<List<Product>> getActiveProducts() async => _products;
   @override
   Future<List<Product>> getAllProductsIncludingDeleted() async => _products;
@@ -96,15 +98,29 @@ class _InMemoryProductRepository implements ProductRepository {
     String? deletedByDisplayName,
   }) async {}
   @override
+  Future<void> restoreProduct(
+    String id, {
+    String? restoredByDeviceId,
+    String? restoredByDisplayName,
+  }) async {}
+  @override
   Future<List<String>> getDistinctComponents() async => const [];
   @override
   Future<List<String>> getDistinctIngredients() async => const [];
   @override
   Future<void> seedInitialDataIfEmpty() async {}
   @override
-  Stream<List<ProductType>> watchProductTypes() => Stream.value(_productTypes);
+  Stream<List<ProductType>> watchProductTypes() =>
+      Stream.value(_productTypes.where((t) => !t.isArchived).toList());
   @override
-  Future<List<ProductType>> getProductTypes() async => _productTypes;
+  Stream<List<ProductType>> watchArchivedProductTypes() =>
+      Stream.value(_productTypes.where((t) => t.isArchived).toList());
+  @override
+  Future<List<ProductType>> getProductTypes() async =>
+      _productTypes.where((t) => !t.isArchived).toList();
+  @override
+  Future<List<ProductType>> getAllProductTypesIncludingArchived() async =>
+      _productTypes;
   @override
   Future<void> saveProductType(ProductType productType) async {
     _productTypes = [
@@ -124,8 +140,16 @@ class _InMemoryProductRepository implements ProductRepository {
   }
 
   @override
+  Future<void> setProductTypeArchived(String code, bool isArchived) async {
+    _productTypes = [
+      for (final t in _productTypes)
+        if (t.code == code) t.copyWith(isArchived: isArchived) else t,
+    ];
+  }
+
+  @override
   Future<void> deleteProductType(String code) async {
-    _productTypes.removeWhere((t) => t.code == code);
+    await setProductTypeArchived(code, true);
   }
   @override
   Stream<List<SyncConflictRecord>> watchConflictHistory() =>

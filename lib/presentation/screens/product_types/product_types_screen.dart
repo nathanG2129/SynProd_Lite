@@ -8,6 +8,7 @@ import '../../providers/device_providers.dart';
 import '../../providers/product_providers.dart';
 import '../../providers/sync_providers.dart';
 import '../../widgets/synprod_ui.dart';
+import '../archive/archive_screen.dart';
 
 class ProductTypesScreen extends ConsumerWidget {
   const ProductTypesScreen({super.key});
@@ -49,6 +50,17 @@ class ProductTypesScreen extends ConsumerWidget {
           child: SynProdGradientText('Product Types'),
         ),
         actions: [
+          IconButton(
+            tooltip: 'View Archive',
+            icon: const Icon(Icons.archive_outlined),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const ArchiveScreen(initialTabIndex: 1),
+                ),
+              );
+            },
+          ),
           Center(
             child: Padding(
               padding: const EdgeInsets.only(right: 12),
@@ -150,14 +162,14 @@ class ProductTypesScreen extends ConsumerWidget {
                         ),
                       ),
                       IconButton(
-                        tooltip: 'Delete Type',
+                        tooltip: 'Archive Type',
                         icon: Icon(
-                          Icons.delete_outline,
-                          color: inUseCount > 0 || types.length <= 1
+                          Icons.archive_outlined,
+                          color: types.length <= 1
                               ? AppTheme.mutedTextFor(context)
                               : AppTheme.errorTextFor(context),
                         ),
-                        onPressed: () => _confirmDeleteType(
+                        onPressed: () => _confirmArchiveType(
                           context,
                           ref,
                           type: type,
@@ -178,7 +190,7 @@ class ProductTypesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _confirmDeleteType(
+  Future<void> _confirmArchiveType(
     BuildContext context,
     WidgetRef ref, {
     required ProductType type,
@@ -188,17 +200,7 @@ class ProductTypesScreen extends ConsumerWidget {
     if (totalTypes <= 1) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('At least one product type must remain.'),
-        ),
-      );
-      return;
-    }
-    if (inUseCount > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Cannot delete "${type.displayName}" while $inUseCount recipe(s) use it.',
-          ),
+          content: Text('At least one active product type must remain.'),
         ),
       );
       return;
@@ -207,9 +209,13 @@ class ProductTypesScreen extends ConsumerWidget {
     final confirmed = await showSynProdDialog<bool>(
       context: context,
       builder: (ctx) => SynProdDialog(
-        icon: Icons.delete_outline,
-        title: 'Delete Product Type',
-        content: Text('Delete "${type.displayName}"?'),
+        icon: Icons.archive_outlined,
+        title: 'Archive Product Type',
+        content: Text(
+          inUseCount > 0
+              ? 'Archive "${type.displayName}"? Existing $inUseCount recipe(s) will keep their data, but this type will become inactive and cannot be used for new recipes or filters.'
+              : 'Archive "${type.displayName}"? It will become inactive and cannot be used until restored.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
@@ -217,16 +223,23 @@ class ProductTypesScreen extends ConsumerWidget {
           ),
           SynProdGradientButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete'),
+            child: const Text('Archive'),
           ),
         ],
       ),
     );
 
     if (confirmed == true) {
-      await ref.read(productRepositoryProvider).deleteProductType(type.code);
+      await ref
+          .read(productRepositoryProvider)
+          .setProductTypeArchived(type.code, true);
       ref.invalidate(activeProductsStreamProvider);
       ref.read(syncControllerProvider.notifier).scheduleSync();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Archived "${type.displayName}"')),
+        );
+      }
     }
   }
 

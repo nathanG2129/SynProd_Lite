@@ -98,6 +98,8 @@ class _SmokeProductRepository implements ProductRepository {
   @override
   Stream<List<Product>> watchActiveProducts() => Stream.value(const []);
   @override
+  Stream<List<Product>> watchArchivedProducts() => Stream.value(const []);
+  @override
   Future<List<Product>> getActiveProducts() async => const [];
   @override
   Future<List<Product>> getAllProductsIncludingDeleted() async => const [];
@@ -114,6 +116,12 @@ class _SmokeProductRepository implements ProductRepository {
     String? deletedByDisplayName,
   }) async {}
   @override
+  Future<void> restoreProduct(
+    String id, {
+    String? restoredByDeviceId,
+    String? restoredByDisplayName,
+  }) async {}
+  @override
   Future<List<String>> getDistinctComponents() async => const [];
   @override
   Future<List<String>> getDistinctIngredients() async => const [];
@@ -123,13 +131,21 @@ class _SmokeProductRepository implements ProductRepository {
   Stream<List<ProductType>> watchProductTypes() =>
       Stream.value(ProductType.defaults);
   @override
+  Stream<List<ProductType>> watchArchivedProductTypes() =>
+      Stream.value(const []);
+  @override
   Future<List<ProductType>> getProductTypes() async => ProductType.defaults;
+  @override
+  Future<List<ProductType>> getAllProductTypesIncludingArchived() async =>
+      ProductType.defaults;
   @override
   Future<void> saveProductType(ProductType productType) async {}
   @override
   Future<void> applySyncedProductTypesAtomically(
     List<ProductType> productTypes,
   ) async {}
+  @override
+  Future<void> setProductTypeArchived(String code, bool isArchived) async {}
   @override
   Future<void> deleteProductType(String code) async {}
   @override

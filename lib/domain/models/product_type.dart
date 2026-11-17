@@ -65,6 +65,7 @@ class ProductType {
   final double baseWeightGrams;
   final List<PackagingOption> packagingOptions;
   final int sortOrder;
+  final bool isArchived;
 
   const ProductType({
     required this.code,
@@ -72,6 +73,7 @@ class ProductType {
     required this.baseWeightGrams,
     required this.packagingOptions,
     this.sortOrder = 0,
+    this.isArchived = false,
   });
 
   PackagingOption get defaultPackaging => packagingOptions.isNotEmpty
@@ -84,6 +86,7 @@ class ProductType {
     double? baseWeightGrams,
     List<PackagingOption>? packagingOptions,
     int? sortOrder,
+    bool? isArchived,
   }) {
     return ProductType(
       code: code ?? this.code,
@@ -91,6 +94,7 @@ class ProductType {
       baseWeightGrams: baseWeightGrams ?? this.baseWeightGrams,
       packagingOptions: packagingOptions ?? this.packagingOptions,
       sortOrder: sortOrder ?? this.sortOrder,
+      isArchived: isArchived ?? this.isArchived,
     );
   }
 
@@ -100,6 +104,7 @@ class ProductType {
         'baseWeightGrams': baseWeightGrams,
         'packagingOptions': packagingOptions.map((p) => p.toMap()).toList(),
         'sortOrder': sortOrder,
+        'isArchived': isArchived,
       };
 
   factory ProductType.fromMap(Map<String, dynamic> map) {
@@ -115,6 +120,7 @@ class ProductType {
           ? options
           : const [PackagingOption(unitName: 'Units', multiplier: 1.0)],
       sortOrder: map['sortOrder'] as int? ?? 0,
+      isArchived: map['isArchived'] as bool? ?? false,
     );
   }
 

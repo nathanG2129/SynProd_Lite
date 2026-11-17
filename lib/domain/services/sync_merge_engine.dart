@@ -63,10 +63,16 @@ class SyncMergeEngine {
           updatedDevicesMap[remoteDevice.id] = remoteDevice;
         }
       } else {
-        if (senderIsAdmin && remoteDevice.role != DeviceRole.admin) {
+        if (senderIsAdmin &&
+            (remoteDevice.role != DeviceRole.admin ||
+                remoteDevice.id != incoming.senderDeviceId)) {
           final merged = existing.copyWith(
-            displayName: remoteDevice.displayName,
-            role: remoteDevice.role,
+            displayName: remoteDevice.role != DeviceRole.admin
+                ? remoteDevice.displayName
+                : existing.displayName,
+            role: remoteDevice.role != DeviceRole.admin
+                ? remoteDevice.role
+                : existing.role,
             isRevoked: remoteDevice.isRevoked,
             lastSeenAt: remoteDevice.lastSeenAt.isAfter(existing.lastSeenAt)
                 ? remoteDevice.lastSeenAt
