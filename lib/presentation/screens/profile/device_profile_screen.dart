@@ -372,13 +372,17 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
 
                 final devices =
                     await ref.read(deviceRepositoryProvider).getAllDevices();
+                final productRepo = ref.read(productRepositoryProvider);
                 final products =
-                    await ref.read(productRepositoryProvider).getActiveProducts();
+                    await productRepo.getAllProductsIncludingDeleted();
+                final productTypes =
+                    await productRepo.getAllProductTypesIncludingArchived();
 
                 final bundle = WorkspaceBackupBundle(
                   workspace: workspace,
                   devices: devices,
                   products: products,
+                  productTypes: productTypes,
                   exportedAt: DateTime.now(),
                 );
                 final encrypted = ref

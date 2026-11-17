@@ -7,18 +7,21 @@ import 'package:encrypt/encrypt.dart' as enc;
 
 import '../../domain/models/device.dart';
 import '../../domain/models/product.dart';
+import '../../domain/models/product_type.dart';
 import '../../domain/models/workspace.dart';
 
 class WorkspaceBackupBundle {
   final Workspace workspace;
   final List<Device> devices;
   final List<Product> products;
+  final List<ProductType> productTypes;
   final DateTime exportedAt;
 
   const WorkspaceBackupBundle({
     required this.workspace,
     required this.devices,
     required this.products,
+    this.productTypes = const [],
     required this.exportedAt,
   });
 
@@ -29,6 +32,7 @@ class WorkspaceBackupBundle {
       'workspace': workspace.toMap(),
       'devices': devices.map((d) => d.toMap()).toList(),
       'products': products.map((p) => p.toMap()).toList(),
+      'productTypes': productTypes.map((t) => t.toMap()).toList(),
     };
   }
 
@@ -37,6 +41,7 @@ class WorkspaceBackupBundle {
         Workspace.fromMap(map['workspace'] as Map<String, dynamic>);
     final devicesRaw = (map['devices'] as List<dynamic>? ?? []);
     final productsRaw = (map['products'] as List<dynamic>? ?? []);
+    final productTypesRaw = (map['productTypes'] as List<dynamic>? ?? []);
     return WorkspaceBackupBundle(
       workspace: workspace,
       devices: devicesRaw
@@ -44,6 +49,9 @@ class WorkspaceBackupBundle {
           .toList(),
       products: productsRaw
           .map((e) => Product.fromMap(e as Map<String, dynamic>))
+          .toList(),
+      productTypes: productTypesRaw
+          .map((e) => ProductType.fromMap(e as Map<String, dynamic>))
           .toList(),
       exportedAt: DateTime.parse(map['exportedAt'] as String),
     );

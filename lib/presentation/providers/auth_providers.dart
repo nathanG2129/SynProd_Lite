@@ -216,6 +216,10 @@ class AuthController extends StateNotifier<AuthState> {
       additionalDevices: bundle.devices,
     );
 
+    if (bundle.productTypes.isNotEmpty) {
+      await productRepo.applySyncedProductTypesAtomically(bundle.productTypes);
+    }
+
     for (final product in bundle.products) {
       await productRepo.saveProduct(product);
     }
