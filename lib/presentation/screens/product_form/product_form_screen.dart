@@ -712,8 +712,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               ),
               SynProdSecondaryButton(
                 onPressed: _addCompositionRow,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -930,8 +928,6 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
               ),
               SynProdSecondaryButton(
                 onPressed: _addIngredientRow,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
