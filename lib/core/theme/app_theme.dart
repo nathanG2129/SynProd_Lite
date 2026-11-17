@@ -187,11 +187,11 @@ class AppTheme {
 
   static const PageTransitionsTheme _pageTransitionsTheme = PageTransitionsTheme(
     builders: {
-      TargetPlatform.android: _SynProdPageTransitionsBuilder(),
-      TargetPlatform.iOS: _SynProdPageTransitionsBuilder(),
-      TargetPlatform.linux: _SynProdPageTransitionsBuilder(),
-      TargetPlatform.macOS: _SynProdPageTransitionsBuilder(),
-      TargetPlatform.windows: _SynProdPageTransitionsBuilder(),
+      TargetPlatform.android: SynProdPageTransitionsBuilder(),
+      TargetPlatform.iOS: SynProdPageTransitionsBuilder(),
+      TargetPlatform.linux: SynProdPageTransitionsBuilder(),
+      TargetPlatform.macOS: SynProdPageTransitionsBuilder(),
+      TargetPlatform.windows: SynProdPageTransitionsBuilder(),
     },
   );
 
@@ -506,8 +506,8 @@ class AppTheme {
   }
 }
 
-class _SynProdPageTransitionsBuilder extends PageTransitionsBuilder {
-  const _SynProdPageTransitionsBuilder();
+class SynProdPageTransitionsBuilder extends PageTransitionsBuilder {
+  const SynProdPageTransitionsBuilder();
 
   @override
   Widget buildTransitions<T>(

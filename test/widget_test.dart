@@ -383,11 +383,11 @@ void main() {
       (WidgetTester tester) async {
     expect(
       AppTheme.lightTheme.pageTransitionsTheme.builders[TargetPlatform.android],
-      isA<CupertinoPageTransitionsBuilder>(),
+      isA<SynProdPageTransitionsBuilder>(),
     );
     expect(
       AppTheme.darkTheme.pageTransitionsTheme.builders[TargetPlatform.android],
-      isA<CupertinoPageTransitionsBuilder>(),
+      isA<SynProdPageTransitionsBuilder>(),
     );
 
     await tester.pumpWidget(
