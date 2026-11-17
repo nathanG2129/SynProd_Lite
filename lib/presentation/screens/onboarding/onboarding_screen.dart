@@ -265,6 +265,53 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               Expanded(
                 child: MobileScanner(
                   controller: scannerController,
+                  errorBuilder: (ctx, error, child) {
+                    final message = switch (error.errorCode) {
+                      MobileScannerErrorCode.permissionDenied =>
+                        'Camera permission denied. Enable camera access in system settings or paste the QR payload manually.',
+                      MobileScannerErrorCode.unsupported =>
+                        'Camera scanning is not supported on this device. Paste the QR payload manually instead.',
+                      _ =>
+                        'Unable to start camera (${error.errorDetails?.message ?? error.errorCode.name}). You can close this sheet and paste the QR payload manually.',
+                    };
+                    return Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.videocam_off_outlined,
+                              color: Colors.white70,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              message,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: const BorderSide(color: Colors.white54),
+                              ),
+                              onPressed: () {
+                                if (hasPopped || !ctx.mounted) return;
+                                hasPopped = true;
+                                Navigator.of(ctx).pop();
+                              },
+                              child: const Text('Enter Manually'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                   onDetect: (capture) {
                     if (hasPopped || !ctx.mounted) return;
                     for (final barcode in capture.barcodes) {
