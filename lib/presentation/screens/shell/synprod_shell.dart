@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
-import '../../../domain/models/sync_models.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/sync_providers.dart';
 import '../../widgets/synprod_ui.dart';
@@ -33,50 +32,11 @@ class _SynProdShellState extends ConsumerState<SynProdShell> {
     ];
   }
 
-  Widget _buildSyncIcon({
-    required SyncStatusState syncState,
-    required bool selected,
-  }) {
-    final icon = Icon(
-      syncState.isSyncing
-          ? Icons.sync
-          : (syncState.isRunning
-              ? (selected ? Icons.wifi_tethering : Icons.wifi_tethering)
-              : Icons.sync_disabled),
-    );
-    final hasBadge =
-        syncState.unresolvedConflictsCount > 0 || syncState.peers.isNotEmpty;
-    if (!hasBadge) return icon;
-
-    return Badge(
-      backgroundColor: syncState.unresolvedConflictsCount > 0
-          ? Colors.amber.shade700
-          : AppTheme.primaryOlive,
-      label: Text(
-        syncState.unresolvedConflictsCount > 0
-            ? '${syncState.unresolvedConflictsCount}'
-            : '${syncState.peers.length}',
-        style: const TextStyle(fontSize: 10),
-      ),
-      child: icon,
-    );
-  }
-
-  String _labelFor(_ShellSection section) {
-    return switch (section) {
-      _ShellSection.recipes => 'Recipes',
-      _ShellSection.sync => 'Sync',
-      _ShellSection.devices => 'Devices',
-      _ShellSection.profile => 'Profile',
-    };
-  }
-
-  Widget _iconFor(_ShellSection section, SyncStatusState syncState, bool selected) {
+  Widget _iconFor(_ShellSection section, bool selected) {
     return switch (section) {
       _ShellSection.recipes =>
         Icon(selected ? Icons.menu_book : Icons.menu_book_outlined),
-      _ShellSection.sync =>
-        _buildSyncIcon(syncState: syncState, selected: selected),
+      _ShellSection.sync => const _SyncNavIcon(),
       _ShellSection.devices =>
         Icon(selected ? Icons.devices : Icons.devices_outlined),
       _ShellSection.profile =>
@@ -103,7 +63,6 @@ class _SynProdShellState extends ConsumerState<SynProdShell> {
   @override
   Widget build(BuildContext context) {
     final currentDevice = ref.watch(currentDeviceProvider);
-    final syncState = ref.watch(syncControllerProvider);
     final sections = _availableSections(currentDevice.role.canManageDevices);
     final activeSection = sections.contains(_selectedSection)
         ? _selectedSection
@@ -224,17 +183,16 @@ class _SynProdShellState extends ConsumerState<SynProdShell> {
                     ),
                     destinations: sections.map((section) {
                       return NavigationRailDestination(
-                        icon: _iconFor(section, syncState, false),
-                        selectedIcon: _iconFor(section, syncState, true),
+                        icon: _iconFor(section, false),
+                        selectedIcon: _iconFor(section, true),
                         label: Text(_labelFor(section)),
                       );
                     }).toList(),
                   ),
                 ),
                 Expanded(
-                  child: IndexedStack(
-                    index: activeIndex,
-                    children: sections.map(_pageFor).toList(),
+                  child: RepaintBoundary(
+                    child: _pageFor(activeSection),
                   ),
                 ),
               ],
@@ -243,10 +201,7 @@ class _SynProdShellState extends ConsumerState<SynProdShell> {
         }
 
         return Scaffold(
-          body: IndexedStack(
-            index: activeIndex,
-            children: sections.map(_pageFor).toList(),
-          ),
+          body: _pageFor(activeSection),
           bottomNavigationBar: Container(
             decoration: BoxDecoration(
               border: Border(
@@ -265,8 +220,8 @@ class _SynProdShellState extends ConsumerState<SynProdShell> {
               },
               destinations: sections.map((section) {
                 return NavigationDestination(
-                  icon: _iconFor(section, syncState, false),
-                  selectedIcon: _iconFor(section, syncState, true),
+                  icon: _iconFor(section, false),
+                  selectedIcon: _iconFor(section, true),
                   label: _labelFor(section),
                 );
               }).toList(),
@@ -274,6 +229,45 @@ class _SynProdShellState extends ConsumerState<SynProdShell> {
           ),
         );
       },
+    );
+  }
+
+  String _labelFor(_ShellSection section) {
+    return switch (section) {
+      _ShellSection.recipes => 'Recipes',
+      _ShellSection.sync => 'Sync',
+      _ShellSection.devices => 'Devices',
+      _ShellSection.profile => 'Profile',
+    };
+  }
+}
+
+class _SyncNavIcon extends ConsumerWidget {
+  const _SyncNavIcon();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final syncState = ref.watch(syncControllerProvider);
+    final icon = Icon(
+      syncState.isSyncing
+          ? Icons.sync
+          : (syncState.isRunning ? Icons.wifi_tethering : Icons.sync_disabled),
+    );
+    final hasBadge =
+        syncState.unresolvedConflictsCount > 0 || syncState.peers.isNotEmpty;
+    if (!hasBadge) return icon;
+
+    return Badge(
+      backgroundColor: syncState.unresolvedConflictsCount > 0
+          ? Colors.amber.shade700
+          : AppTheme.primaryOlive,
+      label: Text(
+        syncState.unresolvedConflictsCount > 0
+            ? '${syncState.unresolvedConflictsCount}'
+            : '${syncState.peers.length}',
+        style: const TextStyle(fontSize: 10),
+      ),
+      child: icon,
     );
   }
 }
