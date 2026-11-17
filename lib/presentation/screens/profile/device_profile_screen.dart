@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../core/services/workspace_backup_service.dart';
 import '../../../core/theme/app_theme.dart';
@@ -386,22 +388,45 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
                 if (!ctx.mounted) return;
                 Navigator.of(ctx).pop();
 
-                final xfile = XFile.fromData(
-                  utf8.encode(encrypted),
-                  mimeType: 'application/octet-stream',
-                  name: 'synprod_workspace_backup.synprod',
-                );
-                await Share.shareXFiles(
-                  [xfile],
-                  subject: 'SynProd Workspace Backup (${workspace.name})',
-                );
+                final bytes = Uint8List.fromList(utf8.encode(encrypted));
+                try {
+                  final isMobile = Platform.isAndroid || Platform.isIOS;
+                  final outputPath = await FilePicker.platform.saveFile(
+                    dialogTitle: 'Save Workspace Backup',
+                    fileName: 'synprod_workspace_backup.synprod',
+                    type: FileType.custom,
+                    allowedExtensions: const ['synprod'],
+                    bytes: isMobile ? bytes : null,
+                  );
+                  if (outputPath == null) return;
+
+                  if (!isMobile) {
+                    await File(outputPath).writeAsBytes(bytes);
+                  }
+
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        isMobile
+                            ? 'Workspace backup saved.'
+                            : 'Backup saved to $outputPath',
+                      ),
+                    ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Failed to export backup: $e')),
+                  );
+                }
               },
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.share, size: 18),
+                  Icon(Icons.save_alt, size: 18),
                   SizedBox(width: 6),
-                  Text('Export & Share'),
+                  Text('Export Backup'),
                 ],
               ),
             ),
