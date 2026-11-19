@@ -32,6 +32,9 @@ class SyncCryptoService {
   String encryptEnvelope({
     required SyncSnapshot snapshot,
     required String workspaceKey,
+    String? nonce,
+    String? challenge,
+    String? replyTo,
   }) {
     final random = Random.secure();
     final ivBytes = Uint8List.fromList(
@@ -47,19 +50,24 @@ class SyncCryptoService {
     );
     final encrypted = encrypter.encrypt(plaintext, iv: iv);
 
-    final nonce = UuidGenerator.v4();
+    final effectiveNonce = nonce ?? UuidGenerator.v4();
     final sentAt = _now().toUtc().toIso8601String();
     final ivB64 = base64Encode(ivBytes);
     final cipherB64 = encrypted.base64;
 
-    final canonical = [
+    final canonicalParts = <String>[
       snapshot.workspaceId,
       snapshot.senderDeviceId,
       sentAt,
-      nonce,
+      effectiveNonce,
       ivB64,
       cipherB64,
-    ].join('|');
+      if (challenge != null || replyTo != null) ...[
+        challenge ?? '',
+        replyTo ?? '',
+      ],
+    ];
+    final canonical = canonicalParts.join('|');
 
     final mac = Hmac(sha256, macKey).convert(utf8.encode(canonical)).toString();
 
@@ -68,7 +76,9 @@ class SyncCryptoService {
       'wid': snapshot.workspaceId,
       'did': snapshot.senderDeviceId,
       'ts': sentAt,
-      'nonce': nonce,
+      'nonce': effectiveNonce,
+      'ch': ?challenge,
+      'rt': ?replyTo,
       'iv': ivB64,
       'ct': cipherB64,
       'mac': mac,
@@ -79,6 +89,24 @@ class SyncCryptoService {
     required String rawEnvelope,
     required String expectedWorkspaceId,
     required String workspaceKey,
+    bool Function(String challenge)? consumeChallenge,
+    String? expectedReplyTo,
+  }) {
+    return decryptEnvelopeWithMeta(
+      rawEnvelope: rawEnvelope,
+      expectedWorkspaceId: expectedWorkspaceId,
+      workspaceKey: workspaceKey,
+      consumeChallenge: consumeChallenge,
+      expectedReplyTo: expectedReplyTo,
+    ).snapshot;
+  }
+
+  ({SyncSnapshot snapshot, String nonce}) decryptEnvelopeWithMeta({
+    required String rawEnvelope,
+    required String expectedWorkspaceId,
+    required String workspaceKey,
+    bool Function(String challenge)? consumeChallenge,
+    String? expectedReplyTo,
   }) {
     final Map<String, dynamic> envelope;
     try {
@@ -96,6 +124,8 @@ class SyncCryptoService {
     final senderDeviceId = envelope['did'] as String?;
     final tsRaw = envelope['ts'] as String?;
     final nonce = envelope['nonce'] as String?;
+    final challenge = envelope['ch'] as String?;
+    final replyTo = envelope['rt'] as String?;
     final ivB64 = envelope['iv'] as String?;
     final cipherB64 = envelope['ct'] as String?;
     final mac = envelope['mac'] as String?;
@@ -114,14 +144,24 @@ class SyncCryptoService {
       throw const SyncCryptoException('Workspace ID mismatch.');
     }
 
-    final sentAt = DateTime.tryParse(tsRaw)?.toUtc();
-    if (sentAt == null) {
-      throw const SyncCryptoException('Invalid sync timestamp.');
-    }
+    if (expectedReplyTo != null) {
+      if (replyTo != expectedReplyTo) {
+        throw const SyncCryptoException('Sync response reply token mismatch.');
+      }
+    } else if (consumeChallenge != null) {
+      if (challenge == null || !consumeChallenge(challenge)) {
+        throw const SyncCryptoException('Invalid or expired sync challenge.');
+      }
+    } else {
+      final sentAt = DateTime.tryParse(tsRaw)?.toUtc();
+      if (sentAt == null) {
+        throw const SyncCryptoException('Invalid sync timestamp.');
+      }
 
-    final delta = _now().toUtc().difference(sentAt).abs();
-    if (delta > replayWindow) {
-      throw const SyncCryptoException('Sync envelope timestamp outside replay window.');
+      final delta = _now().toUtc().difference(sentAt).abs();
+      if (delta > replayWindow) {
+        throw const SyncCryptoException('Sync envelope timestamp outside replay window.');
+      }
     }
 
     if (!_seenNonces.add('$senderDeviceId:$nonce')) {
@@ -131,14 +171,19 @@ class SyncCryptoService {
       _seenNonces.remove(_seenNonces.first);
     }
 
-    final canonical = [
+    final canonicalParts = <String>[
       workspaceId,
       senderDeviceId,
       tsRaw,
       nonce,
       ivB64,
       cipherB64,
-    ].join('|');
+      if (challenge != null || replyTo != null) ...[
+        challenge ?? '',
+        replyTo ?? '',
+      ],
+    ];
+    final canonical = canonicalParts.join('|');
 
     final macKey = _deriveMacKey(workspaceKey);
     final expectedMac =
@@ -163,7 +208,7 @@ class SyncCryptoService {
         throw const SyncCryptoException('Sync payload identity mismatch.');
       }
 
-      return snapshot;
+      return (snapshot: snapshot, nonce: nonce);
     } catch (e) {
       if (e is SyncCryptoException) rethrow;
       throw const SyncCryptoException('Failed to decrypt sync payload.');
