@@ -20,6 +20,17 @@ class PackagingOption {
       multiplier: (map['multiplier'] as num).toDouble(),
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is PackagingOption &&
+          runtimeType == other.runtimeType &&
+          unitName == other.unitName &&
+          multiplier == other.multiplier;
+
+  @override
+  int get hashCode => Object.hash(unitName, multiplier);
 }
 
 class ProductType {
@@ -66,6 +77,9 @@ class ProductType {
   final List<PackagingOption> packagingOptions;
   final int sortOrder;
   final bool isArchived;
+  final int version;
+  final DateTime? updatedAt;
+  final String? updatedByDeviceId;
 
   const ProductType({
     required this.code,
@@ -74,6 +88,9 @@ class ProductType {
     required this.packagingOptions,
     this.sortOrder = 0,
     this.isArchived = false,
+    this.version = 1,
+    this.updatedAt,
+    this.updatedByDeviceId,
   });
 
   PackagingOption get defaultPackaging => packagingOptions.isNotEmpty
@@ -87,6 +104,9 @@ class ProductType {
     List<PackagingOption>? packagingOptions,
     int? sortOrder,
     bool? isArchived,
+    int? version,
+    DateTime? updatedAt,
+    String? updatedByDeviceId,
   }) {
     return ProductType(
       code: code ?? this.code,
@@ -95,6 +115,9 @@ class ProductType {
       packagingOptions: packagingOptions ?? this.packagingOptions,
       sortOrder: sortOrder ?? this.sortOrder,
       isArchived: isArchived ?? this.isArchived,
+      version: version ?? this.version,
+      updatedAt: updatedAt ?? this.updatedAt,
+      updatedByDeviceId: updatedByDeviceId ?? this.updatedByDeviceId,
     );
   }
 
@@ -105,6 +128,9 @@ class ProductType {
         'packagingOptions': packagingOptions.map((p) => p.toMap()).toList(),
         'sortOrder': sortOrder,
         'isArchived': isArchived,
+        'version': version,
+        if (updatedAt != null) 'updatedAt': updatedAt!.toUtc().toIso8601String(),
+        if (updatedByDeviceId != null) 'updatedByDeviceId': updatedByDeviceId,
       };
 
   factory ProductType.fromMap(Map<String, dynamic> map) {
@@ -112,6 +138,7 @@ class ProductType {
     final options = optionsRaw
         .map((e) => PackagingOption.fromMap(e as Map<String, dynamic>))
         .toList();
+    final updatedAtRaw = map['updatedAt'] as String?;
     return ProductType(
       code: map['code'] as String,
       displayName: map['displayName'] as String,
@@ -121,6 +148,9 @@ class ProductType {
           : const [PackagingOption(unitName: 'Units', multiplier: 1.0)],
       sortOrder: map['sortOrder'] as int? ?? 0,
       isArchived: map['isArchived'] as bool? ?? false,
+      version: (map['version'] as num?)?.toInt() ?? 1,
+      updatedAt: updatedAtRaw != null ? DateTime.tryParse(updatedAtRaw) : null,
+      updatedByDeviceId: map['updatedByDeviceId'] as String?,
     );
   }
 

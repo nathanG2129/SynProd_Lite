@@ -17,6 +17,8 @@ class ProductsTable extends Table {
   DateTimeColumn get updatedAt => dateTime()();
   BoolColumn get isDeleted => boolean().withDefault(const Constant(false))();
   IntColumn get version => integer().withDefault(const Constant(1))();
+  BoolColumn get hasPendingLocalEdit =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -135,6 +137,9 @@ class ProductTypesTable extends Table {
   TextColumn get packagingJson => text()();
   IntColumn get sortOrder => integer().withDefault(const Constant(0))();
   BoolColumn get isArchived => boolean().withDefault(const Constant(false))();
+  IntColumn get version => integer().withDefault(const Constant(1))();
+  DateTimeColumn get updatedAt => dateTime().nullable()();
+  TextColumn get updatedByDeviceId => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {code};

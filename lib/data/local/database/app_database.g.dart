@@ -144,6 +144,20 @@ class $ProductsTableTable extends ProductsTable
     requiredDuringInsert: false,
     defaultValue: const Constant(1),
   );
+  static const VerificationMeta _hasPendingLocalEditMeta =
+      const VerificationMeta('hasPendingLocalEdit');
+  @override
+  late final GeneratedColumn<bool> hasPendingLocalEdit = GeneratedColumn<bool>(
+    'has_pending_local_edit',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("has_pending_local_edit" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -158,6 +172,7 @@ class $ProductsTableTable extends ProductsTable
     updatedAt,
     isDeleted,
     version,
+    hasPendingLocalEdit,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -272,6 +287,15 @@ class $ProductsTableTable extends ProductsTable
         version.isAcceptableOrUnknown(data['version']!, _versionMeta),
       );
     }
+    if (data.containsKey('has_pending_local_edit')) {
+      context.handle(
+        _hasPendingLocalEditMeta,
+        hasPendingLocalEdit.isAcceptableOrUnknown(
+          data['has_pending_local_edit']!,
+          _hasPendingLocalEditMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -329,6 +353,10 @@ class $ProductsTableTable extends ProductsTable
         DriftSqlType.int,
         data['${effectivePrefix}version'],
       )!,
+      hasPendingLocalEdit: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}has_pending_local_edit'],
+      )!,
     );
   }
 
@@ -351,6 +379,7 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
   final DateTime updatedAt;
   final bool isDeleted;
   final int version;
+  final bool hasPendingLocalEdit;
   const ProductEntry({
     required this.id,
     required this.name,
@@ -364,6 +393,7 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
     required this.updatedAt,
     required this.isDeleted,
     required this.version,
+    required this.hasPendingLocalEdit,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -386,6 +416,7 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
     map['updated_at'] = Variable<DateTime>(updatedAt);
     map['is_deleted'] = Variable<bool>(isDeleted);
     map['version'] = Variable<int>(version);
+    map['has_pending_local_edit'] = Variable<bool>(hasPendingLocalEdit);
     return map;
   }
 
@@ -409,6 +440,7 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
       updatedAt: Value(updatedAt),
       isDeleted: Value(isDeleted),
       version: Value(version),
+      hasPendingLocalEdit: Value(hasPendingLocalEdit),
     );
   }
 
@@ -436,6 +468,9 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
       isDeleted: serializer.fromJson<bool>(json['isDeleted']),
       version: serializer.fromJson<int>(json['version']),
+      hasPendingLocalEdit: serializer.fromJson<bool>(
+        json['hasPendingLocalEdit'],
+      ),
     );
   }
   @override
@@ -454,6 +489,7 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
       'isDeleted': serializer.toJson<bool>(isDeleted),
       'version': serializer.toJson<int>(version),
+      'hasPendingLocalEdit': serializer.toJson<bool>(hasPendingLocalEdit),
     };
   }
 
@@ -470,6 +506,7 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
     DateTime? updatedAt,
     bool? isDeleted,
     int? version,
+    bool? hasPendingLocalEdit,
   }) => ProductEntry(
     id: id ?? this.id,
     name: name ?? this.name,
@@ -487,6 +524,7 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
     updatedAt: updatedAt ?? this.updatedAt,
     isDeleted: isDeleted ?? this.isDeleted,
     version: version ?? this.version,
+    hasPendingLocalEdit: hasPendingLocalEdit ?? this.hasPendingLocalEdit,
   );
   ProductEntry copyWithCompanion(ProductsTableCompanion data) {
     return ProductEntry(
@@ -514,6 +552,9 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
       isDeleted: data.isDeleted.present ? data.isDeleted.value : this.isDeleted,
       version: data.version.present ? data.version.value : this.version,
+      hasPendingLocalEdit: data.hasPendingLocalEdit.present
+          ? data.hasPendingLocalEdit.value
+          : this.hasPendingLocalEdit,
     );
   }
 
@@ -531,7 +572,8 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
-          ..write('version: $version')
+          ..write('version: $version, ')
+          ..write('hasPendingLocalEdit: $hasPendingLocalEdit')
           ..write(')'))
         .toString();
   }
@@ -550,6 +592,7 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
     updatedAt,
     isDeleted,
     version,
+    hasPendingLocalEdit,
   );
   @override
   bool operator ==(Object other) =>
@@ -566,7 +609,8 @@ class ProductEntry extends DataClass implements Insertable<ProductEntry> {
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt &&
           other.isDeleted == this.isDeleted &&
-          other.version == this.version);
+          other.version == this.version &&
+          other.hasPendingLocalEdit == this.hasPendingLocalEdit);
 }
 
 class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
@@ -582,6 +626,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
   final Value<DateTime> updatedAt;
   final Value<bool> isDeleted;
   final Value<int> version;
+  final Value<bool> hasPendingLocalEdit;
   final Value<int> rowid;
   const ProductsTableCompanion({
     this.id = const Value.absent(),
@@ -596,6 +641,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
     this.updatedAt = const Value.absent(),
     this.isDeleted = const Value.absent(),
     this.version = const Value.absent(),
+    this.hasPendingLocalEdit = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsTableCompanion.insert({
@@ -611,6 +657,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
     required DateTime updatedAt,
     this.isDeleted = const Value.absent(),
     this.version = const Value.absent(),
+    this.hasPendingLocalEdit = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        name = Value(name),
@@ -632,6 +679,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
     Expression<DateTime>? updatedAt,
     Expression<bool>? isDeleted,
     Expression<int>? version,
+    Expression<bool>? hasPendingLocalEdit,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -649,6 +697,8 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
       if (updatedAt != null) 'updated_at': updatedAt,
       if (isDeleted != null) 'is_deleted': isDeleted,
       if (version != null) 'version': version,
+      if (hasPendingLocalEdit != null)
+        'has_pending_local_edit': hasPendingLocalEdit,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -666,6 +716,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
     Value<DateTime>? updatedAt,
     Value<bool>? isDeleted,
     Value<int>? version,
+    Value<bool>? hasPendingLocalEdit,
     Value<int>? rowid,
   }) {
     return ProductsTableCompanion(
@@ -681,6 +732,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       version: version ?? this.version,
+      hasPendingLocalEdit: hasPendingLocalEdit ?? this.hasPendingLocalEdit,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -728,6 +780,9 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
     if (version.present) {
       map['version'] = Variable<int>(version.value);
     }
+    if (hasPendingLocalEdit.present) {
+      map['has_pending_local_edit'] = Variable<bool>(hasPendingLocalEdit.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -749,6 +804,7 @@ class ProductsTableCompanion extends UpdateCompanion<ProductEntry> {
           ..write('updatedAt: $updatedAt, ')
           ..write('isDeleted: $isDeleted, ')
           ..write('version: $version, ')
+          ..write('hasPendingLocalEdit: $hasPendingLocalEdit, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3671,6 +3727,41 @@ class $ProductTypesTableTable extends ProductTypesTable
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _versionMeta = const VerificationMeta(
+    'version',
+  );
+  @override
+  late final GeneratedColumn<int> version = GeneratedColumn<int>(
+    'version',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _updatedByDeviceIdMeta = const VerificationMeta(
+    'updatedByDeviceId',
+  );
+  @override
+  late final GeneratedColumn<String> updatedByDeviceId =
+      GeneratedColumn<String>(
+        'updated_by_device_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   @override
   List<GeneratedColumn> get $columns => [
     code,
@@ -3679,6 +3770,9 @@ class $ProductTypesTableTable extends ProductTypesTable
     packagingJson,
     sortOrder,
     isArchived,
+    version,
+    updatedAt,
+    updatedByDeviceId,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3745,6 +3839,27 @@ class $ProductTypesTableTable extends ProductTypesTable
         isArchived.isAcceptableOrUnknown(data['is_archived']!, _isArchivedMeta),
       );
     }
+    if (data.containsKey('version')) {
+      context.handle(
+        _versionMeta,
+        version.isAcceptableOrUnknown(data['version']!, _versionMeta),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    }
+    if (data.containsKey('updated_by_device_id')) {
+      context.handle(
+        _updatedByDeviceIdMeta,
+        updatedByDeviceId.isAcceptableOrUnknown(
+          data['updated_by_device_id']!,
+          _updatedByDeviceIdMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3778,6 +3893,18 @@ class $ProductTypesTableTable extends ProductTypesTable
         DriftSqlType.bool,
         data['${effectivePrefix}is_archived'],
       )!,
+      version: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}version'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      ),
+      updatedByDeviceId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}updated_by_device_id'],
+      ),
     );
   }
 
@@ -3795,6 +3922,9 @@ class ProductTypeEntry extends DataClass
   final String packagingJson;
   final int sortOrder;
   final bool isArchived;
+  final int version;
+  final DateTime? updatedAt;
+  final String? updatedByDeviceId;
   const ProductTypeEntry({
     required this.code,
     required this.displayName,
@@ -3802,6 +3932,9 @@ class ProductTypeEntry extends DataClass
     required this.packagingJson,
     required this.sortOrder,
     required this.isArchived,
+    required this.version,
+    this.updatedAt,
+    this.updatedByDeviceId,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3812,6 +3945,13 @@ class ProductTypeEntry extends DataClass
     map['packaging_json'] = Variable<String>(packagingJson);
     map['sort_order'] = Variable<int>(sortOrder);
     map['is_archived'] = Variable<bool>(isArchived);
+    map['version'] = Variable<int>(version);
+    if (!nullToAbsent || updatedAt != null) {
+      map['updated_at'] = Variable<DateTime>(updatedAt);
+    }
+    if (!nullToAbsent || updatedByDeviceId != null) {
+      map['updated_by_device_id'] = Variable<String>(updatedByDeviceId);
+    }
     return map;
   }
 
@@ -3823,6 +3963,13 @@ class ProductTypeEntry extends DataClass
       packagingJson: Value(packagingJson),
       sortOrder: Value(sortOrder),
       isArchived: Value(isArchived),
+      version: Value(version),
+      updatedAt: updatedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedAt),
+      updatedByDeviceId: updatedByDeviceId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(updatedByDeviceId),
     );
   }
 
@@ -3838,6 +3985,11 @@ class ProductTypeEntry extends DataClass
       packagingJson: serializer.fromJson<String>(json['packagingJson']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
+      version: serializer.fromJson<int>(json['version']),
+      updatedAt: serializer.fromJson<DateTime?>(json['updatedAt']),
+      updatedByDeviceId: serializer.fromJson<String?>(
+        json['updatedByDeviceId'],
+      ),
     );
   }
   @override
@@ -3850,6 +4002,9 @@ class ProductTypeEntry extends DataClass
       'packagingJson': serializer.toJson<String>(packagingJson),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'isArchived': serializer.toJson<bool>(isArchived),
+      'version': serializer.toJson<int>(version),
+      'updatedAt': serializer.toJson<DateTime?>(updatedAt),
+      'updatedByDeviceId': serializer.toJson<String?>(updatedByDeviceId),
     };
   }
 
@@ -3860,6 +4015,9 @@ class ProductTypeEntry extends DataClass
     String? packagingJson,
     int? sortOrder,
     bool? isArchived,
+    int? version,
+    Value<DateTime?> updatedAt = const Value.absent(),
+    Value<String?> updatedByDeviceId = const Value.absent(),
   }) => ProductTypeEntry(
     code: code ?? this.code,
     displayName: displayName ?? this.displayName,
@@ -3867,6 +4025,11 @@ class ProductTypeEntry extends DataClass
     packagingJson: packagingJson ?? this.packagingJson,
     sortOrder: sortOrder ?? this.sortOrder,
     isArchived: isArchived ?? this.isArchived,
+    version: version ?? this.version,
+    updatedAt: updatedAt.present ? updatedAt.value : this.updatedAt,
+    updatedByDeviceId: updatedByDeviceId.present
+        ? updatedByDeviceId.value
+        : this.updatedByDeviceId,
   );
   ProductTypeEntry copyWithCompanion(ProductTypesTableCompanion data) {
     return ProductTypeEntry(
@@ -3884,6 +4047,11 @@ class ProductTypeEntry extends DataClass
       isArchived: data.isArchived.present
           ? data.isArchived.value
           : this.isArchived,
+      version: data.version.present ? data.version.value : this.version,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      updatedByDeviceId: data.updatedByDeviceId.present
+          ? data.updatedByDeviceId.value
+          : this.updatedByDeviceId,
     );
   }
 
@@ -3895,7 +4063,10 @@ class ProductTypeEntry extends DataClass
           ..write('baseWeightGrams: $baseWeightGrams, ')
           ..write('packagingJson: $packagingJson, ')
           ..write('sortOrder: $sortOrder, ')
-          ..write('isArchived: $isArchived')
+          ..write('isArchived: $isArchived, ')
+          ..write('version: $version, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('updatedByDeviceId: $updatedByDeviceId')
           ..write(')'))
         .toString();
   }
@@ -3908,6 +4079,9 @@ class ProductTypeEntry extends DataClass
     packagingJson,
     sortOrder,
     isArchived,
+    version,
+    updatedAt,
+    updatedByDeviceId,
   );
   @override
   bool operator ==(Object other) =>
@@ -3918,7 +4092,10 @@ class ProductTypeEntry extends DataClass
           other.baseWeightGrams == this.baseWeightGrams &&
           other.packagingJson == this.packagingJson &&
           other.sortOrder == this.sortOrder &&
-          other.isArchived == this.isArchived);
+          other.isArchived == this.isArchived &&
+          other.version == this.version &&
+          other.updatedAt == this.updatedAt &&
+          other.updatedByDeviceId == this.updatedByDeviceId);
 }
 
 class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
@@ -3928,6 +4105,9 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
   final Value<String> packagingJson;
   final Value<int> sortOrder;
   final Value<bool> isArchived;
+  final Value<int> version;
+  final Value<DateTime?> updatedAt;
+  final Value<String?> updatedByDeviceId;
   final Value<int> rowid;
   const ProductTypesTableCompanion({
     this.code = const Value.absent(),
@@ -3936,6 +4116,9 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
     this.packagingJson = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.version = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.updatedByDeviceId = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductTypesTableCompanion.insert({
@@ -3945,6 +4128,9 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
     required String packagingJson,
     this.sortOrder = const Value.absent(),
     this.isArchived = const Value.absent(),
+    this.version = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.updatedByDeviceId = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : code = Value(code),
        displayName = Value(displayName),
@@ -3957,6 +4143,9 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
     Expression<String>? packagingJson,
     Expression<int>? sortOrder,
     Expression<bool>? isArchived,
+    Expression<int>? version,
+    Expression<DateTime>? updatedAt,
+    Expression<String>? updatedByDeviceId,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3966,6 +4155,9 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
       if (packagingJson != null) 'packaging_json': packagingJson,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (isArchived != null) 'is_archived': isArchived,
+      if (version != null) 'version': version,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (updatedByDeviceId != null) 'updated_by_device_id': updatedByDeviceId,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3977,6 +4169,9 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
     Value<String>? packagingJson,
     Value<int>? sortOrder,
     Value<bool>? isArchived,
+    Value<int>? version,
+    Value<DateTime?>? updatedAt,
+    Value<String?>? updatedByDeviceId,
     Value<int>? rowid,
   }) {
     return ProductTypesTableCompanion(
@@ -3986,6 +4181,9 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
       packagingJson: packagingJson ?? this.packagingJson,
       sortOrder: sortOrder ?? this.sortOrder,
       isArchived: isArchived ?? this.isArchived,
+      version: version ?? this.version,
+      updatedAt: updatedAt ?? this.updatedAt,
+      updatedByDeviceId: updatedByDeviceId ?? this.updatedByDeviceId,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -4011,6 +4209,15 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
     if (isArchived.present) {
       map['is_archived'] = Variable<bool>(isArchived.value);
     }
+    if (version.present) {
+      map['version'] = Variable<int>(version.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (updatedByDeviceId.present) {
+      map['updated_by_device_id'] = Variable<String>(updatedByDeviceId.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -4026,6 +4233,9 @@ class ProductTypesTableCompanion extends UpdateCompanion<ProductTypeEntry> {
           ..write('packagingJson: $packagingJson, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('isArchived: $isArchived, ')
+          ..write('version: $version, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('updatedByDeviceId: $updatedByDeviceId, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4097,6 +4307,7 @@ typedef $$ProductsTableTableCreateCompanionBuilder =
       required DateTime updatedAt,
       Value<bool> isDeleted,
       Value<int> version,
+      Value<bool> hasPendingLocalEdit,
       Value<int> rowid,
     });
 typedef $$ProductsTableTableUpdateCompanionBuilder =
@@ -4113,6 +4324,7 @@ typedef $$ProductsTableTableUpdateCompanionBuilder =
       Value<DateTime> updatedAt,
       Value<bool> isDeleted,
       Value<int> version,
+      Value<bool> hasPendingLocalEdit,
       Value<int> rowid,
     });
 
@@ -4246,6 +4458,11 @@ class $$ProductsTableTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get hasPendingLocalEdit => $composableBuilder(
+    column: $table.hasPendingLocalEdit,
+    builder: (column) => ColumnFilters(column),
+  );
+
   Expression<bool> compositionsTableRefs(
     Expression<bool> Function($$CompositionsTableTableFilterComposer f) f,
   ) {
@@ -4367,6 +4584,11 @@ class $$ProductsTableTableOrderingComposer
     column: $table.version,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get hasPendingLocalEdit => $composableBuilder(
+    column: $table.hasPendingLocalEdit,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProductsTableTableAnnotationComposer
@@ -4425,6 +4647,11 @@ class $$ProductsTableTableAnnotationComposer
 
   GeneratedColumn<int> get version =>
       $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<bool> get hasPendingLocalEdit => $composableBuilder(
+    column: $table.hasPendingLocalEdit,
+    builder: (column) => column,
+  );
 
   Expression<T> compositionsTableRefs<T extends Object>(
     Expression<T> Function($$CompositionsTableTableAnnotationComposer a) f,
@@ -4525,6 +4752,7 @@ class $$ProductsTableTableTableManager
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<bool> isDeleted = const Value.absent(),
                 Value<int> version = const Value.absent(),
+                Value<bool> hasPendingLocalEdit = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductsTableCompanion(
                 id: id,
@@ -4539,6 +4767,7 @@ class $$ProductsTableTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 version: version,
+                hasPendingLocalEdit: hasPendingLocalEdit,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4555,6 +4784,7 @@ class $$ProductsTableTableTableManager
                 required DateTime updatedAt,
                 Value<bool> isDeleted = const Value.absent(),
                 Value<int> version = const Value.absent(),
+                Value<bool> hasPendingLocalEdit = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductsTableCompanion.insert(
                 id: id,
@@ -4569,6 +4799,7 @@ class $$ProductsTableTableTableManager
                 updatedAt: updatedAt,
                 isDeleted: isDeleted,
                 version: version,
+                hasPendingLocalEdit: hasPendingLocalEdit,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
@@ -6446,6 +6677,9 @@ typedef $$ProductTypesTableTableCreateCompanionBuilder =
       required String packagingJson,
       Value<int> sortOrder,
       Value<bool> isArchived,
+      Value<int> version,
+      Value<DateTime?> updatedAt,
+      Value<String?> updatedByDeviceId,
       Value<int> rowid,
     });
 typedef $$ProductTypesTableTableUpdateCompanionBuilder =
@@ -6456,6 +6690,9 @@ typedef $$ProductTypesTableTableUpdateCompanionBuilder =
       Value<String> packagingJson,
       Value<int> sortOrder,
       Value<bool> isArchived,
+      Value<int> version,
+      Value<DateTime?> updatedAt,
+      Value<String?> updatedByDeviceId,
       Value<int> rowid,
     });
 
@@ -6495,6 +6732,21 @@ class $$ProductTypesTableTableFilterComposer
 
   ColumnFilters<bool> get isArchived => $composableBuilder(
     column: $table.isArchived,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get updatedByDeviceId => $composableBuilder(
+    column: $table.updatedByDeviceId,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -6537,6 +6789,21 @@ class $$ProductTypesTableTableOrderingComposer
     column: $table.isArchived,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get version => $composableBuilder(
+    column: $table.version,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get updatedByDeviceId => $composableBuilder(
+    column: $table.updatedByDeviceId,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ProductTypesTableTableAnnotationComposer
@@ -6571,6 +6838,17 @@ class $$ProductTypesTableTableAnnotationComposer
 
   GeneratedColumn<bool> get isArchived => $composableBuilder(
     column: $table.isArchived,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get version =>
+      $composableBuilder(column: $table.version, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get updatedByDeviceId => $composableBuilder(
+    column: $table.updatedByDeviceId,
     builder: (column) => column,
   );
 }
@@ -6621,6 +6899,9 @@ class $$ProductTypesTableTableTableManager
                 Value<String> packagingJson = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<String?> updatedByDeviceId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductTypesTableCompanion(
                 code: code,
@@ -6629,6 +6910,9 @@ class $$ProductTypesTableTableTableManager
                 packagingJson: packagingJson,
                 sortOrder: sortOrder,
                 isArchived: isArchived,
+                version: version,
+                updatedAt: updatedAt,
+                updatedByDeviceId: updatedByDeviceId,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6639,6 +6923,9 @@ class $$ProductTypesTableTableTableManager
                 required String packagingJson,
                 Value<int> sortOrder = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
+                Value<int> version = const Value.absent(),
+                Value<DateTime?> updatedAt = const Value.absent(),
+                Value<String?> updatedByDeviceId = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ProductTypesTableCompanion.insert(
                 code: code,
@@ -6647,6 +6934,9 @@ class $$ProductTypesTableTableTableManager
                 packagingJson: packagingJson,
                 sortOrder: sortOrder,
                 isArchived: isArchived,
+                version: version,
+                updatedAt: updatedAt,
+                updatedByDeviceId: updatedByDeviceId,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

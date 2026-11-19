@@ -17,6 +17,7 @@ class Product {
   final DateTime updatedAt;
   final bool isDeleted;
   final int version;
+  final bool hasPendingLocalEdit;
 
   const Product({
     required this.id,
@@ -33,6 +34,7 @@ class Product {
     required this.updatedAt,
     this.isDeleted = false,
     this.version = 1,
+    this.hasPendingLocalEdit = false,
   });
 
   String get effectiveUpdatedByDeviceId => updatedByDeviceId ?? createdByDeviceId;
@@ -54,6 +56,7 @@ class Product {
     DateTime? updatedAt,
     bool? isDeleted,
     int? version,
+    bool? hasPendingLocalEdit,
   }) {
     return Product(
       id: id ?? this.id,
@@ -71,6 +74,7 @@ class Product {
       updatedAt: updatedAt ?? this.updatedAt,
       isDeleted: isDeleted ?? this.isDeleted,
       version: version ?? this.version,
+      hasPendingLocalEdit: hasPendingLocalEdit ?? this.hasPendingLocalEdit,
     );
   }
 

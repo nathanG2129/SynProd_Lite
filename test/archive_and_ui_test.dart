@@ -228,6 +228,10 @@ class _FakeProductRepo implements ProductRepository {
   Future<void> saveConflictRecords(List<SyncConflictRecord> records) async {}
   @override
   Future<void> markConflictResolved(String conflictId) async {}
+  @override
+  Future<void> clearPendingLocalEdits(List<String> productIds) async {}
+  @override
+  Future<T> runInTransaction<T>(Future<T> Function() action) => action();
 }
 
 void main() {

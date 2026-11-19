@@ -114,7 +114,9 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<void> saveProduct(Product product) {
-    return db.transaction(() => _upsertProductInTransaction(product));
+    return db.transaction(
+      () => _upsertProductInTransaction(product, hasPendingLocalEdit: true),
+    );
   }
 
   @override
@@ -122,12 +124,15 @@ class ProductRepositoryImpl implements ProductRepository {
     if (products.isEmpty) return Future.value();
     return db.transaction(() async {
       for (final product in products) {
-        await _upsertProductInTransaction(product);
+        await _upsertProductInTransaction(product, hasPendingLocalEdit: false);
       }
     });
   }
 
-  Future<void> _upsertProductInTransaction(Product product) async {
+  Future<void> _upsertProductInTransaction(
+    Product product, {
+    required bool hasPendingLocalEdit,
+  }) async {
     await db.into(db.productsTable).insertOnConflictUpdate(
           ProductsTableCompanion.insert(
             id: product.id,
@@ -142,6 +147,7 @@ class ProductRepositoryImpl implements ProductRepository {
             updatedAt: product.updatedAt,
             isDeleted: Value(product.isDeleted),
             version: Value(product.version),
+            hasPendingLocalEdit: Value(hasPendingLocalEdit),
           ),
         );
 
@@ -199,6 +205,7 @@ class ProductRepositoryImpl implements ProductRepository {
         isDeleted: const Value(true),
         updatedAt: Value(DateTime.now()),
         version: Value(existing.version + 1),
+        hasPendingLocalEdit: const Value(true),
         updatedByDeviceId: deletedByDeviceId != null
             ? Value(deletedByDeviceId)
             : const Value.absent(),
@@ -225,6 +232,7 @@ class ProductRepositoryImpl implements ProductRepository {
         isDeleted: const Value(false),
         updatedAt: Value(DateTime.now()),
         version: Value(existing.version + 1),
+        hasPendingLocalEdit: const Value(true),
         updatedByDeviceId: restoredByDeviceId != null
             ? Value(restoredByDeviceId)
             : const Value.absent(),
@@ -339,6 +347,11 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<void> saveProductType(ProductType productType) async {
+    final existing = await (db.select(db.productTypesTable)
+          ..where((tbl) => tbl.code.equals(productType.code)))
+        .getSingleOrNull();
+    final nextVersion =
+        existing != null ? existing.version + 1 : productType.version;
     await db.into(db.productTypesTable).insertOnConflictUpdate(
           ProductTypesTableCompanion.insert(
             code: productType.code,
@@ -348,6 +361,9 @@ class ProductRepositoryImpl implements ProductRepository {
                 ProductType.encodePackagingList(productType.packagingOptions),
             sortOrder: Value(productType.sortOrder),
             isArchived: Value(productType.isArchived),
+            version: Value(nextVersion),
+            updatedAt: Value(productType.updatedAt ?? DateTime.now()),
+            updatedByDeviceId: Value(productType.updatedByDeviceId),
           ),
         );
   }
@@ -358,9 +374,7 @@ class ProductRepositoryImpl implements ProductRepository {
   ) async {
     if (productTypes.isEmpty) return;
     await db.transaction(() async {
-      await db.delete(db.productTypesTable).go();
-      for (var i = 0; i < productTypes.length; i++) {
-        final type = productTypes[i];
+      for (final type in productTypes) {
         await db.into(db.productTypesTable).insertOnConflictUpdate(
               ProductTypesTableCompanion.insert(
                 code: type.code,
@@ -370,6 +384,9 @@ class ProductRepositoryImpl implements ProductRepository {
                     ProductType.encodePackagingList(type.packagingOptions),
                 sortOrder: Value(type.sortOrder),
                 isArchived: Value(type.isArchived),
+                version: Value(type.version),
+                updatedAt: Value(type.updatedAt),
+                updatedByDeviceId: Value(type.updatedByDeviceId),
               ),
             );
       }
@@ -378,9 +395,19 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<void> setProductTypeArchived(String code, bool isArchived) async {
+    final existing = await (db.select(db.productTypesTable)
+          ..where((tbl) => tbl.code.equals(code)))
+        .getSingleOrNull();
+    if (existing == null) return;
     await (db.update(db.productTypesTable)
           ..where((tbl) => tbl.code.equals(code)))
-        .write(ProductTypesTableCompanion(isArchived: Value(isArchived)));
+        .write(
+      ProductTypesTableCompanion(
+        isArchived: Value(isArchived),
+        version: Value(existing.version + 1),
+        updatedAt: Value(DateTime.now()),
+      ),
+    );
   }
 
   @override
@@ -396,6 +423,9 @@ class ProductRepositoryImpl implements ProductRepository {
       packagingOptions: ProductType.decodePackagingList(row.packagingJson),
       sortOrder: row.sortOrder,
       isArchived: row.isArchived,
+      version: row.version,
+      updatedAt: row.updatedAt,
+      updatedByDeviceId: row.updatedByDeviceId,
     );
   }
 
@@ -419,7 +449,7 @@ class ProductRepositoryImpl implements ProductRepository {
     if (records.isEmpty) return;
     await db.transaction(() async {
       for (final r in records) {
-        await db.into(db.syncConflictsTable).insertOnConflictUpdate(
+        await db.into(db.syncConflictsTable).insert(
               SyncConflictsTableCompanion.insert(
                 id: r.id,
                 productId: r.productId,
@@ -434,6 +464,7 @@ class ProductRepositoryImpl implements ProductRepository {
                 occurredAt: r.occurredAt,
                 isResolved: Value(r.isResolved),
               ),
+              mode: InsertMode.insertOrIgnore,
             );
       }
     });
@@ -444,6 +475,19 @@ class ProductRepositoryImpl implements ProductRepository {
     await (db.update(db.syncConflictsTable)
           ..where((tbl) => tbl.id.equals(conflictId)))
         .write(const SyncConflictsTableCompanion(isResolved: Value(true)));
+  }
+
+  @override
+  Future<void> clearPendingLocalEdits(List<String> productIds) async {
+    if (productIds.isEmpty) return;
+    await (db.update(db.productsTable)
+          ..where((tbl) => tbl.id.isIn(productIds)))
+        .write(const ProductsTableCompanion(hasPendingLocalEdit: Value(false)));
+  }
+
+  @override
+  Future<T> runInTransaction<T>(Future<T> Function() action) {
+    return db.transaction(action);
   }
 
   SyncConflictRecord _mapToConflict(SyncConflictEntry row) {
@@ -482,6 +526,7 @@ class ProductRepositoryImpl implements ProductRepository {
       updatedAt: row.updatedAt,
       isDeleted: row.isDeleted,
       version: row.version,
+      hasPendingLocalEdit: row.hasPendingLocalEdit,
       compositions: compRows
           .map((c) => Composition(
                 componentName: c.componentName,

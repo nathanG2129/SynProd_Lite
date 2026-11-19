@@ -20,7 +20,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'synprod_lite'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -41,6 +41,13 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 5) {
             await m.addColumn(productTypesTable, productTypesTable.isArchived);
+          }
+          if (from < 6) {
+            await m.addColumn(productsTable, productsTable.hasPendingLocalEdit);
+            await m.addColumn(productTypesTable, productTypesTable.version);
+            await m.addColumn(productTypesTable, productTypesTable.updatedAt);
+            await m.addColumn(
+                productTypesTable, productTypesTable.updatedByDeviceId);
           }
         },
         beforeOpen: (details) async {

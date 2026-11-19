@@ -37,4 +37,6 @@ abstract class ProductRepository {
   Future<List<SyncConflictRecord>> getConflictHistory();
   Future<void> saveConflictRecords(List<SyncConflictRecord> records);
   Future<void> markConflictResolved(String conflictId);
+  Future<void> clearPendingLocalEdits(List<String> productIds);
+  Future<T> runInTransaction<T>(Future<T> Function() action);
 }
