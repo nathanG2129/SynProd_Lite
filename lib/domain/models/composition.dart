@@ -42,4 +42,18 @@ class Composition {
       sortOrder: (map['sortOrder'] as num?)?.toInt() ?? 0,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Composition &&
+          runtimeType == other.runtimeType &&
+          componentName == other.componentName &&
+          percentage == other.percentage &&
+          notes == other.notes &&
+          sortOrder == other.sortOrder;
+
+  @override
+  int get hashCode =>
+      Object.hash(componentName, percentage, notes, sortOrder);
 }

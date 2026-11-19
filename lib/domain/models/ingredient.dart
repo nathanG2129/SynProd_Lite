@@ -48,4 +48,19 @@ class AdditionalIngredient {
       sortOrder: (map['sortOrder'] as num?)?.toInt() ?? 0,
     );
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AdditionalIngredient &&
+          runtimeType == other.runtimeType &&
+          ingredientName == other.ingredientName &&
+          quantity == other.quantity &&
+          unit == other.unit &&
+          notes == other.notes &&
+          sortOrder == other.sortOrder;
+
+  @override
+  int get hashCode =>
+      Object.hash(ingredientName, quantity, unit, notes, sortOrder);
 }
