@@ -1,9 +1,11 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
+
 import '../../core/error/failures.dart';
-import '../../core/utils/uuid_generator.dart';
 import '../models/device.dart';
 import '../models/product.dart';
+import '../models/product_type.dart';
 import '../models/sync_models.dart';
 import 'product_validator.dart';
 
@@ -16,6 +18,7 @@ class SyncMergeEngine {
     required Device localDevice,
     required List<Device> localDevices,
     required List<Product> localProducts,
+    List<ProductType> localProductTypes = const [],
     required SyncSnapshot incoming,
   }) {
     final now = _now();
@@ -119,7 +122,13 @@ class SyncMergeEngine {
       if (permissionError != null) {
         newConflicts.add(
           SyncConflictRecord(
-            id: UuidGenerator.v4(),
+            id: _conflictId(
+              productId: remote.id,
+              type: SyncConflictType.permissionRejected,
+              losingDeviceId: modifierId,
+              losingVersion: remote.version,
+              losingUpdatedAt: remote.updatedAt,
+            ),
             productId: remote.id,
             productName: remote.name,
             conflictType: SyncConflictType.permissionRejected,
@@ -141,7 +150,13 @@ class SyncMergeEngine {
         if (validationError != null) {
           newConflicts.add(
             SyncConflictRecord(
-              id: UuidGenerator.v4(),
+              id: _conflictId(
+                productId: remote.id,
+                type: SyncConflictType.validationRejected,
+                losingDeviceId: modifierId,
+                losingVersion: remote.version,
+                losingUpdatedAt: remote.updatedAt,
+              ),
               productId: remote.id,
               productName: remote.name,
               conflictType: SyncConflictType.validationRejected,
@@ -168,16 +183,20 @@ class SyncMergeEngine {
 
       final comparison = _compareLww(remote, existing);
       final isTrueConcurrentConflict = localDevice.role.canCreateProduct &&
-          (remote.version == existing.version ||
-              (existing.effectiveUpdatedByDeviceId == localDevice.id &&
-                  remote.effectiveUpdatedByDeviceId != localDevice.id));
+          (remote.version == existing.version || existing.hasPendingLocalEdit);
       if (comparison > 0) {
         mergedProductMap[remote.id] = remote;
         productsToSave.add(remote);
         if (isTrueConcurrentConflict) {
           newConflicts.add(
             SyncConflictRecord(
-              id: UuidGenerator.v4(),
+              id: _conflictId(
+                productId: remote.id,
+                type: SyncConflictType.lwwOverwritten,
+                losingDeviceId: existing.effectiveUpdatedByDeviceId,
+                losingVersion: existing.version,
+                losingUpdatedAt: existing.updatedAt,
+              ),
               productId: remote.id,
               productName: remote.name,
               conflictType: SyncConflictType.lwwOverwritten,
@@ -195,7 +214,13 @@ class SyncMergeEngine {
       } else if (isTrueConcurrentConflict) {
         newConflicts.add(
           SyncConflictRecord(
-            id: UuidGenerator.v4(),
+            id: _conflictId(
+              productId: existing.id,
+              type: SyncConflictType.lwwOverwritten,
+              losingDeviceId: remote.effectiveUpdatedByDeviceId,
+              losingVersion: remote.version,
+              losingUpdatedAt: remote.updatedAt,
+            ),
             productId: existing.id,
             productName: existing.name,
             conflictType: SyncConflictType.lwwOverwritten,
@@ -234,7 +259,13 @@ class SyncMergeEngine {
 
         newConflicts.add(
           SyncConflictRecord(
-            id: UuidGenerator.v4(),
+            id: _conflictId(
+              productId: duplicate.id,
+              type: SyncConflictType.nameConflict,
+              losingDeviceId: duplicate.createdByDeviceId,
+              losingVersion: duplicate.version,
+              losingUpdatedAt: duplicate.createdAt,
+            ),
             productId: duplicate.id,
             productName: duplicate.name,
             conflictType: SyncConflictType.nameConflict,
@@ -251,15 +282,36 @@ class SyncMergeEngine {
       }
     }
 
-    final replaceProductTypes =
-        senderIsAdmin && incoming.productTypes.isNotEmpty;
+    final localTypeMap = <String, ProductType>{
+      for (final t in localProductTypes) t.code: t,
+    };
+    final productTypesToSave = <ProductType>[];
+    for (final remoteType in incoming.productTypes) {
+      final modifierId = remoteType.updatedByDeviceId;
+      final modifier = modifierId != null ? updatedDevicesMap[modifierId] : null;
+      final isAuthorizedTypeUpdate = modifier != null
+          ? (!modifier.isRevoked && modifier.role == DeviceRole.admin)
+          : senderIsAdmin;
+      if (!isAuthorizedTypeUpdate) continue;
+
+      final existingType = localTypeMap[remoteType.code];
+      if (existingType == null) {
+        productTypesToSave.add(remoteType);
+        continue;
+      }
+      if (_areProductTypesEquivalent(existingType, remoteType)) {
+        continue;
+      }
+      if (_compareProductTypeLww(remoteType, existingType) > 0) {
+        productTypesToSave.add(remoteType);
+      }
+    }
 
     return SyncMergeResult(
       updatedDevices: updatedDevicesMap.values.toList(),
       productsToSave: productsToSave,
-      productTypesToSave:
-          replaceProductTypes ? incoming.productTypes : const [],
-      replaceProductTypes: replaceProductTypes,
+      productTypesToSave: productTypesToSave,
+      replaceProductTypes: productTypesToSave.isNotEmpty,
       newConflicts: newConflicts,
       localDeviceRevoked: localDeviceRevoked,
     );
@@ -322,10 +374,60 @@ class SyncMergeEngine {
     return a.version == b.version &&
         a.isDeleted == b.isDeleted &&
         a.updatedAt.toUtc() == b.updatedAt.toUtc() &&
+        a.effectiveUpdatedByDeviceId == b.effectiveUpdatedByDeviceId &&
         a.name == b.name &&
         a.description == b.description &&
         a.productType == b.productType &&
-        a.compositions.length == b.compositions.length &&
-        a.additionalIngredients.length == b.additionalIngredients.length;
+        _listEquals(a.compositions, b.compositions) &&
+        _listEquals(a.additionalIngredients, b.additionalIngredients);
+  }
+
+  bool _areProductTypesEquivalent(ProductType a, ProductType b) {
+    return a.version == b.version &&
+        a.code == b.code &&
+        a.displayName == b.displayName &&
+        a.baseWeightGrams == b.baseWeightGrams &&
+        a.sortOrder == b.sortOrder &&
+        a.isArchived == b.isArchived &&
+        a.updatedAt?.toUtc() == b.updatedAt?.toUtc() &&
+        a.updatedByDeviceId == b.updatedByDeviceId &&
+        _listEquals(a.packagingOptions, b.packagingOptions);
+  }
+
+  int _compareProductTypeLww(ProductType a, ProductType b) {
+    if (a.version != b.version) {
+      return a.version.compareTo(b.version);
+    }
+    final aTime = a.updatedAt?.toUtc() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    final bTime = b.updatedAt?.toUtc() ?? DateTime.fromMillisecondsSinceEpoch(0, isUtc: true);
+    final timeCmp = aTime.compareTo(bTime);
+    if (timeCmp != 0) return timeCmp;
+    return a.code.compareTo(b.code);
+  }
+
+  bool _listEquals<T>(List<T> a, List<T> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  String _conflictId({
+    required String productId,
+    required SyncConflictType type,
+    required String losingDeviceId,
+    required int losingVersion,
+    required DateTime losingUpdatedAt,
+  }) {
+    final key = [
+      productId,
+      type.code,
+      losingDeviceId,
+      losingVersion.toString(),
+      losingUpdatedAt.toUtc().toIso8601String(),
+    ].join('|');
+    return sha256.convert(utf8.encode(key)).toString();
   }
 }
