@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:synprod_lite/core/services/p2p_sync_server.dart';
+import 'package:synprod_lite/core/services/sync_crypto_service.dart';
 import 'package:synprod_lite/domain/models/composition.dart';
 import 'package:synprod_lite/domain/models/device.dart';
 import 'package:synprod_lite/domain/models/product.dart';
@@ -123,10 +124,19 @@ class _InMemoryProductRepository implements ProductRepository {
       _productTypes;
   @override
   Future<void> saveProductType(ProductType productType) async {
+    final existing = _productTypes
+        .where((t) => t.code == productType.code)
+        .firstOrNull;
+    final toSave = existing != null
+        ? productType.copyWith(
+            version: existing.version + 1,
+            updatedAt: productType.updatedAt ?? DateTime.now(),
+          )
+        : productType;
     _productTypes = [
       for (final t in _productTypes)
-        if (t.code == productType.code) productType else t,
-      if (!_productTypes.any((t) => t.code == productType.code)) productType,
+        if (t.code == productType.code) toSave else t,
+      if (existing == null) toSave,
     ];
   }
 
@@ -134,8 +144,13 @@ class _InMemoryProductRepository implements ProductRepository {
   Future<void> applySyncedProductTypesAtomically(
     List<ProductType> productTypes,
   ) async {
-    if (productTypes.isNotEmpty) {
-      _productTypes = List<ProductType>.from(productTypes);
+    for (final incoming in productTypes) {
+      final idx = _productTypes.indexWhere((t) => t.code == incoming.code);
+      if (idx >= 0) {
+        _productTypes[idx] = incoming;
+      } else {
+        _productTypes.add(incoming);
+      }
     }
   }
 
@@ -160,6 +175,16 @@ class _InMemoryProductRepository implements ProductRepository {
   Future<void> saveConflictRecords(List<SyncConflictRecord> records) async {}
   @override
   Future<void> markConflictResolved(String conflictId) async {}
+  @override
+  Future<void> clearPendingLocalEdits(List<String> productIds) async {
+    for (var i = 0; i < _products.length; i++) {
+      if (productIds.contains(_products[i].id)) {
+        _products[i] = _products[i].copyWith(hasPendingLocalEdit: false);
+      }
+    }
+  }
+  @override
+  Future<T> runInTransaction<T>(Future<T> Function() action) => action();
 }
 
 void main() {
@@ -542,5 +567,257 @@ void main() {
       nonAdminPushResult.newConflicts.first.conflictType,
       SyncConflictType.permissionRejected,
     );
+  });
+
+  test('Linear sequential edit without hasPendingLocalEdit produces zero conflicts', () {
+    final now = DateTime.utc(2026, 5, 1, 10, 0);
+    final engine = SyncMergeEngine(now: () => now);
+    final admin = Device(
+      id: 'admin-1',
+      displayName: 'Admin',
+      role: DeviceRole.admin,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+    final manager = Device(
+      id: 'mgr-1',
+      displayName: 'Manager',
+      role: DeviceRole.manager,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+
+    final localV1 = Product(
+      id: 'prod-lin-1',
+      name: 'Mango Yogurt',
+      productType: ProductType.greekYogurt,
+      compositions: const [Composition(componentName: 'Base', percentage: 100)],
+      createdByDeviceId: manager.id,
+      createdByDisplayName: manager.displayName,
+      updatedByDeviceId: manager.id,
+      updatedByDisplayName: manager.displayName,
+      createdAt: now,
+      updatedAt: now,
+      version: 1,
+      hasPendingLocalEdit: false,
+    );
+
+    final remoteV2 = localV1.copyWith(
+      name: 'Mango Yogurt Deluxe',
+      updatedByDeviceId: admin.id,
+      updatedByDisplayName: admin.displayName,
+      updatedAt: now.add(const Duration(minutes: 2)),
+      version: 2,
+    );
+
+    final result = engine.merge(
+      localDevice: manager,
+      localDevices: [manager, admin],
+      localProducts: [localV1],
+      incoming: SyncSnapshot(
+        workspaceId: 'ws-1',
+        senderDeviceId: admin.id,
+        generatedAt: now.add(const Duration(minutes: 2)),
+        devices: [admin, manager],
+        products: [remoteV2],
+      ),
+    );
+
+    expect(result.productsToSave.length, 1);
+    expect(result.productsToSave.first.version, 2);
+    expect(result.newConflicts, isEmpty);
+  });
+
+  test('Conflict IDs are deterministic and deep equivalence detects value changes', () {
+    final now = DateTime.utc(2026, 5, 1, 10, 0);
+    final engine = SyncMergeEngine(now: () => now);
+    final admin = Device(
+      id: 'admin-1',
+      displayName: 'Admin',
+      role: DeviceRole.admin,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+    final manager = Device(
+      id: 'mgr-1',
+      displayName: 'Manager',
+      role: DeviceRole.manager,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+
+    final localProd = Product(
+      id: 'prod-det-1',
+      name: 'Berry Yogurt',
+      productType: ProductType.greekYogurt,
+      compositions: const [Composition(componentName: 'Milk', percentage: 100)],
+      createdByDeviceId: admin.id,
+      createdByDisplayName: admin.displayName,
+      updatedByDeviceId: admin.id,
+      updatedByDisplayName: admin.displayName,
+      createdAt: now,
+      updatedAt: now,
+      version: 2,
+      hasPendingLocalEdit: true,
+    );
+
+    final remoteChangedComp = localProd.copyWith(
+      compositions: const [Composition(componentName: 'Cream', percentage: 100)],
+      updatedByDeviceId: manager.id,
+      updatedByDisplayName: manager.displayName,
+    );
+
+    final res1 = engine.merge(
+      localDevice: admin,
+      localDevices: [admin, manager],
+      localProducts: [localProd],
+      incoming: SyncSnapshot(
+        workspaceId: 'ws-1',
+        senderDeviceId: manager.id,
+        generatedAt: now,
+        devices: [admin, manager],
+        products: [remoteChangedComp],
+      ),
+    );
+    final res2 = engine.merge(
+      localDevice: admin,
+      localDevices: [admin, manager],
+      localProducts: [localProd],
+      incoming: SyncSnapshot(
+        workspaceId: 'ws-1',
+        senderDeviceId: manager.id,
+        generatedAt: now,
+        devices: [admin, manager],
+        products: [remoteChangedComp],
+      ),
+    );
+
+    expect(res1.newConflicts.length, 1);
+    expect(res2.newConflicts.length, 1);
+    expect(res1.newConflicts.first.id, res2.newConflicts.first.id);
+  });
+
+  test('Transitive ProductType LWW gossip works across non-admin peers', () {
+    final now = DateTime.utc(2026, 5, 1, 10, 0);
+    final engine = SyncMergeEngine(now: () => now);
+    final admin = Device(
+      id: 'admin-1',
+      displayName: 'Admin',
+      role: DeviceRole.admin,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+    final manager = Device(
+      id: 'mgr-1',
+      displayName: 'Manager',
+      role: DeviceRole.manager,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+    final prodDev = Device(
+      id: 'prod-1',
+      displayName: 'Production',
+      role: DeviceRole.production,
+      pairedAt: now,
+      lastSeenAt: now,
+    );
+
+    final customType = ProductType(
+      code: 'KEFIR',
+      displayName: 'Kefir',
+      baseWeightGrams: 250,
+      packagingOptions: const [PackagingOption(unitName: 'Bottle', multiplier: 1)],
+      version: 2,
+      updatedAt: now,
+      updatedByDeviceId: admin.id,
+    );
+
+    final res = engine.merge(
+      localDevice: prodDev,
+      localDevices: [prodDev, manager, admin],
+      localProducts: const [],
+      localProductTypes: ProductType.defaults,
+      incoming: SyncSnapshot(
+        workspaceId: 'ws-1',
+        senderDeviceId: manager.id,
+        generatedAt: now,
+        devices: [manager, admin, prodDev],
+        products: const [],
+        productTypes: [customType],
+      ),
+    );
+
+    expect(res.replaceProductTypes, isTrue);
+    expect(res.productTypesToSave.map((t) => t.code), ['KEFIR']);
+  });
+
+  test('P2pSyncServer syncs cleanly even with 15-minute clock skew via challenge-response', () async {
+    final baseTime = DateTime.utc(2026, 5, 1, 10, 0);
+    final workspace = Workspace(
+      id: 'ws-skew',
+      name: 'Skew Factory',
+      workspaceKey: 'skew-secret-key',
+      createdAt: baseTime,
+    );
+    final admin = Device(
+      id: 'admin-skew',
+      displayName: 'Admin',
+      role: DeviceRole.admin,
+      pairedAt: baseTime,
+      lastSeenAt: baseTime,
+    );
+    final peer = Device(
+      id: 'peer-skew',
+      displayName: 'Peer',
+      role: DeviceRole.production,
+      pairedAt: baseTime,
+      lastSeenAt: baseTime,
+    );
+
+    final adminDevRepo = _InMemoryDeviceRepository();
+    final peerDevRepo = _InMemoryDeviceRepository();
+    await adminDevRepo.saveWorkspaceAndLocalDevice(
+      workspace: workspace,
+      localDevice: admin,
+      additionalDevices: [peer],
+    );
+    await peerDevRepo.saveWorkspaceAndLocalDevice(
+      workspace: workspace,
+      localDevice: peer,
+    );
+
+    final adminServer = P2pSyncServer(
+      deviceRepository: adminDevRepo,
+      productRepository: _InMemoryProductRepository(),
+      getLocalDeviceId: () => admin.id,
+      cryptoService: SyncCryptoService(now: () => baseTime),
+    );
+    final peerServer = P2pSyncServer(
+      deviceRepository: peerDevRepo,
+      productRepository: _InMemoryProductRepository(),
+      getLocalDeviceId: () => peer.id,
+      cryptoService: SyncCryptoService(
+        now: () => baseTime.add(const Duration(minutes: 15)),
+      ),
+    );
+
+    final adminPort = await adminServer.start(bindAddress: InternetAddress.loopbackIPv4);
+    await peerServer.start(bindAddress: InternetAddress.loopbackIPv4);
+    try {
+      final result = await peerServer.syncWithPeer(
+        DiscoveredPeer(
+          deviceId: admin.id,
+          displayName: admin.displayName,
+          workspaceId: workspace.id,
+          host: InternetAddress.loopbackIPv4.address,
+          port: adminPort,
+          discoveredAt: baseTime,
+        ),
+      );
+      expect(result.updatedDevices.map((d) => d.id), contains(admin.id));
+    } finally {
+      await adminServer.stop();
+      await peerServer.stop();
+    }
   });
 }
