@@ -109,8 +109,12 @@ class SyncController extends StateNotifier<SyncStatusState> {
       _peersSub = discovery.peersStream.listen((peers) {
         final previousIds = state.peers.map((p) => p.deviceId).toSet();
         state = state.copyWith(peers: peers);
-        final newlyFound =
-            peers.where((p) => !previousIds.contains(p.deviceId)).toList();
+        final localId = _ref.read(authControllerProvider).device?.id ?? device.id;
+        final newlyFound = peers
+            .where((p) =>
+                !previousIds.contains(p.deviceId) &&
+                localId.compareTo(p.deviceId) < 0)
+            .toList();
         if (newlyFound.isNotEmpty) {
           unawaited(_syncPeers(newlyFound, retryOnTimeout: true));
         }
