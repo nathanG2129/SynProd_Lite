@@ -226,6 +226,8 @@ jobs:
             exit 1
           }
           $version = "${{ needs.resolve-version.outputs.build_name }}"
+          $buildNumber = "${{ needs.resolve-version.outputs.build_number }}"
+          $fullVersion = "$version+$buildNumber"
           $tag = "${{ needs.resolve-version.outputs.tag_name }}"
           $exeName = "synprod_lite-$version-windows-x64-setup.exe"
           $exePath = "dist\windows\$exeName"
@@ -266,7 +268,7 @@ jobs:
               <item>
                 <title>Version $version</title>
                 <pubDate>$pubDate</pubDate>
-                <sparkle:version>$version</sparkle:version>
+                <sparkle:version>$fullVersion</sparkle:version>
                 <sparkle:shortVersionString>$version</sparkle:shortVersionString>
                 <sparkle:installerArguments>/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-</sparkle:installerArguments>
                 <enclosure url="$downloadUrl" sparkle:dsaSignature="$signature" length="$length" type="application/octet-stream" sparkle:os="windows" />
