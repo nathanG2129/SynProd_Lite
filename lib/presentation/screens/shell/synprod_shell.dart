@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/services/app_updater_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../providers/device_providers.dart';
 import '../../providers/sync_providers.dart';
@@ -22,6 +23,16 @@ class SynProdShell extends ConsumerStatefulWidget {
 
 class _SynProdShellState extends ConsumerState<SynProdShell> {
   _ShellSection _selectedSection = _ShellSection.recipes;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AppUpdaterService.checkForUpdates(context: context, inBackground: true);
+      }
+    });
+  }
 
   List<_ShellSection> _availableSections(bool canManageDevices) {
     return [

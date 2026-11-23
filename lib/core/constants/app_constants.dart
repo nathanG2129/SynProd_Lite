@@ -25,5 +25,7 @@ class AppConstants {
 
   static const String windowsAppcastUrl =
       'https://github.com/nathanG2129/SynProd_Lite/releases/latest/download/appcast.xml';
+  static const String githubLatestReleaseApiUrl =
+      'https://api.github.com/repos/nathanG2129/SynProd_Lite/releases/latest';
   static const int autoUpdateCheckIntervalSeconds = 86400;
 }
