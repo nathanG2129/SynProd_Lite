@@ -206,6 +206,76 @@ jobs:
             -DestinationPath "dist\windows\synprod_lite-$version-windows-x64.zip" `
             -Force
 
+      - name: Build Inno Setup installer
+        shell: pwsh
+        run: |
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc "/DMyAppVersion=${{ needs.resolve-version.outputs.build_name }}" "windows\packaging\synprod_lite.iss"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Sign Windows installer and generate appcast.xml
+        shell: pwsh
+        env:
+          AUTO_UPDATER_DSA_PRIVATE_KEY: ${{ secrets.AUTO_UPDATER_DSA_PRIVATE_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:AUTO_UPDATER_DSA_PRIVATE_KEY)) {
+            Write-Error "Missing required GitHub secret: AUTO_UPDATER_DSA_PRIVATE_KEY"
+            exit 1
+          }
+          $version = "${{ needs.resolve-version.outputs.build_name }}"
+          $tag = "${{ needs.resolve-version.outputs.tag_name }}"
+          $exeName = "synprod_lite-$version-windows-x64-setup.exe"
+          $exePath = "dist\windows\$exeName"
+          if (-not (Test-Path $exePath)) {
+            Write-Error "Installer not found at $exePath"
+            exit 1
+          }
+
+          $privKeyPath = Join-Path $PWD "dsa_priv.pem"
+          Set-Content -Path $privKeyPath -Value $env:AUTO_UPDATER_DSA_PRIVATE_KEY -NoNewline
+          try {
+            if (-not (Get-Command openssl -ErrorAction SilentlyContinue) -and (Test-Path "C:\Program Files\Git\usr\bin\openssl.exe")) {
+              $env:PATH = "C:\Program Files\Git\usr\bin;$env:PATH"
+            }
+            $signBat = "windows\flutter\ephemeral\.plugin_symlinks\auto_updater_windows\windows\WinSparkle-0.8.1\bin\sign_update.bat"
+            $signature = (& $signBat $exePath $privKeyPath | Out-String).Trim()
+            if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($signature)) {
+              Write-Error "Failed to sign Windows installer"
+              exit 1
+            }
+          } finally {
+            Remove-Item -Path $privKeyPath -Force -ErrorAction SilentlyContinue
+          }
+
+          $length = (Get-Item $exePath).Length
+          $pubDate = (Get-Date).ToUniversalTime().ToString("r")
+          $downloadUrl = "https://github.com/${{ github.repository }}/releases/download/$tag/$exeName"
+          $feedUrl = "https://github.com/${{ github.repository }}/releases/latest/download/appcast.xml"
+
+          $appcast = @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+            <channel>
+              <title>SynProd Lite Updates</title>
+              <link>$feedUrl</link>
+              <description>SynProd Lite Windows releases</description>
+              <language>en</language>
+              <item>
+                <title>Version $version</title>
+                <pubDate>$pubDate</pubDate>
+                <sparkle:version>$version</sparkle:version>
+                <sparkle:shortVersionString>$version</sparkle:shortVersionString>
+                <sparkle:installerArguments>/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-</sparkle:installerArguments>
+                <enclosure url="$downloadUrl" sparkle:dsaSignature="$signature" length="$length" type="application/octet-stream" sparkle:os="windows" />
+              </item>
+            </channel>
+          </rss>
+          "@
+          Set-Content -Path "dist\windows\appcast.xml" -Value $appcast -Encoding UTF8
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:

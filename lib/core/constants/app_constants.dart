@@ -22,4 +22,8 @@ class AppConstants {
     'tsp',
     'tbsp',
   ];
+
+  static const String windowsAppcastUrl =
+      'https://github.com/nathanG2129/SynProd_Lite/releases/latest/download/appcast.xml';
+  static const int autoUpdateCheckIntervalSeconds = 86400;
 }

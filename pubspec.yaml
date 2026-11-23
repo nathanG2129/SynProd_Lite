@@ -64,6 +64,9 @@ dependencies:
   # P2P Local Wi-Fi Discovery (Phase 5)
   nsd: ^4.0.3
 
+  # Windows Auto-Updater (WinSparkle)
+  auto_updater: ^1.0.0
+
   cupertino_ui: any
   material_ui: any
 dev_dependencies:

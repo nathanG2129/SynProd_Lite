@@ -3,9 +3,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/services/app_updater_service.dart';
 import '../../../core/services/workspace_backup_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../domain/models/device.dart';
@@ -794,6 +796,17 @@ class _DeviceProfileScreenState extends ConsumerState<DeviceProfileScreen> {
             onChanged: _toggleBiometric,
           ),
         const Divider(),
+        if (!kIsWeb && Platform.isWindows) ...[
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.system_update_alt_outlined),
+            title: const Text('Check for Updates'),
+            subtitle: const Text('Check GitHub Releases for a newer version'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: AppUpdaterService.checkForUpdates,
+          ),
+          const Divider(),
+        ],
         _buildActionTile(
           icon: Icons.logout,
           title: 'Log Out',
