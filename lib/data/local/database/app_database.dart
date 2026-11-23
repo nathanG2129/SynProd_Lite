@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:path_provider/path_provider.dart';
 
 import 'tables.dart';
 
@@ -17,7 +20,46 @@ part 'app_database.g.dart';
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
-      : super(executor ?? driftDatabase(name: 'synprod_lite'));
+      : super(
+          executor ??
+              driftDatabase(
+                name: 'synprod_lite',
+                native: DriftNativeOptions(
+                  databaseDirectory: _resolveDatabaseDirectory,
+                ),
+              ),
+        );
+
+  static Future<Directory> _resolveDatabaseDirectory() async {
+    if (!Platform.isWindows) {
+      return getApplicationDocumentsDirectory();
+    }
+
+    final supportDir = await getApplicationSupportDirectory();
+    await supportDir.create(recursive: true);
+
+    const dbBaseName = 'synprod_lite.sqlite';
+    final targetDb = File('${supportDir.path}${Platform.pathSeparator}$dbBaseName');
+    if (!await targetDb.exists()) {
+      final docsDir = await getApplicationDocumentsDirectory();
+      for (final suffix in ['', '-wal', '-shm']) {
+        final fileName = '$dbBaseName$suffix';
+        final legacyFile = File('${docsDir.path}${Platform.pathSeparator}$fileName');
+        if (await legacyFile.exists()) {
+          final destPath = '${supportDir.path}${Platform.pathSeparator}$fileName';
+          try {
+            await legacyFile.rename(destPath);
+          } on FileSystemException {
+            // Fall back to copy + delete when Documents and AppData are on different volumes.
+            await legacyFile.copy(destPath);
+            await legacyFile.delete();
+          }
+        }
+      }
+    }
+
+    return supportDir;
+  }
 
   @override
   int get schemaVersion => 6;
